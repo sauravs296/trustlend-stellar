@@ -20,8 +20,8 @@ export default function AuthPage() {
 
 function AuthPageSkeleton() {
   return (
-    <main className="auth-page-shell">
-      <div className="auth-page-card auth-page-card--loading" aria-busy="true" aria-label="Loading authentication" />
+    <main className="grid min-h-screen place-items-center bg-bg" aria-busy="true" aria-label="Loading authentication">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
     </main>
   );
 }

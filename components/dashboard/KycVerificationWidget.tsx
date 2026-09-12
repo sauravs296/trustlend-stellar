@@ -43,10 +43,10 @@ type WidgetPhase =
   | "error";
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  pending:   { bg: "rgba(107,114,128,0.06)",  color: "#6b7280", border: "rgba(107,114,128,0.2)" },
-  submitted: { bg: "rgba(126,47,208,0.08)",   color: "#7e2fd0", border: "rgba(126,47,208,0.25)" },
-  verified:  { bg: "rgba(22,160,122,0.08)",   color: "#16a07a", border: "rgba(22,160,122,0.25)" },
-  rejected:  { bg: "rgba(220,38,38,0.08)",    color: "#dc2626", border: "rgba(220,38,38,0.25)" },
+  pending:   { bg: "color-mix(in srgb, var(--fg-muted) 6%, transparent)",  color: "var(--fg-muted)", border: "color-mix(in srgb, var(--fg-muted) 20%, transparent)" },
+  submitted: { bg: "color-mix(in srgb, var(--primary) 8%, transparent)",   color: "var(--primary)", border: "color-mix(in srgb, var(--primary) 25%, transparent)" },
+  verified:  { bg: "color-mix(in srgb, var(--accent) 8%, transparent)",   color: "var(--accent-hover)", border: "color-mix(in srgb, var(--accent) 25%, transparent)" },
+  rejected:  { bg: "color-mix(in srgb, var(--danger) 8%, transparent)",    color: "var(--danger)", border: "color-mix(in srgb, var(--danger) 25%, transparent)" },
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -186,16 +186,16 @@ export function KycVerificationWidget({
         style={{
           padding: "1.25rem",
           borderRadius: "0.75rem",
-          background: "rgba(22,160,122,0.06)",
-          border: "1px solid rgba(22,160,122,0.2)",
+          background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
           textAlign: "center",
         }}
       >
         <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>✅</div>
-        <p style={{ fontWeight: 700, color: "#16a07a", fontSize: "0.95rem", marginBottom: "0.25rem" }}>
+        <p style={{ fontWeight: 700, color: "var(--accent-hover)", fontSize: "0.95rem", marginBottom: "0.25rem" }}>
           Identity Verified
         </p>
-        <p style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+        <p style={{ fontSize: "0.8rem", color: "var(--fg)" }}>
           Your identity has been successfully verified. You now have full access to all lending pools.
         </p>
       </div>
@@ -209,17 +209,17 @@ export function KycVerificationWidget({
         style={{
           padding: "1.25rem",
           borderRadius: "0.75rem",
-          background: "rgba(126,47,208,0.06)",
-          border: "1px solid rgba(126,47,208,0.2)",
+          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
           <span style={{ fontSize: "1.5rem" }}>🔍</span>
           <div>
-            <p style={{ fontWeight: 700, color: "#7e2fd0", fontSize: "0.9rem" }}>
+            <p style={{ fontWeight: 700, color: "var(--primary)", fontSize: "0.9rem" }}>
               Under Review
             </p>
-            <p style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)" }}>
               Your documents are being reviewed. Usually 1–2 business days.
             </p>
           </div>
@@ -228,7 +228,7 @@ export function KycVerificationWidget({
           style={{
             height: "4px",
             borderRadius: "2px",
-            background: "rgba(126,47,208,0.15)",
+            background: "color-mix(in srgb, var(--primary) 15%, transparent)",
             overflow: "hidden",
           }}
         >
@@ -236,7 +236,7 @@ export function KycVerificationWidget({
             style={{
               height: "100%",
               width: "65%",
-              background: "linear-gradient(90deg, #7e2fd0, #22cf9d)",
+              background: "linear-gradient(90deg, var(--primary), var(--accent))",
               borderRadius: "2px",
               animation: "pulse 2s ease-in-out infinite",
             }}
@@ -254,17 +254,17 @@ export function KycVerificationWidget({
         style={{
           padding: "1.25rem",
           borderRadius: "0.75rem",
-          background: "rgba(220,38,38,0.06)",
-          border: "1px solid rgba(220,38,38,0.2)",
+          background: "color-mix(in srgb, var(--danger) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--danger) 20%, transparent)",
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "1rem" }}>
           <span style={{ fontSize: "1.5rem" }}>❌</span>
           <div>
-            <p style={{ fontWeight: 700, color: "#dc2626", fontSize: "0.9rem" }}>
+            <p style={{ fontWeight: 700, color: "var(--danger)", fontSize: "0.9rem" }}>
               Verification Required
             </p>
-            <p style={{ fontSize: "0.78rem", color: "#6b7280", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)", lineHeight: 1.5 }}>
               Your previous submission was rejected. Please re-submit with a clear, valid government-issued ID.
             </p>
           </div>
@@ -276,8 +276,8 @@ export function KycVerificationWidget({
             width: "100%",
             padding: "0.65rem 1rem",
             borderRadius: "0.5rem",
-            background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
-            color: "#fff",
+            background: "linear-gradient(135deg, var(--danger) 0%, var(--danger) 100%)",
+            color: "var(--primary-fg)",
             fontWeight: 600,
             fontSize: "0.85rem",
             border: "none",
@@ -297,26 +297,26 @@ export function KycVerificationWidget({
         style={{
           padding: "1.25rem",
           borderRadius: "0.75rem",
-          background: "rgba(126,47,208,0.04)",
-          border: "1px dashed rgba(126,47,208,0.3)",
+          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+          border: "1px dashed color-mix(in srgb, var(--primary) 30%, transparent)",
         }}
       >
         <p
           style={{
             fontSize: "0.72rem",
             fontWeight: 700,
-            color: "#7e2fd0",
+            color: "var(--primary)",
             textTransform: "uppercase",
             marginBottom: "0.75rem",
           }}
         >
           🧪 Development Mode — KYC Simulator
         </p>
-        <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "1rem", lineHeight: 1.6 }}>
+        <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginBottom: "1rem", lineHeight: 1.6 }}>
           In production, the SumSub Web SDK iframe loads here. Set{" "}
           <code
             style={{
-              background: "rgba(126,47,208,0.08)",
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
               padding: "0.1em 0.35em",
               borderRadius: "3px",
               fontSize: "0.78rem",
@@ -327,7 +327,7 @@ export function KycVerificationWidget({
           and{" "}
           <code
             style={{
-              background: "rgba(126,47,208,0.08)",
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
               padding: "0.1em 0.35em",
               borderRadius: "3px",
               fontSize: "0.78rem",
@@ -348,11 +348,11 @@ export function KycVerificationWidget({
               flex: 1,
               padding: "0.55rem",
               borderRadius: "0.4rem",
-              background: "rgba(22,160,122,0.1)",
-              color: "#16a07a",
+              background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+              color: "var(--accent-hover)",
               fontWeight: 600,
               fontSize: "0.8rem",
-              border: "1px solid rgba(22,160,122,0.3)",
+              border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
               cursor: "pointer",
             }}
           >
@@ -368,11 +368,11 @@ export function KycVerificationWidget({
               flex: 1,
               padding: "0.55rem",
               borderRadius: "0.4rem",
-              background: "rgba(220,38,38,0.1)",
-              color: "#dc2626",
+              background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+              color: "var(--danger)",
               fontWeight: 600,
               fontSize: "0.8rem",
-              border: "1px solid rgba(220,38,38,0.3)",
+              border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
               cursor: "pointer",
             }}
           >
@@ -393,7 +393,7 @@ export function KycVerificationWidget({
           minHeight: "400px",
           borderRadius: "0.75rem",
           overflow: "hidden",
-          border: "1px solid rgba(126,47,208,0.15)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
         }}
       />
     );
@@ -406,14 +406,14 @@ export function KycVerificationWidget({
         style={{
           padding: "1rem",
           borderRadius: "0.75rem",
-          background: "rgba(220,38,38,0.06)",
-          border: "1px solid rgba(220,38,38,0.2)",
+          background: "color-mix(in srgb, var(--danger) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--danger) 20%, transparent)",
         }}
       >
-        <p style={{ fontSize: "0.85rem", color: "#dc2626", fontWeight: 600, marginBottom: "0.5rem" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--danger)", fontWeight: 600, marginBottom: "0.5rem" }}>
           ⚠️ Verification Error
         </p>
-        <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "0.75rem" }}>
+        <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginBottom: "0.75rem" }}>
           {error}
         </p>
         <button
@@ -422,11 +422,11 @@ export function KycVerificationWidget({
           style={{
             padding: "0.55rem 1rem",
             borderRadius: "0.4rem",
-            background: "rgba(220,38,38,0.1)",
-            color: "#dc2626",
+            background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+            color: "var(--danger)",
             fontWeight: 600,
             fontSize: "0.8rem",
-            border: "1px solid rgba(220,38,38,0.3)",
+            border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
             cursor: "pointer",
           }}
         >
@@ -443,8 +443,8 @@ export function KycVerificationWidget({
         style={{
           padding: "1.5rem",
           borderRadius: "0.75rem",
-          background: "rgba(126,47,208,0.04)",
-          border: "1px solid rgba(126,47,208,0.12)",
+          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
           textAlign: "center",
         }}
       >
@@ -453,14 +453,14 @@ export function KycVerificationWidget({
             width: "28px",
             height: "28px",
             borderRadius: "50%",
-            border: "3px solid rgba(126,47,208,0.2)",
-            borderTop: "3px solid #7e2fd0",
+            border: "3px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            borderTop: "3px solid var(--primary)",
             animation: "spin 0.8s linear infinite",
             margin: "0 auto 0.75rem",
           }}
         />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <p style={{ fontSize: "0.85rem", color: "#7e2fd0", fontWeight: 600 }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600 }}>
           Initialising verification…
         </p>
       </div>
@@ -493,7 +493,7 @@ export function KycVerificationWidget({
             KYC Status · {label}
           </p>
           {kycProviderId && (
-            <p style={{ fontSize: "0.72rem", color: "#9ca3af", margin: 0, marginTop: "0.1rem" }}>
+            <p style={{ fontSize: "0.72rem", color: "var(--fg-subtle)", margin: 0, marginTop: "0.1rem" }}>
               Ref: {kycProviderId.slice(0, 16)}…
             </p>
           )}
@@ -505,12 +505,12 @@ export function KycVerificationWidget({
         style={{
           padding: "0.85rem",
           borderRadius: "0.5rem",
-          background: "rgba(126,47,208,0.03)",
-          border: "1px dashed rgba(126,47,208,0.2)",
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
           marginBottom: "1rem",
         }}
       >
-        <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#7e2fd0", marginBottom: "0.35rem" }}>
+        <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--primary)", marginBottom: "0.35rem" }}>
           What you&apos;ll need:
         </p>
         <ul
@@ -518,7 +518,7 @@ export function KycVerificationWidget({
             margin: 0,
             paddingLeft: "1.25rem",
             fontSize: "0.78rem",
-            color: "#6b7280",
+            color: "var(--fg-muted)",
             lineHeight: 1.8,
           }}
         >
@@ -536,8 +536,8 @@ export function KycVerificationWidget({
           width: "100%",
           padding: "0.75rem 1rem",
           borderRadius: "0.6rem",
-          background: "linear-gradient(135deg, #7e2fd0 0%, #22cf9d 100%)",
-          color: "#fff",
+          background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
+          color: "var(--primary-fg)",
           fontWeight: 700,
           fontSize: "0.9rem",
           border: "none",
@@ -554,7 +554,7 @@ export function KycVerificationWidget({
       <p
         style={{
           fontSize: "0.72rem",
-          color: "#9ca3af",
+          color: "var(--fg-subtle)",
           textAlign: "center",
           marginTop: "0.65rem",
           lineHeight: 1.5,

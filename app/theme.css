@@ -1,0 +1,211 @@
+/*
+ * app/theme.css — TrustLend design tokens
+ *
+ * Every colour in the app resolves to one of these variables, so light and
+ * dark themes are just two token sets. `next-themes` toggles the `.dark`
+ * class on <html>; the default is the user's system preference.
+ *
+ * Tailwind v4 reads the `@theme inline` block below, which turns the tokens
+ * into utilities: `bg-surface`, `text-fg-muted`, `border-border`,
+ * `bg-primary`, `text-success`, `rounded-card`, `shadow-card`, …
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f6f7fb;
+  --bg-subtle: #eef0f6;
+  --surface: #ffffff;
+  --surface-2: #f3f4f9;
+  --surface-hover: #f8f9fc;
+  --overlay: rgb(15 23 42 / 0.55);
+
+  /* Lines */
+  --border: #e4e7ef;
+  --border-strong: #cdd2df;
+
+  /* Text */
+  --fg: #0f172a;
+  --fg-muted: #5b6478;
+  --fg-subtle: #8a93a8;
+  --fg-inverse: #ffffff;
+
+  /* Brand */
+  --primary: #5b50f6;
+  --primary-hover: #4a3fe0;
+  --primary-muted: #8b84ff;
+  --primary-fg: #ffffff;
+  --primary-soft: #eceafe;
+  --primary-soft-fg: #3f34c9;
+
+  /* Accent (growth / trust) */
+  --accent: #12b886;
+  --accent-hover: #0ea371;
+  --accent-fg: #ffffff;
+  --accent-soft: #e2f8ef;
+  --accent-soft-fg: #0b7a56;
+
+  /* Semantic */
+  --success: #12b886;
+  --success-soft: #e2f8ef;
+  --success-soft-fg: #0b7a56;
+  --warning: #e8960c;
+  --warning-soft: #fdf1dc;
+  --warning-soft-fg: #9a5b00;
+  --danger: #e5484d;
+  --danger-soft: #fde8e9;
+  --danger-soft-fg: #b3261e;
+  --info: #3b82f6;
+  --info-soft: #e5efff;
+  --info-soft-fg: #1d4ed8;
+
+  /* Charts */
+  --chart-1: #5b50f6;
+  --chart-2: #12b886;
+  --chart-3: #e8960c;
+  --chart-4: #3b82f6;
+  --chart-5: #e5484d;
+
+  /* Focus */
+  --ring: #5b50f6;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --shadow-lg: 0 12px 40px -12px rgb(15 23 42 / 0.25);
+  --shadow-glow: 0 0 0 1px rgb(91 80 246 / 0.15), 0 16px 48px -16px rgb(91 80 246 / 0.5);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #5b50f6 0%, #12b886 100%);
+  --gradient-primary: linear-gradient(135deg, #6a5ffb 0%, #4a3fe0 100%);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg: #0a0d14;
+  --bg-subtle: #0e1220;
+  --surface: #121727;
+  --surface-2: #181e31;
+  --surface-hover: #1b2238;
+  --overlay: rgb(2 6 23 / 0.7);
+
+  --border: #222a40;
+  --border-strong: #303a56;
+
+  --fg: #eef1f8;
+  --fg-muted: #a3accc;
+  --fg-subtle: #6d7799;
+  --fg-inverse: #0a0d14;
+
+  --primary: #8b84ff;
+  --primary-hover: #a19bff;
+  --primary-muted: #6a63d9;
+  --primary-fg: #0a0d14;
+  --primary-soft: #221f4d;
+  --primary-soft-fg: #c4c0ff;
+
+  --accent: #2dd4a4;
+  --accent-hover: #4fe0b7;
+  --accent-fg: #0a0d14;
+  --accent-soft: #10312a;
+  --accent-soft-fg: #8ff0cf;
+
+  --success: #2dd4a4;
+  --success-soft: #10312a;
+  --success-soft-fg: #8ff0cf;
+  --warning: #f5b34b;
+  --warning-soft: #3a2a0f;
+  --warning-soft-fg: #ffd58a;
+  --danger: #ff6b70;
+  --danger-soft: #3d1a1c;
+  --danger-soft-fg: #ffb3b6;
+  --info: #6ea2ff;
+  --info-soft: #172448;
+  --info-soft-fg: #b6cdff;
+
+  --chart-1: #8b84ff;
+  --chart-2: #2dd4a4;
+  --chart-3: #f5b34b;
+  --chart-4: #6ea2ff;
+  --chart-5: #ff6b70;
+
+  --ring: #8b84ff;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 16px 48px -12px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 0 0 1px rgb(139 132 255 / 0.25), 0 16px 48px -16px rgb(139 132 255 / 0.45);
+
+  --gradient-brand: linear-gradient(135deg, #8b84ff 0%, #2dd4a4 100%);
+  --gradient-primary: linear-gradient(135deg, #8b84ff 0%, #5b50f6 100%);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-overlay: var(--overlay);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverse: var(--fg-inverse);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-muted: var(--primary-muted);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-fg: var(--primary-soft-fg);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-fg: var(--success-soft-fg);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-fg: var(--info-soft-fg);
+
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-card: var(--radius-lg);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-card: var(--shadow-card);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+}

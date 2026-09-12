@@ -29,9 +29,9 @@ interface LoanMarketplaceProps {
 
 function TrustBadge({ score }: { score: number }) {
   const color =
-    score >= 200 ? "#22cf9d" :
-    score >= 100 ? "#f5a623" :
-    "#ff6b6b";
+    score >= 200 ? "var(--accent)" :
+    score >= 100 ? "var(--warning)" :
+    "var(--danger)";
   const label =
     score >= 200 ? "Good" :
     score >= 100 ? "Fair" :
@@ -48,9 +48,9 @@ function TrustBadge({ score }: { score: number }) {
         borderRadius: "9999px",
         fontSize: "0.75rem",
         fontWeight: 700,
-        background: `${color}1a`,
+        background: `color-mix(in srgb, ${color} 10%, transparent)`,
         color,
-        border: `1px solid ${color}44`,
+        border: `1px solid color-mix(in srgb, ${color} 27%, transparent)`,
         whiteSpace: "nowrap",
       }}
     >
@@ -74,7 +74,7 @@ export function LoanMarketplace({
           textAlign: "center",
           padding: "2rem",
           opacity: 0.55,
-          border: "1px dashed rgba(255,255,255,0.1)",
+          border: "1px dashed color-mix(in srgb, var(--fg) 10%, transparent)",
           borderRadius: "0.75rem",
         }}
       >
@@ -128,22 +128,22 @@ export function LoanMarketplace({
               <Fragment key={loan.id}>
                 <tr
                   style={{
-                    background: isExpanded ? "rgba(126,47,208,0.06)" : undefined,
+                    background: isExpanded ? "color-mix(in srgb, var(--primary) 6%, transparent)" : undefined,
                     transition: "all 0.25s ease",
                     cursor: hasWallet ? "pointer" : "default",
                   }}
                   onClick={() => hasWallet && setExpandedId(isExpanded ? null : loan.id)}
                 >
-                  <td style={{ fontFamily: "monospace", fontSize: "0.82rem", color: "#666" }}>
+                  <td style={{ fontFamily: "monospace", fontSize: "0.82rem", color: "var(--fg-muted)" }}>
                     {loan.id.slice(0, 8)}
                   </td>
-                  <td style={{ fontWeight: 600, color: "#111" }}>{loan.borrower_name}</td>
+                  <td style={{ fontWeight: 600, color: "var(--fg)" }}>{loan.borrower_name}</td>
                   <td><TrustBadge score={loan.trust_score} /></td>
                   <td>
-                    <strong style={{ fontSize: "1rem", color: "#111" }}>
+                    <strong style={{ fontSize: "1rem", color: "var(--fg)" }}>
                       {loan.principal_amount.toFixed(2)}
                     </strong>{" "}
-                    <span style={{ fontSize: "0.75rem", opacity: 0.6, color: "#444" }}>XLM</span>
+                    <span style={{ fontSize: "0.75rem", opacity: 0.6, color: "var(--fg)" }}>XLM</span>
                   </td>
                   <td>
                     <FundingProgressBar
@@ -153,17 +153,17 @@ export function LoanMarketplace({
                       compact
                     />
                   </td>
-                  <td style={{ fontWeight: 600, color: "#111" }}>
+                  <td style={{ fontWeight: 600, color: "var(--fg)" }}>
                     {(loan.apr_bps / 100).toFixed(2)}%
                   </td>
-                  <td style={{ color: "#444" }}>{loan.duration_days} days</td>
-                  <td style={{ color: "#22cf9d", fontWeight: 700 }}>
+                  <td style={{ color: "var(--fg)" }}>{loan.duration_days} days</td>
+                  <td style={{ color: "var(--accent)", fontWeight: 700 }}>
                     +{interestXlm} <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>XLM</span>
                   </td>
                   <td>
                     {!hasWallet ? (
                       <span
-                        style={{ fontSize: "0.75rem", color: "#ff9966", opacity: 0.9, fontWeight: 600 }}
+                        style={{ fontSize: "0.75rem", color: "var(--warning)", opacity: 0.9, fontWeight: 600 }}
                         title="Borrower has not connected a Stellar wallet yet"
                       >
                         No wallet
@@ -194,9 +194,9 @@ export function LoanMarketplace({
                       colSpan={9}
                       style={{
                         padding: "1.5rem 1rem",
-                        background: "#fafafa",
-                        borderBottom: "1px solid rgba(126, 47, 208, 0.15)",
-                        borderTop: "1px solid rgba(126, 47, 208, 0.1)",
+                        background: "var(--surface-2)",
+                        borderBottom: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                        borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                       }}
                     >
                       <div style={{ animation: "fadeInUp 0.3s ease-out" }}>

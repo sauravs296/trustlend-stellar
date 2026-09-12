@@ -1,9 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, X } from "lucide-react";
 import type { NavItem } from "@/types/landing";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { buttonClasses } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
+import { EASE_OUT } from "@/lib/motion";
 
 interface SiteHeaderProps {
   items: NavItem[];
@@ -11,103 +17,107 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ items, isAuthenticated = false }: SiteHeaderProps) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const cta = isAuthenticated
+    ? { href: "/dashboard", label: "Open dashboard" }
+    : { href: "/auth", label: "Sign in with wallet" };
+
   return (
     <motion.header
-      className="site-header sticky top-0 z-30"
-      initial={{ opacity: 0, y: -50 }}
+      className={cn(
+        "sticky top-0 z-40 border-b transition-colors duration-300",
+        scrolled ? "border-border bg-bg/85 backdrop-blur-md" : "border-transparent bg-transparent",
+      )}
+      initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: EASE_OUT }}
     >
-      <div className="crypto-container site-header-row">
-        <motion.a
-          href="#home"
-          className="site-logo-wrap"
-          aria-label="TrustLend home"
-          whileHover={{ scale: 1.05 }}
-          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-        >
-          <Image
-            src="/logo.png"
-            alt="TrustLend Logo"
-            width={56}
-            height={56}
-            priority
-            style={{ width: "56px", height: "56px", borderRadius: "50%", objectFit: "cover" }}
-          />
-          <span>
-            <strong className="font-display site-logo-title">TrustLend</strong>
-            <small className="site-logo-subtitle">Behavior-first credit network</small>
+      <div className="crypto-container flex h-16 items-center justify-between gap-4">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="TrustLend home">
+          <Image src="/logo.png" alt="" width={36} height={36} priority className="h-9 w-9 rounded-xl object-cover" />
+          <span className="leading-tight">
+            <strong className="block font-display text-base font-bold tracking-tight text-fg">TrustLend</strong>
+            <small className="hidden text-[11px] text-fg-subtle sm:block">Behavior-first credit on Stellar</small>
           </span>
-        </motion.a>
+        </Link>
 
-        <nav className="site-nav-desktop" aria-label="Primary">
-          {items.map((item, i) => (
-            <motion.a
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+          {items.map((item) => (
+            <a
               key={item.href}
               href={item.href}
-              className="site-nav-link"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 + i * 0.05, ease: "easeOut" }}
-              whileHover={{ scale: 1.1, color: "#7f2fd1", transition: { type: "spring", stiffness: 400, damping: 10 } }}
+              className="rounded-full px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
               {item.label}
-            </motion.a>
+            </a>
           ))}
         </nav>
 
-        <motion.div
-          className="site-header-actions"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
-        >
-          <ThemeToggle />
-          <a href="#faq" className="site-nav-utility">
-            Need help?
-          </a>
-          {isAuthenticated ? (
-            <motion.a
-              href="/dashboard"
-              className="google-btn google-btn-header"
-              id="header-dashboard-btn"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              Dashboard
-            </motion.a>
-          ) : (
-            <motion.a
-              href="/auth"
-              className="google-btn google-btn-header"
-              id="header-signin-btn"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              Sign in
-            </motion.a>
-          )}
-        </motion.div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle className="hidden sm:inline-flex" />
+          <Link href={cta.href} className={cn(buttonClasses({ size: "sm" }), "hidden sm:inline-flex")}>
+            {cta.label}
+          </Link>
+          <button
+            type="button"
+            className="grid h-9 w-9 place-items-center rounded-md border border-border bg-surface text-fg-muted lg:hidden"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+          >
+            {open ? <Menu className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
-      <div className="site-nav-mobile-wrap">
-        <nav className="crypto-container site-nav-mobile" aria-label="Primary mobile">
-          {items.map((item, i) => (
-            <motion.a
-              key={item.href}
-              href={item.href}
-              className="site-nav-link"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.8 + i * 0.05, ease: "easeOut" }}
-            >
-              {item.label}
-            </motion.a>
-          ))}
-        </nav>
-      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.nav
+            className="border-t border-border bg-bg lg:hidden"
+            aria-label="Primary mobile"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: EASE_OUT }}
+          >
+            <div className="crypto-container flex flex-col gap-1 py-3">
+              {items.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-3">
+                <ThemeToggle />
+                <Link href={cta.href} className={buttonClasses({ size: "sm" })} onClick={() => setOpen(false)}>
+                  {cta.label}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="grid h-8 w-8 place-items-center rounded-md text-fg-muted hover:bg-surface-2"
+                  aria-label="Close menu"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

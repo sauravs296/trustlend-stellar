@@ -27,18 +27,18 @@ export const navItems: NavItem[] = [
 ];
 
 export const heroContent: HeroContent = {
-  eyebrow: "One network for two users",
-  titleMain: "Borrow smarter.",
-  titleAccent: "Lend with confidence.",
+  eyebrow: "Reputation-based micro-lending on Stellar",
+  titleMain: "Credit built on behavior,",
+  titleAccent: "not collateral.",
   description:
-    "TrustLend connects borrowers and lenders through behavior-based reputation and clear role-specific workflows.",
+    "TrustLend connects borrowers and lenders through an on-chain trust score. Sign in with your Stellar wallet, build reputation with every repayment, and unlock fair capital without paperwork.",
 };
 
 export const metrics: MetricItem[] = [
   { value: "$110B+", label: "Potential lending volume" },
   { value: "15M+", label: "Emerging market freelancers" },
   { value: "98.5%", label: "Target repayment success" },
-  { value: "<2 Min", label: "Google or email onboarding" },
+  { value: "<2 Min", label: "Wallet sign-in, no passwords" },
 ];
 
 export const highlightContent: HighlightContent = {
@@ -52,9 +52,9 @@ export const highlightContent: HighlightContent = {
 export const processSteps: StepItem[] = [
   {
     step: "01",
-    title: "Choose role + sign in",
+    title: "Choose a role + sign in",
     description:
-      "Pick Borrower or Lender and enter with Google or email login in one flow.",
+      "Pick Borrower or Lender and sign in by signing a challenge with your Stellar wallet.",
   },
   {
     step: "02",
@@ -126,7 +126,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "Do I need to create an account with email and password?",
     answer:
-      "You can use either Google sign-in or classic email and password. Both support borrower and lender role selection.",
+      "No. TrustLend uses Sign-In with Stellar (SEP-10): you prove ownership of a wallet by signing a challenge, and that wallet is your account. Freighter, xBull, Albedo and WalletConnect mobile wallets are supported.",
   },
   {
     question: "How is reputation calculated?",

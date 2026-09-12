@@ -92,12 +92,12 @@ export default async function AdminUsersPage() {
                           <td><span style={{ textTransform: "capitalize", fontWeight: 600 }}>{String(p.role)}</span></td>
                           <td>{String(p.full_name || "Unknown")}</td>
                           <td>
-                            <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: p.kyc_status === "verified" ? "rgba(34,207,157,0.12)" : "rgba(245,166,35,0.12)", color: p.kyc_status === "verified" ? "#22cf9d" : "#f5a623" }}>
+                            <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: p.kyc_status === "verified" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--warning) 12%, transparent)", color: p.kyc_status === "verified" ? "var(--accent)" : "var(--warning)" }}>
                               {String(p.kyc_status).toUpperCase()}
                             </span>
                           </td>
                           <td>
-                            <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, color: p.risk_status === "low" ? "#22cf9d" : p.risk_status === "blocked" ? "#ff6b6b" : "#f5a623", background: p.risk_status === "low" ? "rgba(34,207,157,0.12)" : p.risk_status === "blocked" ? "rgba(255,107,107,0.12)" : "rgba(245,166,35,0.12)" }}>
+                            <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, color: p.risk_status === "low" ? "var(--accent)" : p.risk_status === "blocked" ? "var(--danger)" : "var(--warning)", background: p.risk_status === "low" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : p.risk_status === "blocked" ? "color-mix(in srgb, var(--danger) 12%, transparent)" : "color-mix(in srgb, var(--warning) 12%, transparent)" }}>
                               {String(p.risk_status).toUpperCase()}
                             </span>
                           </td>

@@ -67,15 +67,15 @@ export default async function BorrowerRepayPage({
                 ? "Your loan request is pending lender funding. Repayment will be available once a lender funds it."
                 : "You have no loans to repay. Apply for a new loan using the 'Apply for Loan' section."}
             </p>
-            <a href="/dashboard/borrower/loans" style={{ display: "inline-block", marginTop: "1rem", padding: "0.6rem 1.5rem", background: "#7e2fd0", color: "#fff", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 700, textDecoration: "none" }}>
+            <a href="/dashboard/borrower/loans" style={{ display: "inline-block", marginTop: "1rem", padding: "0.6rem 1.5rem", background: "var(--primary)", color: "var(--primary-fg)", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 700, textDecoration: "none" }}>
               Apply for a Loan →
             </a>
           </article>
         ) : (
           <>
             {/* Trust score incentive */}
-            <article className="workspace-card workspace-card--full" style={{ background: "rgba(34,207,157,0.04)", borderColor: "rgba(34,207,157,0.2)" }}>
-              <p style={{ fontSize: "0.875rem", color: "#20bd8e", fontWeight: 600, margin: 0 }}>
+            <article className="workspace-card workspace-card--full" style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
+              <p style={{ fontSize: "0.875rem", color: "var(--accent)", fontWeight: 600, margin: 0 }}>
                 💡 Each on-time repayment earns you <strong>+5 Trust Points</strong>. Early repayment earns <strong>+30 points</strong>, saves adjusted interest, and increases your credit limit.
               </p>
             </article>
@@ -83,7 +83,7 @@ export default async function BorrowerRepayPage({
             {/* Multiple active loans switcher */}
             {repayableLoans.length > 1 && (
               <article className="workspace-card workspace-card--full" style={{ padding: "1rem" }}>
-                <h3 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#4b5563", marginBottom: "0.6rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                <h3 style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--fg)", marginBottom: "0.6rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                   Select Active Loan to Repay ({repayableLoans.length} active)
                 </h3>
                 <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -102,15 +102,15 @@ export default async function BorrowerRepayPage({
                           textDecoration: "none",
                           fontSize: "0.82rem",
                           fontWeight: 700,
-                          border: isSelected ? "2px solid #7e2fd0" : "1px solid #e5e7eb",
-                          background: isSelected ? "rgba(126,47,208,0.08)" : "#fff",
-                          color: isSelected ? "#7e2fd0" : "#4b5563",
+                          border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
+                          background: isSelected ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "var(--surface)",
+                          color: isSelected ? "var(--primary)" : "var(--fg)",
                           transition: "all 0.15s ease",
                         }}
                       >
                         <span>Loan #{String(l.id).slice(0, 8)}</span>
                         <span style={{ fontWeight: 800 }}>{formatCurrency(Number(l.principal_amount))}</span>
-                        {isSelected && <span style={{ color: "#7e2fd0" }}>✓</span>}
+                        {isSelected && <span style={{ color: "var(--primary)" }}>✓</span>}
                       </a>
                     );
                   })}
@@ -138,9 +138,9 @@ export default async function BorrowerRepayPage({
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                     <thead>
-                      <tr style={{ borderBottom: "1px solid #eef0f8" }}>
+                      <tr style={{ borderBottom: "1px solid var(--surface-2)" }}>
                         {["Loan ID", "Amount", "Status", "Repaid", "Due Date", "Action"].map((h) => (
-                          <th key={h} style={{ textAlign: "left", padding: "0.6rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                          <th key={h} style={{ textAlign: "left", padding: "0.6rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "var(--fg-subtle)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -148,8 +148,8 @@ export default async function BorrowerRepayPage({
                       {normalizedLoans.map((loan) => {
                         const isLoanRepayable = REPAYABLE_STATUSES.includes(String(loan.status));
                         return (
-                          <tr key={String(loan.id)} style={{ borderBottom: "1px solid #f9fafb" }}>
-                            <td style={{ padding: "0.75rem", fontFamily: "monospace", fontSize: "0.8rem", color: "#6b7280" }}>{String(loan.id).slice(0, 8)}</td>
+                          <tr key={String(loan.id)} style={{ borderBottom: "1px solid var(--surface-2)" }}>
+                            <td style={{ padding: "0.75rem", fontFamily: "monospace", fontSize: "0.8rem", color: "var(--fg-muted)" }}>{String(loan.id).slice(0, 8)}</td>
                             <td style={{ padding: "0.75rem", fontWeight: 700 }}>{formatCurrency(Number(loan.principal_amount))}</td>
                             <td style={{ padding: "0.75rem" }}>
                               <Badge variant={
@@ -171,20 +171,20 @@ export default async function BorrowerRepayPage({
                                     alignItems: "center",
                                     padding: "0.3rem 0.65rem",
                                     borderRadius: "0.4rem",
-                                    background: String(loan.id) === String(repayableLoan.id) ? "rgba(126,47,208,0.12)" : "linear-gradient(135deg,#7e2fd0,#5a1fad)",
-                                    color: String(loan.id) === String(repayableLoan.id) ? "#7e2fd0" : "#fff",
+                                    background: String(loan.id) === String(repayableLoan.id) ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "linear-gradient(135deg,var(--primary),var(--primary-hover))",
+                                    color: String(loan.id) === String(repayableLoan.id) ? "var(--primary)" : "var(--surface)",
                                     fontSize: "0.75rem",
                                     fontWeight: 700,
                                     textDecoration: "none",
-                                    border: String(loan.id) === String(repayableLoan.id) ? "1px solid rgba(126,47,208,0.3)" : "none",
+                                    border: String(loan.id) === String(repayableLoan.id) ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" : "none",
                                   }}
                                 >
                                   {String(loan.id) === String(repayableLoan.id) ? "Current Loan" : "⚡ Repay Early"}
                                 </a>
                               ) : loan.status === "repaid" ? (
-                                <span style={{ fontSize: "0.75rem", color: "#22cf9d", fontWeight: 700 }}>Settled ✅</span>
+                                <span style={{ fontSize: "0.75rem", color: "var(--accent)", fontWeight: 700 }}>Settled ✅</span>
                               ) : (
-                                <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>—</span>
+                                <span style={{ fontSize: "0.75rem", color: "var(--fg-subtle)" }}>—</span>
                               )}
                             </td>
                           </tr>
@@ -199,7 +199,7 @@ export default async function BorrowerRepayPage({
         )}
 
         {pendingLoans.length > 0 && (
-          <article className="workspace-card workspace-card--full" style={{ borderColor: "rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.04)" }}>
+          <article className="workspace-card workspace-card--full" style={{ borderColor: "color-mix(in srgb, var(--warning) 25%, transparent)", background: "color-mix(in srgb, var(--warning) 4%, transparent)" }}>
             <h2 className="workspace-card-title">Pending Loan Request{pendingLoans.length > 1 ? "s" : ""}</h2>
             <p className="workspace-card-copy" style={{ marginTop: "0.35rem" }}>
               You have {pendingLoans.length} submitted request{pendingLoans.length > 1 ? "s" : ""} waiting for funding.
@@ -215,20 +215,20 @@ export default async function BorrowerRepayPage({
                     alignItems: "center",
                     padding: "0.85rem 1rem",
                     borderRadius: "0.7rem",
-                    background: "rgba(255,255,255,0.75)",
-                    border: "1px solid rgba(245,166,35,0.18)",
+                    background: "color-mix(in srgb, var(--fg) 75%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--warning) 18%, transparent)",
                     flexWrap: "wrap",
                   }}
                 >
                   <div>
                     <p style={{ fontWeight: 700, margin: 0 }}>Loan #{String(loan.id).slice(0, 8)}</p>
-                    <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: "0.15rem 0 0" }}>
+                    <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", margin: "0.15rem 0 0" }}>
                       Requested {loan.created_at ? new Date(String(loan.created_at)).toLocaleDateString() : "recently"}
                     </p>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ margin: 0, fontWeight: 800, color: "#7e2fd0" }}>{formatCurrency(Number(loan.principal_amount ?? 0))}</p>
-                    <p style={{ fontSize: "0.75rem", color: "#f59e0b", fontWeight: 700, margin: "0.15rem 0 0" }}>REQUESTED</p>
+                    <p style={{ margin: 0, fontWeight: 800, color: "var(--primary)" }}>{formatCurrency(Number(loan.principal_amount ?? 0))}</p>
+                    <p style={{ fontSize: "0.75rem", color: "var(--warning)", fontWeight: 700, margin: "0.15rem 0 0" }}>REQUESTED</p>
                   </div>
                 </div>
               ))}

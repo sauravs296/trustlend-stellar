@@ -76,9 +76,9 @@ function CreatePoolForm({ onCreated }: { onCreated: () => void }) {
         <div
           style={{
             padding: "1.5rem",
-            border: "1px solid rgba(126, 47, 208, 0.3)",
+            border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
             borderRadius: "0.75rem",
-            background: "rgba(126, 47, 208, 0.04)",
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
             marginBottom: "1.5rem",
           }}
         >
@@ -155,7 +155,7 @@ function CreatePoolForm({ onCreated }: { onCreated: () => void }) {
             </div>
 
             {msg && (
-              <p style={{ color: msg.ok ? "#22cf9d" : "#ff6b6b", fontSize: "0.875rem" }}>
+              <p style={{ color: msg.ok ? "var(--accent)" : "var(--danger)", fontSize: "0.875rem" }}>
                 {msg.text}
               </p>
             )}
@@ -213,8 +213,8 @@ function PoolRow({ pool, onChanged }: { pool: Pool; onChanged: () => void }) {
             borderRadius: "9999px",
             fontSize: "0.75rem",
             fontWeight: 600,
-            background: pool.status === "active" ? "rgba(34,207,157,0.12)" : "rgba(255,107,107,0.12)",
-            color: pool.status === "active" ? "#22cf9d" : "#ff6b6b",
+            background: pool.status === "active" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--danger) 12%, transparent)",
+            color: pool.status === "active" ? "var(--accent)" : "var(--danger)",
           }}
         >
           {pool.status.toUpperCase()}
@@ -225,11 +225,11 @@ function PoolRow({ pool, onChanged }: { pool: Pool; onChanged: () => void }) {
       <td>{formatCurrency(Number(pool.available_liquidity))}</td>
       <td>
         {pool.borrow_cap !== null && pool.borrow_cap !== undefined ? (
-          <span style={{ fontWeight: 600, color: "#f97316" }}>
+          <span style={{ fontWeight: 600, color: "var(--warning)" }}>
             {Number(pool.borrow_cap).toLocaleString()} XLM
           </span>
         ) : (
-          <span style={{ color: "rgba(255,255,255,0.35)", fontStyle: "italic", fontSize: "0.82rem" }}>
+          <span style={{ color: "color-mix(in srgb, var(--fg) 35%, transparent)", fontStyle: "italic", fontSize: "0.82rem" }}>
             No cap
           </span>
         )}
@@ -243,7 +243,7 @@ function PoolRow({ pool, onChanged }: { pool: Pool; onChanged: () => void }) {
         >
           {pending ? "..." : pool.status === "active" ? "Pause" : "Activate"}
         </button>
-        {msg && <p style={{ color: "#ff6b6b", fontSize: "0.72rem", marginTop: "0.2rem" }}>{msg}</p>}
+        {msg && <p style={{ color: "var(--danger)", fontSize: "0.72rem", marginTop: "0.2rem" }}>{msg}</p>}
       </td>
     </tr>
   );
@@ -279,7 +279,7 @@ function LoanRow({ loan, pools, onApproved }: { loan: Loan; pools: Pool[]; onApp
       <td>{loan.duration_days}d</td>
       <td>
         {msg ? (
-          <span style={{ fontSize: "0.82rem", color: msg.startsWith("✅") ? "#22cf9d" : "#ff6b6b" }}>
+          <span style={{ fontSize: "0.82rem", color: msg.startsWith("✅") ? "var(--accent)" : "var(--danger)" }}>
             {msg}
           </span>
         ) : (
@@ -343,8 +343,8 @@ function AutoMatchBar({ pendingCount, onDone }: { pendingCount: number; onDone: 
         gap: "1rem",
         padding: "0.85rem 1.2rem",
         borderRadius: "0.6rem",
-        background: "rgba(34,207,157,0.06)",
-        border: "1px solid rgba(34,207,157,0.2)",
+        background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
         marginBottom: "1.5rem",
         flexWrap: "wrap",
       }}
@@ -359,11 +359,11 @@ function AutoMatchBar({ pendingCount, onDone }: { pendingCount: number; onDone: 
         </p>
       </div>
       {result && (
-        <span style={{ fontSize: "0.82rem", color: "#22cf9d" }}>
+        <span style={{ fontSize: "0.82rem", color: "var(--accent)" }}>
           ✅ {result.matched} matched, {result.skipped} skipped
         </span>
       )}
-      {error && <span style={{ fontSize: "0.82rem", color: "#ff6b6b" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.82rem", color: "var(--danger)" }}>{error}</span>}
       <button
         onClick={handleRun}
         disabled={pending || pendingCount === 0}
@@ -425,8 +425,8 @@ export default function AdminPoolsClient({ pools, pendingLoans }: AdminPoolsClie
             <span
               style={{
                 marginLeft: "0.75rem",
-                background: "rgba(255,107,107,0.15)",
-                color: "#ff6b6b",
+                background: "color-mix(in srgb, var(--danger) 15%, transparent)",
+                color: "var(--danger)",
                 borderRadius: "9999px",
                 padding: "0.15rem 0.6rem",
                 fontSize: "0.75rem",

@@ -175,19 +175,19 @@ export default async function BorrowerHistoryPage() {
               label: "Total Received",
               value: formatCurrency(totalFunded),
               icon: "📥",
-              color: "#7e2fd0",
+              color: "var(--primary)",
             },
             {
               label: "Total Repaid",
               value: formatCurrency(totalRepaid),
               icon: "📤",
-              color: "#22cf9d",
+              color: "var(--accent)",
             },
             {
               label: "Transactions",
               value: String(initialTransactions.length),
               icon: "🔢",
-              color: "#6b7280",
+              color: "var(--fg-muted)",
             },
           ].map((s) => (
             <article
@@ -195,8 +195,8 @@ export default async function BorrowerHistoryPage() {
               style={{
                 padding: "1.1rem 1.25rem",
                 borderRadius: "0.9rem",
-                background: "#fff",
-                border: "1px solid #eef0f8",
+                background: "var(--surface)",
+                border: "1px solid var(--surface-2)",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
               }}
             >
@@ -217,7 +217,7 @@ export default async function BorrowerHistoryPage() {
               <p
                 style={{
                   fontSize: "0.75rem",
-                  color: "#9ca3af",
+                  color: "var(--fg-subtle)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.04em",

@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
-import { Manrope, Sora } from "next/font/google";
+import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ui/ToastContext";
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-manrope",
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const sora = Sora({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-sora",
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -48,7 +56,8 @@ export const metadata: Metadata = {
 /**
  * RootLayout – Server Component
  *
- * The app-wide HTML shell. Loads the Manrope/Sora fonts, then wraps every page
+ * The app-wide HTML shell. Loads the Inter / Plus Jakarta Sans / JetBrains Mono
+ * fonts, then wraps every page
  * in {@link ThemeProvider} configured for class-based theming
  * (`attribute="class"`) with the preference persisted under the
  * `trustlend-theme` localStorage key. `suppressHydrationWarning` on `<html>` is
@@ -65,7 +74,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${sora.variable} flex min-h-full flex-col antialiased`}>
+      <body className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable} flex min-h-full flex-col bg-bg font-sans text-fg antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

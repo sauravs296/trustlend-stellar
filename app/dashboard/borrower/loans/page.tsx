@@ -50,7 +50,7 @@ export default async function BorrowerLoansPage() {
     >
       <div className="workspace-stack">
         {!canApplyLoan && (
-          <article className="workspace-card workspace-card--full" style={{ background: "rgba(245,166,35,0.04)", borderColor: "rgba(245,166,35,0.25)" }}>
+          <article className="workspace-card workspace-card--full" style={{ background: "color-mix(in srgb, var(--warning) 4%, transparent)", borderColor: "color-mix(in srgb, var(--warning) 25%, transparent)" }}>
             <h2 className="workspace-card-title">⚠️ KYC Required</h2>
             <p className="workspace-card-copy" style={{ marginTop: "0.4rem" }}>
               Your KYC status is currently <strong>{profile?.kyc_status ?? "pending"}</strong>.{" "}
@@ -58,7 +58,7 @@ export default async function BorrowerLoansPage() {
                 ? "Your documents are under admin review. You'll be notified once approved."
                 : "Please complete your profile and submit government ID to apply for loans."}
             </p>
-            <a href="/dashboard/borrower/profile" style={{ display: "inline-block", marginTop: "0.75rem", fontSize: "0.82rem", color: "#7e2fd0", fontWeight: 600 }}>
+            <a href="/dashboard/borrower/profile" style={{ display: "inline-block", marginTop: "0.75rem", fontSize: "0.82rem", color: "var(--primary)", fontWeight: 600 }}>
               Go to Profile →
             </a>
           </article>

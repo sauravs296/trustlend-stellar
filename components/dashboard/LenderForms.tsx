@@ -112,7 +112,7 @@ export function DepositForm({
           disabled={loading}
           style={
             exceedsBalance
-              ? { borderColor: "rgba(255,107,107,0.6)" }
+              ? { borderColor: "color-mix(in srgb, var(--danger) 60%, transparent)" }
               : undefined
           }
           suppressHydrationWarning
@@ -121,7 +121,7 @@ export function DepositForm({
           <p
             style={{
               fontSize: "0.78rem",
-              color: "#ff6b6b",
+              color: "var(--danger)",
               marginTop: "0.3rem",
             }}
           >
@@ -134,8 +134,8 @@ export function DepositForm({
       {showProjection && (
         <div
           style={{
-            background: "rgba(34,207,157,0.06)",
-            border: "1px solid rgba(34,207,157,0.18)",
+            background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)",
             borderRadius: "0.65rem",
             padding: "0.85rem 1rem",
             display: "grid",
@@ -162,7 +162,7 @@ export function DepositForm({
             </p>
           </div>
           <span
-            style={{ color: "#22cf9d", fontWeight: 700, fontSize: "1.1rem" }}
+            style={{ color: "var(--accent)", fontWeight: 700, fontSize: "1.1rem" }}
           >
             →
           </span>
@@ -182,7 +182,7 @@ export function DepositForm({
               style={{
                 fontWeight: 700,
                 fontSize: "1rem",
-                color: exceedsBalance ? "#ff6b6b" : "#22cf9d",
+                color: exceedsBalance ? "var(--danger)" : "var(--accent)",
               }}
             >
               {formatCurrency(balanceAfter)}
@@ -372,8 +372,8 @@ export function Sep31DepositForm({ pools, isKycVerified, onSubmit }: Sep31Deposi
     return (
       <div
         style={{
-          background: "rgba(255,107,107,0.06)",
-          border: "1px solid rgba(255,107,107,0.25)",
+          background: "color-mix(in srgb, var(--danger) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--danger) 25%, transparent)",
           borderRadius: "0.8rem",
           padding: "1.25rem",
           marginTop: "0.5rem",
@@ -432,8 +432,8 @@ export function Sep31DepositForm({ pools, isKycVerified, onSubmit }: Sep31Deposi
     return (
       <div
         style={{
-          background: "rgba(34,207,157,0.06)",
-          border: "1px solid rgba(34,207,157,0.25)",
+          background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
           borderRadius: "0.8rem",
           padding: "1.25rem",
           marginTop: "0.5rem",
@@ -441,7 +441,7 @@ export function Sep31DepositForm({ pools, isKycVerified, onSubmit }: Sep31Deposi
         }}
       >
         <span style={{ fontSize: "1.5rem" }}>💵</span>
-        <h4 style={{ color: "#22cf9d", margin: "0.5rem 0 0.25rem 0", fontSize: "0.95rem" }}>Transaction Created</h4>
+        <h4 style={{ color: "var(--accent)", margin: "0.5rem 0 0.25rem 0", fontSize: "0.95rem" }}>Transaction Created</h4>
         <p style={{ margin: 0, fontSize: "0.82rem", opacity: 0.8 }}>
           Follow the popup or instruction card details to wire your funds.
         </p>
@@ -851,13 +851,12 @@ export function LenderForms({
             bottom: "2rem",
             right: "2rem",
             zIndex: 9999,
-            background:
-              "linear-gradient(135deg, rgba(18,18,28,0.97), rgba(24,24,38,0.97))",
-            border: "1px solid rgba(34,207,157,0.45)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 97%, transparent), rgba(24,24,38,0.97))",
+            border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
             borderRadius: "1rem",
             padding: "1.25rem 1.5rem",
             boxShadow:
-              "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(34,207,157,0.1)",
+              "0 8px 40px color-mix(in srgb, var(--fg) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent)",
             backdropFilter: "blur(16px)",
             minWidth: "320px",
             maxWidth: "400px",
@@ -879,7 +878,7 @@ export function LenderForms({
               <span style={{ fontSize: "1.3rem" }}>✅</span>
               <h4
                 style={{
-                  color: "#22cf9d",
+                  color: "var(--accent)",
                   margin: 0,
                   fontSize: "0.95rem",
                   fontWeight: 700,
@@ -893,7 +892,7 @@ export function LenderForms({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "rgba(255,255,255,0.4)",
+                color: "color-mix(in srgb, var(--fg) 40%, transparent)",
                 cursor: "pointer",
                 fontSize: "1rem",
                 lineHeight: 1,
@@ -913,9 +912,9 @@ export function LenderForms({
             }}
           >
             You deployed{" "}
-            <strong style={{ color: "white" }}>{formatCurrency(successTx.amount)}</strong>{" "}
+            <strong style={{ color: "var(--fg)" }}>{formatCurrency(successTx.amount)}</strong>{" "}
             into{" "}
-            <strong style={{ color: "white" }}>{successTx.poolName}</strong>.
+            <strong style={{ color: "var(--fg)" }}>{successTx.poolName}</strong>.
           </p>
 
           <div
@@ -924,7 +923,7 @@ export function LenderForms({
               gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
               gap: "0.4rem",
-              background: "rgba(255,255,255,0.04)",
+              background: "color-mix(in srgb, var(--fg) 4%, transparent)",
               borderRadius: "0.5rem",
               padding: "0.6rem 0.75rem",
               marginBottom: "0.85rem",
@@ -945,7 +944,7 @@ export function LenderForms({
                 {formatCurrency(successTx.balanceBefore)}
               </p>
             </div>
-            <span style={{ color: "#22cf9d", fontWeight: 700 }}>→</span>
+            <span style={{ color: "var(--accent)", fontWeight: 700 }}>→</span>
             <div style={{ textAlign: "center" }}>
               <p
                 style={{
@@ -956,7 +955,7 @@ export function LenderForms({
               >
                 After
               </p>
-              <p style={{ fontWeight: 600, margin: 0, color: "#22cf9d" }}>
+              <p style={{ fontWeight: 600, margin: 0, color: "var(--accent)" }}>
                 {formatCurrency(Math.max(0, successTx.balanceBefore - successTx.amount))}
               </p>
             </div>
@@ -969,9 +968,9 @@ export function LenderForms({
             style={{
               display: "block",
               textAlign: "center",
-              background: "rgba(34,207,157,0.12)",
-              border: "1px solid rgba(34,207,157,0.25)",
-              color: "#22cf9d",
+              background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+              color: "var(--accent)",
               padding: "0.45rem",
               borderRadius: "0.5rem",
               fontSize: "0.78rem",
@@ -1017,7 +1016,7 @@ export function LenderForms({
               width: "100%",
               marginTop: "0.5rem",
               background: "transparent",
-              border: "1px solid #7e2fd0",
+              border: "1px solid var(--primary)",
               color: "#c29df6",
               padding: "0.45rem",
               borderRadius: "0.5rem",
@@ -1057,7 +1056,7 @@ export function LenderForms({
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.75)",
+            backgroundColor: "color-mix(in srgb, var(--fg) 75%, transparent)",
             backdropFilter: "blur(8px)",
             display: "flex",
             justifyContent: "center",
@@ -1071,23 +1070,23 @@ export function LenderForms({
             style={{
               maxWidth: "500px",
               width: "100%",
-              border: "1px solid rgba(126,47,208,0.45)",
+              border: "1px solid color-mix(in srgb, var(--primary) 45%, transparent)",
               boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
               padding: "2rem",
               background: "linear-gradient(135deg, #12121c 0%, #171726 100%)",
             }}
           >
-            <h3 style={{ margin: "0 0 1rem 0", color: "#7e2fd0", fontSize: "1.25rem", fontWeight: 700 }}>
+            <h3 style={{ margin: "0 0 1rem 0", color: "var(--primary)", fontSize: "1.25rem", fontWeight: 700 }}>
               🏦 Bank Payout Instructions
             </h3>
             <p style={{ fontSize: "0.88rem", opacity: 0.8, lineHeight: 1.5, marginBottom: "1.25rem" }}>
-              To fund your position of <strong style={{ color: "white" }}>${fiatInstructions.amount.toFixed(2)} {fiatInstructions.currency}</strong> in <strong style={{ color: "white" }}>{fiatInstructions.poolName}</strong>, please submit a transfer using the bank details below:
+              To fund your position of <strong style={{ color: "var(--fg)" }}>${fiatInstructions.amount.toFixed(2)} {fiatInstructions.currency}</strong> in <strong style={{ color: "var(--fg)" }}>{fiatInstructions.poolName}</strong>, please submit a transfer using the bank details below:
             </p>
 
             <div
               style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "color-mix(in srgb, var(--fg) 3%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)",
                 borderRadius: "0.6rem",
                 padding: "1rem",
                 display: "flex",
@@ -1101,19 +1100,19 @@ export function LenderForms({
               {Object.entries(fiatInstructions.instructions).map(([key, val]) => (
                 <div key={key} style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ opacity: 0.5 }}>{key.replace(/_/g, " ").toUpperCase()}:</span>
-                  <span style={{ fontWeight: 600, color: "#22cf9d" }}>{String(val)}</span>
+                  <span style={{ fontWeight: 600, color: "var(--accent)" }}>{String(val)}</span>
                 </div>
               ))}
             </div>
 
             <div
               style={{
-                background: "rgba(34,207,157,0.06)",
-                border: "1px solid rgba(34,207,157,0.2)",
+                background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
                 borderRadius: "0.5rem",
                 padding: "0.75rem",
                 fontSize: "0.78rem",
-                color: "#22cf9d",
+                color: "var(--accent)",
                 lineHeight: 1.4,
                 marginBottom: "1.5rem",
               }}
@@ -1141,7 +1140,7 @@ export function LenderForms({
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.8)",
+            backgroundColor: "color-mix(in srgb, var(--fg) 80%, transparent)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -1152,15 +1151,15 @@ export function LenderForms({
         >
           <div
             style={{
-              border: "4px solid rgba(126,47,208,0.1)",
-              borderTop: "4px solid #7e2fd0",
+              border: "4px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderTop: "4px solid var(--primary)",
               borderRadius: "50%",
               width: "40px",
               height: "40px",
               animation: "spin 1s linear infinite",
             }}
           />
-          <p style={{ color: "white", fontSize: "0.95rem", fontWeight: 600 }}>{fiatLoadingStatus}</p>
+          <p style={{ color: "var(--fg)", fontSize: "0.95rem", fontWeight: 600 }}>{fiatLoadingStatus}</p>
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes spin {
               0% { transform: rotate(0deg); }
@@ -1182,9 +1181,9 @@ export function LenderForms({
                 type="button"
                 onClick={() => setDepositTab("crypto")}
                 style={{
-                  background: depositTab === "crypto" ? "rgba(34,207,157,0.15)" : "transparent",
-                  color: depositTab === "crypto" ? "#22cf9d" : "rgba(255,255,255,0.6)",
-                  border: depositTab === "crypto" ? "1px solid #22cf9d" : "1px solid rgba(255,255,255,0.15)",
+                  background: depositTab === "crypto" ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent",
+                  color: depositTab === "crypto" ? "var(--accent)" : "color-mix(in srgb, var(--fg) 60%, transparent)",
+                  border: depositTab === "crypto" ? "1px solid var(--accent)" : "1px solid color-mix(in srgb, var(--fg) 15%, transparent)",
                   padding: "0.4rem 0.8rem",
                   borderRadius: "0.5rem",
                   fontSize: "0.8rem",
@@ -1199,9 +1198,9 @@ export function LenderForms({
                 type="button"
                 onClick={() => setDepositTab("fiat")}
                 style={{
-                  background: depositTab === "fiat" ? "rgba(126,47,208,0.15)" : "transparent",
-                  color: depositTab === "fiat" ? "#7e2fd0" : "rgba(255,255,255,0.6)",
-                  border: depositTab === "fiat" ? "1px solid #7e2fd0" : "1px solid rgba(255,255,255,0.15)",
+                  background: depositTab === "fiat" ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "transparent",
+                  color: depositTab === "fiat" ? "var(--primary)" : "color-mix(in srgb, var(--fg) 60%, transparent)",
+                  border: depositTab === "fiat" ? "1px solid var(--primary)" : "1px solid color-mix(in srgb, var(--fg) 15%, transparent)",
                   padding: "0.4rem 0.8rem",
                   borderRadius: "0.5rem",
                   fontSize: "0.8rem",

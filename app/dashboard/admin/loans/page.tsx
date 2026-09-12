@@ -97,11 +97,11 @@ export default async function AdminLoansPage() {
                       <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{String(l.borrower_id).slice(0,8)}...</td>
                       <td><strong>{formatCurrency(Number(l.principal_amount ?? 0))}</strong></td>
                       <td>
-                        <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: l.status === "repaid" ? "rgba(155,111,224,0.12)" : "rgba(34,207,157,0.12)", color: l.status === "repaid" ? "#9b6fe0" : "#22cf9d" }}>
+                        <span style={{ padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: l.status === "repaid" ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "color-mix(in srgb, var(--accent) 12%, transparent)", color: l.status === "repaid" ? "var(--primary-muted)" : "var(--accent)" }}>
                           {String(l.status).toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ color: "#22cf9d", fontWeight: "bold" }}>{(Number(l.apr_bps ?? 0) / 100).toFixed(2)}%</td>
+                      <td style={{ color: "var(--accent)", fontWeight: "bold" }}>{(Number(l.apr_bps ?? 0) / 100).toFixed(2)}%</td>
                       <td>{l.due_at ? new Date(String(l.due_at)).toLocaleDateString() : "-"}</td>
                     </tr>
                   ))}
@@ -151,9 +151,9 @@ export default async function AdminLoansPage() {
                                     gap: "0.35rem",
                                     padding: "0.35rem 0.75rem",
                                     borderRadius: "999px",
-                                    border: "1px solid rgba(16,185,129,0.35)",
-                                    background: "rgba(16,185,129,0.14)",
-                                    color: "#047857",
+                                    border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+                                    background: "color-mix(in srgb, var(--accent) 14%, transparent)",
+                                    color: "var(--success-soft-fg)",
                                     fontSize: "0.8rem",
                                     fontWeight: 700,
                                     textDecoration: "none",
@@ -172,9 +172,9 @@ export default async function AdminLoansPage() {
                                     gap: "0.35rem",
                                     padding: "0.35rem 0.75rem",
                                     borderRadius: "999px",
-                                    border: "1px solid rgba(16,185,129,0.25)",
-                                    background: "rgba(16,185,129,0.08)",
-                                    color: "#10b981",
+                                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                                    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                                    color: "var(--accent)",
                                     fontSize: "0.8rem",
                                     fontWeight: 700,
                                     opacity: 0.65,

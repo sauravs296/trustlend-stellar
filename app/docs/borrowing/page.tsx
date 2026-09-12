@@ -210,8 +210,8 @@ export default function BorrowingGuidePage() {
                         className="docs-status"
                         style={{
                           color: band.color,
-                          background: `${band.color}1a`,
-                          borderColor: `${band.color}44`,
+                          background: `color-mix(in srgb, ${band.color} 10%, transparent)`,
+                          borderColor: `color-mix(in srgb, ${band.color} 27%, transparent)`,
                         }}
                       >
                         {band.status}

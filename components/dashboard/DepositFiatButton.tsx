@@ -171,7 +171,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
     return (
       <article
         className="workspace-card workspace-card--full"
-        style={{ borderColor: "rgba(16,185,129,0.25)" }}
+        style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)" }}
       >
         <h2 className="workspace-card-title">💳 Deposit Fiat</h2>
         <p className="workspace-card-copy" style={{ marginTop: "0.4rem" }}>
@@ -211,8 +211,8 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
             onClick={() => setOpen(true)}
             data-deposit-trigger
             style={{
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              color: "#fff",
+              background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)",
+              color: "var(--primary-fg)",
             }}
           >
             Deposit Fiat →
@@ -229,7 +229,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15,23,42,0.55)",
+            background: "color-mix(in srgb, var(--fg) 55%, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -248,12 +248,12 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
               ref={modalRef}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "#fff",
+                background: "var(--surface)",
                 borderRadius: "1rem",
                 padding: "1.75rem",
                 width: "100%",
                 maxWidth: "440px",
-                boxShadow: "0 24px 60px rgba(15,23,42,0.25)",
+                boxShadow: "0 24px 60px color-mix(in srgb, var(--fg) 25%, transparent)",
               }}
             >
               <div
@@ -283,13 +283,13 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                     background: "transparent",
                     fontSize: "1.25rem",
                     cursor: busy ? "not-allowed" : "pointer",
-                    color: "#6b7280",
+                    color: "var(--fg-muted)",
                   }}
                 >
                   ×
                 </button>
               </div>
-              <p id="deposit-modal-description" style={{ fontSize: "0.82rem", color: "#6b7280", marginTop: 0 }}>
+              <p id="deposit-modal-description" style={{ fontSize: "0.82rem", color: "var(--fg-muted)", marginTop: 0 }}>
                 Powered by Stellar Anchor SEP-24. You&apos;ll sign a one-time login
                 challenge in {getWalletProviderLabel(getConnectedWalletProviderSafe())},
                 then provide your payment details in the anchor&apos;s secure window.
@@ -302,7 +302,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                       display: "block",
                       fontSize: "0.8rem",
                       fontWeight: 600,
-                      color: "#374151",
+                      color: "var(--fg)",
                       margin: "1rem 0 0.35rem",
                     }}
                   >
@@ -320,7 +320,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                       width: "100%",
                       padding: "0.6rem 0.75rem",
                       borderRadius: "0.5rem",
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid var(--border)",
                       fontSize: "0.9rem",
                     }}
                   />
@@ -338,11 +338,11 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
               {busy && (
                 <div style={{ marginTop: "1.25rem", textAlign: "center" }}>
                   <div className="sep24-spinner" style={spinnerStyle} />
-                  <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151" }}>
+                  <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--fg)" }}>
                     {STEP_LABEL[step]}
                   </p>
                   {tx && (
-                    <p style={{ fontSize: "0.82rem", color: "#6b7280" }}>
+                    <p style={{ fontSize: "0.82rem", color: "var(--fg-muted)" }}>
                       {SEP24_STATUS_LABEL[tx.status] ?? tx.status}
                     </p>
                   )}
@@ -355,7 +355,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                         display: "inline-block",
                         marginTop: "0.6rem",
                         fontSize: "0.82rem",
-                        color: "#10b981",
+                        color: "var(--accent)",
                         fontWeight: 700,
                       }}
                     >
@@ -370,17 +370,17 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                   <div style={{ fontSize: "2.5rem" }}>
                     {tx.status === "completed" ? "🎉" : "ℹ️"}
                   </div>
-                  <p style={{ fontWeight: 700, color: "#111827" }}>
+                  <p style={{ fontWeight: 700, color: "var(--fg)" }}>
                     {SEP24_STATUS_LABEL[tx.status] ?? tx.status}
                   </p>
                   {tx.amount_out && (
-                    <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                    <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)" }}>
                       You receive: <strong>{tx.amount_out} {config.assetCode}</strong>
                       {tx.amount_fee ? ` (fee ${tx.amount_fee})` : ""}
                     </p>
                   )}
                   {tx.stellar_transaction_id && (
-                    <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                    <p style={{ fontSize: "0.75rem", color: "var(--fg-subtle)", marginTop: "0.5rem" }}>
                       Stellar TX: {tx.stellar_transaction_id.slice(0, 8)}...
                     </p>
                   )}
@@ -389,7 +389,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                       href={tx.more_info_url}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ fontSize: "0.82rem", color: "#10b981", fontWeight: 700 }}
+                      style={{ fontSize: "0.82rem", color: "var(--accent)", fontWeight: 700 }}
                     >
                       View transaction details ↗
                     </a>
@@ -412,8 +412,8 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
                   <p
                     style={{
                       fontSize: "0.85rem",
-                      color: "#b91c1c",
-                      background: "rgba(185,28,28,0.08)",
+                      color: "var(--danger-soft-fg)",
+                      background: "color-mix(in srgb, var(--danger) 8%, transparent)",
                       padding: "0.6rem 0.75rem",
                       borderRadius: "0.5rem",
                     }}
@@ -427,7 +427,7 @@ export function DepositFiatButton({ walletAddress }: DepositFiatButtonProps) {
               )}
 
               {error && step === "interactive" && (
-                <p style={{ fontSize: "0.8rem", color: "#b45309", marginTop: "0.75rem" }}>
+                <p style={{ fontSize: "0.8rem", color: "var(--warning-soft-fg)", marginTop: "0.75rem" }}>
                   {error}
                 </p>
               )}
@@ -450,8 +450,8 @@ const primaryBtnStyle: CSSProperties = {
   width: "100%",
   marginTop: "1.1rem",
   padding: "0.7rem 1rem",
-  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-  color: "#fff",
+  background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)",
+  color: "var(--fg)",
   border: "none",
   borderRadius: "0.6rem",
   fontSize: "0.9rem",
@@ -464,7 +464,7 @@ const spinnerStyle: CSSProperties = {
   height: "32px",
   margin: "0 auto 0.75rem",
   border: "3px solid #d1fae5",
-  borderTopColor: "#10b981",
+  borderTopColor: "var(--accent)",
   borderRadius: "50%",
   animation: "sep24-spin 0.8s linear infinite",
 };

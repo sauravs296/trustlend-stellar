@@ -86,7 +86,7 @@ export const borrowingSteps: GuideStep[] = [
     description:
       "Sign in as a Borrower, then connect a Stellar wallet. The wallet is the address that will receive your loan and sign every on-chain action, so it must be connected before you can request funds.",
     details: [
-      "Sign in with Google or email and choose the Borrower role.",
+      "Sign in with your Stellar wallet and choose the Borrower role.",
       "Connect a supported Stellar wallet (Freighter, Albedo or xBull).",
       "Loans cannot be funded to an account with no wallet — the marketplace shows a 'No wallet' badge to lenders until you connect one.",
     ],
@@ -164,7 +164,7 @@ export const healthFactorBands: RiskLevel[] = [
   {
     range: `Above ${HF_SAFE_THRESHOLD.toFixed(1)}`,
     status: "Safe",
-    color: "#22cf9d",
+    color: "var(--accent)",
     meaning:
       "Your collateral comfortably covers your debt. A normal price swing will not put you at risk.",
     action: "No action needed. Keep an eye on it if the market is volatile.",
@@ -172,7 +172,7 @@ export const healthFactorBands: RiskLevel[] = [
   {
     range: `${HF_WARNING_THRESHOLD.toFixed(1)} – ${HF_SAFE_THRESHOLD.toFixed(1)}`,
     status: "Warning — Low Buffer",
-    color: "#f59e0b",
+    color: "var(--warning)",
     meaning:
       "Your buffer is thin. A further drop in the value of your collateral could push you into liquidation.",
     action:
@@ -181,7 +181,7 @@ export const healthFactorBands: RiskLevel[] = [
   {
     range: `Below ${HF_WARNING_THRESHOLD.toFixed(1)}`,
     status: "Critical — Liquidation Risk",
-    color: "#ef4444",
+    color: "var(--danger)",
     meaning:
       "You are close to, or already past, the point where the protocol can liquidate your position.",
     action:

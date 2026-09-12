@@ -299,11 +299,11 @@ export function WalletCard({
           style={{
             marginBottom: "0.9rem",
             fontSize: "0.82rem",
-            color: "#6b7280",
+            color: "var(--fg-muted)",
           }}
         >
           Selected wallet provider:{" "}
-          <strong style={{ color: "#111827" }}>{walletProviderLabel}</strong>
+          <strong style={{ color: "var(--fg)" }}>{walletProviderLabel}</strong>
         </div>
 
         <div className="wallet-card-grid">

@@ -135,9 +135,8 @@ export default async function LenderPoolsPage() {
         <section aria-label="Available to Invest">
           <article
             style={{
-              background:
-                "linear-gradient(135deg, rgba(34,207,157,0.12) 0%, rgba(34,207,157,0.04) 100%)",
-              border: "1px solid rgba(34,207,157,0.3)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent) 0%, color-mix(in srgb, var(--accent) 4%, transparent) 100%)",
+              border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
               borderRadius: "1rem",
               padding: "1.5rem 2rem",
               display: "flex",
@@ -153,7 +152,7 @@ export default async function LenderPoolsPage() {
                   width: "3rem",
                   height: "3rem",
                   borderRadius: "50%",
-                  background: "rgba(34,207,157,0.15)",
+                  background: "color-mix(in srgb, var(--accent) 15%, transparent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -179,7 +178,7 @@ export default async function LenderPoolsPage() {
                   style={{
                     fontSize: "2rem",
                     fontWeight: 800,
-                    color: "#22cf9d",
+                    color: "var(--accent)",
                     lineHeight: 1,
                     margin: 0,
                   }}
@@ -240,7 +239,7 @@ export default async function LenderPoolsPage() {
                     style={{
                       fontWeight: 700,
                       fontSize: "1.1rem",
-                      color: stat.green ? "#22cf9d" : "inherit",
+                      color: stat.green ? "var(--accent)" : "inherit",
                       margin: 0,
                     }}
                   >
@@ -326,7 +325,7 @@ export default async function LenderPoolsPage() {
                   style={{
                     fontSize: "1.6rem",
                     fontWeight: 700,
-                    color: stat.green ? "#22cf9d" : "inherit",
+                    color: stat.green ? "var(--accent)" : "inherit",
                   }}
                 >
                   {stat.value}
@@ -356,7 +355,7 @@ export default async function LenderPoolsPage() {
             >
               Cumulative Pool Portfolio Growth
             </h3>
-            <InteractiveLineChart points={chartData} color="#22cf9d" />
+            <InteractiveLineChart points={chartData} color="var(--accent)" />
           </article>
         </section>
 
@@ -398,12 +397,12 @@ export default async function LenderPoolsPage() {
                               fontWeight: 600,
                               background:
                                 pool.status === "active"
-                                  ? "rgba(34,207,157,0.12)"
-                                  : "rgba(255,107,107,0.12)",
+                                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                                  : "color-mix(in srgb, var(--danger) 12%, transparent)",
                               color:
                                 pool.status === "active"
-                                  ? "#22cf9d"
-                                  : "#ff6b6b",
+                                  ? "var(--accent)"
+                                  : "var(--danger)",
                             }}
                           >
                             {String(pool.status).toUpperCase()}
@@ -418,7 +417,7 @@ export default async function LenderPoolsPage() {
                         </td>
                         <td
                           style={{
-                            color: myPos ? "#22cf9d" : "inherit",
+                            color: myPos ? "var(--accent)" : "inherit",
                             fontWeight: myPos ? 600 : 400,
                           }}
                         >
@@ -472,8 +471,8 @@ export default async function LenderPoolsPage() {
                       style={{
                         padding: "0.75rem",
                         borderRadius: "0.6rem",
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.07)",
+                        background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--fg) 7%, transparent)",
                       }}
                     >
                       <div
@@ -496,10 +495,10 @@ export default async function LenderPoolsPage() {
                             borderRadius: "9999px",
                             background:
                               pos.status === "active"
-                                ? "rgba(34,207,157,0.12)"
-                                : "rgba(255,107,107,0.12)",
+                                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                                : "color-mix(in srgb, var(--danger) 12%, transparent)",
                             color:
-                              pos.status === "active" ? "#22cf9d" : "#ff6b6b",
+                              pos.status === "active" ? "var(--accent)" : "var(--danger)",
                           }}
                         >
                           {String(pos.status ?? "active").toUpperCase()}
@@ -521,7 +520,7 @@ export default async function LenderPoolsPage() {
                         </span>
                         <span>
                           Earned:{" "}
-                          <strong style={{ color: "#22cf9d" }}>
+                          <strong style={{ color: "var(--accent)" }}>
                             {formatXlmPrecise(Number(pos.earned_interest ?? 0))}
                           </strong>
                         </span>
@@ -575,9 +574,9 @@ export default async function LenderPoolsPage() {
                               fontSize: "0.75rem",
                               fontWeight: 600,
                               background: isDeposit
-                                ? "rgba(34,207,157,0.12)"
-                                : "rgba(155,111,224,0.12)",
-                              color: isDeposit ? "#22cf9d" : "#9b6fe0",
+                                ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                              color: isDeposit ? "var(--accent)" : "var(--primary-muted)",
                             }}
                           >
                             {String(tx.category ?? "Unknown").toUpperCase()}
@@ -604,8 +603,8 @@ export default async function LenderPoolsPage() {
                               className="workspace-nav-link"
                               style={{
                                 display: "inline-block",
-                                background: "rgba(34,207,157,0.1)",
-                                color: "#22cf9d",
+                                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                                color: "var(--accent)",
                                 padding: "0.3rem 0.6rem",
                                 borderRadius: "0.4rem",
                                 fontSize: "0.75rem",

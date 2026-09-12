@@ -30,11 +30,11 @@ function EmptyLoansIllustration() {
             fill="url(#starGrad)" opacity="0.8" />
       <defs>
         <linearGradient id="emptyGrad" x1="8" y1="20" x2="72" y2="64" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7e2fd0" />
-          <stop offset="1" stopColor="#22cf9d" />
+          <stop stopColor="var(--primary)" />
+          <stop offset="1" stopColor="var(--accent)" />
         </linearGradient>
         <linearGradient id="starGrad" x1="28" y1="8" x2="52" y2="29" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#f5a623" />
+          <stop stopColor="var(--warning)" />
           <stop offset="1" stopColor="#f7c948" />
         </linearGradient>
       </defs>
@@ -248,7 +248,7 @@ export default async function BorrowerDashboardPage() {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #eef0f8" }}>
+                  <tr style={{ borderBottom: "1px solid var(--surface-2)" }}>
                     {([
                       { label: "Loan ID" },
                       { label: "Amount" },
@@ -259,7 +259,7 @@ export default async function BorrowerDashboardPage() {
                       { label: "Receipt" },
                       { label: "Action" },
                     ] as Array<{ label: string; term?: GlossaryTermKey }>).map(({ label, term }) => (
-                      <th key={label} style={{ textAlign: "left", padding: "0.6rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                      <th key={label} style={{ textAlign: "left", padding: "0.6rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "var(--fg-subtle)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                         {term ? (
                           <span className="term-tooltip">
                             {label}
@@ -280,8 +280,8 @@ export default async function BorrowerDashboardPage() {
                     const hasTx  = isLikelyTxHash(txHash);
                     const isRepayable = ["active", "funded", "approved"].includes(status);
                     return (
-                      <tr key={loanId} style={{ borderBottom: "1px solid #f9fafb" }}>
-                        <td style={{ padding: "0.75rem", fontFamily: "monospace", fontSize: "0.8rem", color: "#6b7280" }}>{loanId.slice(0, 8)}</td>
+                      <tr key={loanId} style={{ borderBottom: "1px solid var(--surface-2)" }}>
+                        <td style={{ padding: "0.75rem", fontFamily: "monospace", fontSize: "0.8rem", color: "var(--fg-muted)" }}>{loanId.slice(0, 8)}</td>
                         <td style={{ padding: "0.75rem", fontWeight: 700 }}>{formatCurrency(Number(loan.principal_amount))}</td>
                           <td style={{ padding: "0.75rem" }}>
                             <Badge variant={statusBadge(status)}>{status.toUpperCase()}</Badge>
@@ -302,7 +302,7 @@ export default async function BorrowerDashboardPage() {
                         <td style={{ padding: "0.75rem" }}>
                           {hasTx ? (
                             <a href={buildStellarTxVerificationUrl(txHash)} target="_blank" rel="noreferrer"
-                              style={{ fontSize: "0.78rem", color: "#22cf9d", fontWeight: 600, whiteSpace: "nowrap" }}>
+                              style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
                               ✅ Verify ↗
                             </a>
                           ) : (
@@ -323,8 +323,8 @@ export default async function BorrowerDashboardPage() {
                                 gap: "0.35rem",
                                 padding: "0.45rem 0.8rem",
                                 borderRadius: "0.45rem",
-                                background: "rgba(126,47,208,0.08)",
-                                color: "#7e2fd0",
+                                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                color: "var(--primary)",
                                 fontSize: "0.78rem",
                                 fontWeight: 700,
                                 textDecoration: "none",
@@ -346,20 +346,20 @@ export default async function BorrowerDashboardPage() {
                                 gap: "0.25rem",
                                 padding: "0.35rem 0.75rem",
                                 borderRadius: "0.45rem",
-                                background: "linear-gradient(135deg,#7e2fd0,#5a1fad)",
-                                color: "#fff",
+                                background: "linear-gradient(135deg,var(--primary),var(--primary-hover))",
+                                color: "var(--primary-fg)",
                                 fontSize: "0.78rem",
                                 fontWeight: 700,
                                 textDecoration: "none",
-                                boxShadow: "0 2px 6px rgba(126,47,208,0.25)",
+                                boxShadow: "0 2px 6px color-mix(in srgb, var(--primary) 25%, transparent)",
                               }}
                             >
                               ⚡ Repay Early
                             </a>
                           ) : status === "repaid" ? (
-                            <span style={{ fontSize: "0.75rem", color: "#22cf9d", fontWeight: 700 }}>Settled ✅</span>
+                            <span style={{ fontSize: "0.75rem", color: "var(--accent)", fontWeight: 700 }}>Settled ✅</span>
                           ) : (
-                            <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>—</span>
+                            <span style={{ fontSize: "0.75rem", color: "var(--fg-subtle)" }}>—</span>
                           )}
                         </td>
                       </tr>

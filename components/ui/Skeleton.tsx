@@ -25,7 +25,7 @@ export function Skeleton({ className, loading = true, ...props }: SkeletonProps)
     <div
       aria-hidden="true"
       className={clsx(
-        "animate-pulse rounded-md bg-gray-200 dark:bg-white/10",
+        "animate-pulse rounded-md bg-surface-2",
         className,
       )}
       {...props}
