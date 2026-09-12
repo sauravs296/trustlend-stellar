@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { LineChartSkeleton } from "@/components/dashboard/ChartSkeleton";
 
 interface Point {
@@ -11,7 +11,7 @@ interface Point {
 
 export function InteractiveLineChart({
   points,
-  color = "#22cf9d",
+  color = "var(--accent)",
   loading = false,
 }: {
   points: { value: number; label: string }[];
@@ -20,6 +20,8 @@ export function InteractiveLineChart({
   loading?: boolean;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // CSS variables such as "var(--accent)" are not valid SVG ids, so derive a unique one.
+  const gradientId = useId();
 
   // ── Loading state: show skeleton ────────────────────────────────────────────
   if (loading) {
@@ -37,7 +39,7 @@ export function InteractiveLineChart({
           justifyContent: "center",
           opacity: 0.5,
           fontSize: "0.85rem",
-          color: "#6b7280",
+          color: "var(--fg-muted)",
         }}
       >
         No data available
@@ -81,14 +83,14 @@ export function InteractiveLineChart({
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }} onMouseLeave={() => setHoverIdx(null)}>
         
         <defs>
-          <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.2" />
             <stop offset="100%" stopColor={color} stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
         {/* Area fill */}
-        <path d={areaD} fill={`url(#gradient-${color})`} />
+        <path d={areaD} fill={`url(#${gradientId})`} />
 
         {/* Line stroke */}
         <path d={d} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
@@ -107,7 +109,7 @@ export function InteractiveLineChart({
             />
             {/* Visible dot when hovered */}
             {hoverIdx === i && (
-              <circle cx={p.x} cy={p.y} r={6} fill="#fff" stroke={color} strokeWidth="3" style={{ pointerEvents: "none" }} />
+              <circle cx={p.x} cy={p.y} r={6} fill="var(--surface)" stroke={color} strokeWidth="3" style={{ pointerEvents: "none" }} />
             )}
           </g>
         ))}
@@ -118,15 +120,15 @@ export function InteractiveLineChart({
         <div className="interactive-chart-tooltip" style={{
           position: "absolute",
           top: "10px", right: "20px",
-          background: "#fff",
-          border: "1px solid #eef0f8",
+          background: "var(--surface)",
+          border: "1px solid var(--surface-2)",
           boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
           padding: "0.6rem 0.85rem",
           borderRadius: "0.6rem",
           pointerEvents: "none",
           minWidth: "120px"
         }}>
-          <p style={{ margin: "0 0 0.15rem", fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>{svgPoints[hoverIdx]?.label}</p>
+          <p style={{ margin: "0 0 0.15rem", fontSize: "0.75rem", color: "var(--fg-muted)", fontWeight: 600 }}>{svgPoints[hoverIdx]?.label}</p>
           <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: color }}>
             {svgPoints[hoverIdx]?.value.toFixed(2)} XLM
           </p>

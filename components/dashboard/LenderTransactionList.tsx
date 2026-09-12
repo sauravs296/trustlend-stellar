@@ -23,28 +23,28 @@ interface LenderTransactionListProps {
 
 const COLORS = {
   purple: {
-    bg: "rgba(126,47,208,0.04)",
-    border: "rgba(126,47,208,0.12)",
-    iconBg: "rgba(126,47,208,0.1)",
-    text: "#7e2fd0",
+    bg: "color-mix(in srgb, var(--primary) 4%, transparent)",
+    border: "color-mix(in srgb, var(--primary) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--primary) 10%, transparent)",
+    text: "var(--primary)",
   },
   green: {
-    bg: "rgba(34,207,157,0.04)",
-    border: "rgba(34,207,157,0.12)",
-    iconBg: "rgba(34,207,157,0.1)",
-    text: "#22cf9d",
+    bg: "color-mix(in srgb, var(--accent) 4%, transparent)",
+    border: "color-mix(in srgb, var(--accent) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--accent) 10%, transparent)",
+    text: "var(--accent)",
   },
   blue: {
-    bg: "rgba(59,130,246,0.04)",
-    border: "rgba(59,130,246,0.12)",
-    iconBg: "rgba(59,130,246,0.1)",
-    text: "#3b82f6",
+    bg: "color-mix(in srgb, var(--info) 4%, transparent)",
+    border: "color-mix(in srgb, var(--info) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--info) 10%, transparent)",
+    text: "var(--info)",
   },
   gray: {
-    bg: "rgba(107,114,128,0.04)",
-    border: "rgba(107,114,128,0.12)",
-    iconBg: "rgba(107,114,128,0.1)",
-    text: "#6b7280",
+    bg: "color-mix(in srgb, var(--fg-muted) 4%, transparent)",
+    border: "color-mix(in srgb, var(--fg-muted) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--fg-muted) 10%, transparent)",
+    text: "var(--fg-muted)",
   },
 };
 
@@ -173,7 +173,7 @@ export function LenderTransactionList({
                   margin: 0,
                   fontWeight: 700,
                   fontSize: "0.88rem",
-                  color: "#111827",
+                  color: "var(--fg)",
                 }}
               >
                 {tx.label}
@@ -182,7 +182,7 @@ export function LenderTransactionList({
                 style={{
                   margin: "0.15rem 0 0",
                   fontSize: "0.75rem",
-                  color: "#9ca3af",
+                  color: "var(--fg-subtle)",
                   fontFamily: "monospace",
                 }}
               >
@@ -266,12 +266,12 @@ export function LenderTransactionList({
         }}
       >
         {isLoading && (
-          <span style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.9rem", color: "var(--fg-muted)" }}>
             Loading more...
           </span>
         )}
         {!hasMore && transactions.length > 0 && (
-          <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+          <span style={{ fontSize: "0.8rem", color: "var(--fg-subtle)" }}>
             No more transactions
           </span>
         )}

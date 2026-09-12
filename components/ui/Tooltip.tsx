@@ -23,12 +23,12 @@ export function Tooltip({ children, content, side = "top", align = "center" }: T
             align={align}
             sideOffset={4}
             style={{
-              background: "rgba(18,18,28,0.95)",
-              border: "1px solid rgba(126, 47, 208, 0.4)",
+              background: "color-mix(in srgb, var(--fg) 95%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 40%, transparent)",
               padding: "0.5rem 0.75rem",
               borderRadius: "0.5rem",
               fontSize: "0.75rem",
-              color: "#fff",
+              color: "var(--fg-inverse)",
               boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
               maxWidth: "220px",
               lineHeight: 1.4,
@@ -36,7 +36,7 @@ export function Tooltip({ children, content, side = "top", align = "center" }: T
             }}
           >
             {content}
-            <TooltipPrimitive.Arrow style={{ fill: "rgba(126, 47, 208, 0.4)" }} />
+            <TooltipPrimitive.Arrow style={{ fill: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>

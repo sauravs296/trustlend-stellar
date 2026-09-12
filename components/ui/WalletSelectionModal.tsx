@@ -107,7 +107,7 @@ export function WalletSelectionModal({
         position: "fixed",
         inset: 0,
         zIndex: 1000,
-        background: "rgba(15, 23, 42, 0.45)",
+        background: "color-mix(in srgb, var(--fg) 45%, transparent)",
         backdropFilter: "blur(6px)",
         display: "flex",
         alignItems: "center",
@@ -128,21 +128,21 @@ export function WalletSelectionModal({
             maxHeight: "90vh",
             overflowY: "auto",
             borderRadius: "1.25rem",
-            background: "#ffffff",
-            boxShadow: "0 30px 80px rgba(15, 23, 42, 0.22)",
-            border: "1px solid rgba(126, 47, 208, 0.12)",
+            background: "var(--surface)",
+            boxShadow: "0 30px 80px color-mix(in srgb, var(--fg) 22%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
             padding: "1.5rem",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem" }}>
             <div>
-              <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#7e2fd0" }}>
+              <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--primary)" }}>
                 Wallet connection
               </p>
-              <h3 id="wallet-modal-title" style={{ margin: "0.35rem 0 0", fontSize: "1.2rem", fontWeight: 800, color: "#111827" }}>
+              <h3 id="wallet-modal-title" style={{ margin: "0.35rem 0 0", fontSize: "1.2rem", fontWeight: 800, color: "var(--fg)" }}>
                 {title}
               </h3>
-              <p id="wallet-modal-description" style={{ margin: "0.45rem 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "#6b7280" }}>
+              <p id="wallet-modal-description" style={{ margin: "0.45rem 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--fg-muted)" }}>
                 {description}
               </p>
             </div>
@@ -155,7 +155,7 @@ export function WalletSelectionModal({
               style={{
                 border: "none",
                 background: "transparent",
-                color: "#6b7280",
+                color: "var(--fg-muted)",
                 fontSize: "1.25rem",
                 cursor: busy ? "not-allowed" : "pointer",
                 lineHeight: 1,
@@ -183,8 +183,8 @@ export function WalletSelectionModal({
                     textAlign: "left",
                     width: "100%",
                     borderRadius: "1rem",
-                    border: active ? "1px solid rgba(126, 47, 208, 0.5)" : "1px solid rgba(17, 24, 39, 0.08)",
-                    background: active ? "rgba(126, 47, 208, 0.06)" : "#f9fafb",
+                    border: active ? "1px solid color-mix(in srgb, var(--primary) 50%, transparent)" : "1px solid color-mix(in srgb, var(--fg) 8%, transparent)",
+                    background: active ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "var(--surface-2)",
                     padding: "1rem",
                     cursor: disabled ? "not-allowed" : "pointer",
                     opacity: unavailable ? 0.55 : 1,
@@ -193,33 +193,33 @@ export function WalletSelectionModal({
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.55rem", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: "1rem", color: "#111827" }}>{option.title}</strong>
+                        <strong style={{ fontSize: "1rem", color: "var(--fg)" }}>{option.title}</strong>
                         {option.badge ? (
-                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#17a87a", background: "rgba(34, 207, 157, 0.14)", padding: "0.2rem 0.5rem", borderRadius: "9999px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--accent-hover)", background: "color-mix(in srgb, var(--accent) 14%, transparent)", padding: "0.2rem 0.5rem", borderRadius: "9999px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                             {option.badge}
                           </span>
                         ) : null}
                         {active ? (
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#7e2fd0", background: "rgba(126, 47, 208, 0.12)", padding: "0.2rem 0.5rem", borderRadius: "9999px" }}>
+                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", padding: "0.2rem 0.5rem", borderRadius: "9999px" }}>
                             Selected
                           </span>
                         ) : null}
                       </div>
-                      <p style={{ margin: "0.35rem 0 0", fontSize: "0.87rem", color: "#6b7280", lineHeight: 1.45 }}>
+                      <p style={{ margin: "0.35rem 0 0", fontSize: "0.87rem", color: "var(--fg-muted)", lineHeight: 1.45 }}>
                         {unavailable
                           ? "Unavailable — this deployment has no WalletConnect project id configured."
                           : option.description}
                       </p>
                     </div>
-                    <span style={{ color: "#9ca3af", fontSize: "1rem", whiteSpace: "nowrap" }}>→</span>
+                    <span style={{ color: "var(--fg-subtle)", fontSize: "1rem", whiteSpace: "nowrap" }}>→</span>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          <p style={{ margin: "1rem 0 0", fontSize: "0.8rem", color: "#6b7280" }}>
-            Current default: <strong style={{ color: "#111827" }}>{getWalletProviderLabel(selectedProvider)}</strong>
+          <p style={{ margin: "1rem 0 0", fontSize: "0.8rem", color: "var(--fg-muted)" }}>
+            Current default: <strong style={{ color: "var(--fg)" }}>{getWalletProviderLabel(selectedProvider)}</strong>
           </p>
         </div>
       </FocusTrap>

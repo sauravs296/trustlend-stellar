@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { formatCurrency, formatXlmPrecise } from "@/lib/utils/formatting";
 import type {
   LenderYieldAnalyticsResult,
@@ -59,56 +59,57 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
   const firstX = svgPoints[0]?.x ?? paddingX;
   const areaPath = `${linePath} L ${lastX},${H - paddingY} L ${firstX},${H - paddingY} Z`;
 
-  const primaryColor = activeTab === "history" ? "#22cf9d" : "#7e2fd0";
+  const primaryColor = activeTab === "history" ? "var(--accent)" : "var(--primary)";
+  const gradientId = useId();
 
   return (
     <div className="workspace-stack" style={{ gap: "1.5rem" }}>
       {/* ── KPI Summary Cards ── */}
       <section className="workspace-grid workspace-grid--four" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
         <article className="workspace-card" style={{ padding: "1.25rem" }}>
-          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-muted)", fontWeight: 700 }}>
             Weighted Portfolio APY
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#22cf9d", margin: "0.35rem 0 0.15rem" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--accent)", margin: "0.35rem 0 0.15rem" }}>
             {analytics.weightedAverageApy.toFixed(2)}%
           </p>
-          <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--fg-subtle)" }}>
             Active capital weighted
           </span>
         </article>
 
         <article className="workspace-card" style={{ padding: "1.25rem" }}>
-          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-muted)", fontWeight: 700 }}>
             Historical Yield Earned
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#111827", margin: "0.35rem 0 0.15rem" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--fg)", margin: "0.35rem 0 0.15rem" }}>
             {analytics.totalHistoricalYield > 0 ? "+" : ""}{formatXlmPrecise(analytics.totalHistoricalYield)}
           </p>
-          <span style={{ fontSize: "0.75rem", color: "#22cf9d", fontWeight: 600 }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--accent)", fontWeight: 600 }}>
             Across all pools &amp; loans
           </span>
         </article>
 
         <article className="workspace-card" style={{ padding: "1.25rem" }}>
-          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-muted)", fontWeight: 700 }}>
             Projected 30-Day Yield
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#7e2fd0", margin: "0.35rem 0 0.15rem" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--primary)", margin: "0.35rem 0 0.15rem" }}>
             +{formatCurrency(analytics.projected30DayYield)}
           </p>
-          <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--fg-subtle)" }}>
             ~{formatCurrency(analytics.projected90DayYield)} in 90 days
           </span>
         </article>
 
         <article className="workspace-card" style={{ padding: "1.25rem" }}>
-          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-muted)", fontWeight: 700 }}>
             Projected 1-Year Return
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "#111827", margin: "0.35rem 0 0.15rem" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--fg)", margin: "0.35rem 0 0.15rem" }}>
             +{formatCurrency(analytics.projectedAnnualYield)}
           </p>
-          <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--accent)", fontWeight: 600 }}>
             Annualized run-rate
           </span>
         </article>
@@ -131,7 +132,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
 
           <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
             {/* Metric Mode Toggle */}
-            <div style={{ display: "inline-flex", background: "#f3f4f6", padding: "0.2rem", borderRadius: "0.5rem" }}>
+            <div style={{ display: "inline-flex", background: "var(--surface-2)", padding: "0.2rem", borderRadius: "0.5rem" }}>
               <button
                 type="button"
                 onClick={() => setMetricMode("apy")}
@@ -142,8 +143,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   fontSize: "0.78rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  background: metricMode === "apy" ? "#fff" : "transparent",
-                  color: metricMode === "apy" ? "#111827" : "#6b7280",
+                  background: metricMode === "apy" ? "var(--surface)" : "transparent",
+                  color: metricMode === "apy" ? "var(--fg)" : "var(--fg-muted)",
                   boxShadow: metricMode === "apy" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
                 }}
               >
@@ -159,8 +160,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   fontSize: "0.78rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  background: metricMode === "yield" ? "#fff" : "transparent",
-                  color: metricMode === "yield" ? "#111827" : "#6b7280",
+                  background: metricMode === "yield" ? "var(--surface)" : "transparent",
+                  color: metricMode === "yield" ? "var(--fg)" : "var(--fg-muted)",
                   boxShadow: metricMode === "yield" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
                 }}
               >
@@ -169,7 +170,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
             </div>
 
             {/* Tab Toggle */}
-            <div style={{ display: "inline-flex", background: "#f3f4f6", padding: "0.2rem", borderRadius: "0.5rem" }}>
+            <div style={{ display: "inline-flex", background: "var(--surface-2)", padding: "0.2rem", borderRadius: "0.5rem" }}>
               <button
                 type="button"
                 onClick={() => setActiveTab("history")}
@@ -180,9 +181,9 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   fontSize: "0.78rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  background: activeTab === "history" ? "#22cf9d" : "transparent",
-                  color: activeTab === "history" ? "#fff" : "#6b7280",
-                  boxShadow: activeTab === "history" ? "0 1px 3px rgba(34,207,157,0.3)" : "none",
+                  background: activeTab === "history" ? "var(--accent)" : "transparent",
+                  color: activeTab === "history" ? "var(--surface)" : "var(--fg-muted)",
+                  boxShadow: activeTab === "history" ? "0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent)" : "none",
                 }}
               >
                 📈 Historical
@@ -197,9 +198,9 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   fontSize: "0.78rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  background: activeTab === "projection" ? "#7e2fd0" : "transparent",
-                  color: activeTab === "projection" ? "#fff" : "#6b7280",
-                  boxShadow: activeTab === "projection" ? "0 1px 3px rgba(126,47,208,0.3)" : "none",
+                  background: activeTab === "projection" ? "var(--primary)" : "transparent",
+                  color: activeTab === "projection" ? "var(--surface)" : "var(--fg-muted)",
+                  boxShadow: activeTab === "projection" ? "0 1px 3px color-mix(in srgb, var(--primary) 30%, transparent)" : "none",
                 }}
               >
                 🔮 Projected
@@ -217,7 +218,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
             onMouseLeave={() => setHoveredIndex(null)}
           >
             <defs>
-              <linearGradient id={`yield-gradient-${primaryColor}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={primaryColor} stopOpacity="0.25" />
                 <stop offset="100%" stopColor={primaryColor} stopOpacity="0.0" />
               </linearGradient>
@@ -233,7 +234,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   y1={y}
                   x2={W - paddingX}
                   y2={y}
-                  stroke="#eef0f8"
+                  stroke="var(--surface-2)"
                   strokeDasharray="4 4"
                   strokeWidth="1"
                 />
@@ -241,7 +242,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
             })}
 
             {/* Area fill */}
-            <path d={areaPath} fill={`url(#yield-gradient-${primaryColor})`} />
+            <path d={areaPath} fill={`url(#${gradientId})`} />
 
             {/* Line curve */}
             <path
@@ -268,7 +269,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   cx={p.x}
                   cy={p.y}
                   r={hoveredIndex === i ? 6 : 4}
-                  fill={hoveredIndex === i ? "#fff" : primaryColor}
+                  fill={hoveredIndex === i ? "var(--surface)" : primaryColor}
                   stroke={primaryColor}
                   strokeWidth={hoveredIndex === i ? 3 : 2}
                   style={{ pointerEvents: "none", transition: "all 0.15s ease" }}
@@ -284,8 +285,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                 position: "absolute",
                 top: "10px",
                 right: "15px",
-                background: "#fff",
-                border: `1px solid ${primaryColor}40`,
+                background: "var(--surface)",
+                border: `1px solid color-mix(in srgb, ${primaryColor} 25%, transparent)`,
                 boxShadow: "0 6px 20px rgba(0,0,0,0.08)",
                 padding: "0.6rem 0.9rem",
                 borderRadius: "0.6rem",
@@ -294,7 +295,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                 zIndex: 10,
               }}
             >
-              <p style={{ margin: "0 0 0.2rem", fontSize: "0.75rem", color: "#6b7280", fontWeight: 700 }}>
+              <p style={{ margin: "0 0 0.2rem", fontSize: "0.75rem", color: "var(--fg-muted)", fontWeight: 700 }}>
                 {svgPoints[hoveredIndex].point.label}
               </p>
               <p style={{ margin: "0 0 0.15rem", fontSize: "1.05rem", fontWeight: 800, color: primaryColor }}>
@@ -302,7 +303,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   ? `${svgPoints[hoveredIndex].point.apy.toFixed(2)}% APY`
                   : `${formatCurrency(svgPoints[hoveredIndex].point.cumulativeYield)} Yield`}
               </p>
-              <p style={{ margin: 0, fontSize: "0.72rem", color: "#9ca3af" }}>
+              <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--fg-subtle)" }}>
                 Active Capital: {formatCurrency(svgPoints[hoveredIndex].point.deployedCapital)}
               </p>
             </div>
@@ -317,7 +318,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
               style={{
                 fontSize: "0.72rem",
                 fontWeight: hoveredIndex === idx ? 700 : 500,
-                color: hoveredIndex === idx ? primaryColor : "#9ca3af",
+                color: hoveredIndex === idx ? primaryColor : "var(--fg-subtle)",
                 transition: "color 0.15s ease",
               }}
             >
@@ -338,15 +339,15 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
               Detailed yield analysis, capital allocation, and projected earnings per individual liquidity pool.
             </p>
           </div>
-          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#22cf9d", background: "rgba(34,207,157,0.1)", padding: "0.25rem 0.75rem", borderRadius: "9999px" }}>
+          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)", padding: "0.25rem 0.75rem", borderRadius: "9999px" }}>
             {analytics.poolBreakdown.length} Pool{analytics.poolBreakdown.length !== 1 ? "s" : ""}
           </span>
         </div>
 
         {analytics.poolBreakdown.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#6b7280" }}>
+          <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--fg-muted)" }}>
             <p style={{ margin: 0, fontSize: "0.9rem" }}>No active pool positions deployed yet.</p>
-            <a href="/dashboard/lender/pools" style={{ display: "inline-block", marginTop: "0.75rem", color: "#22cf9d", fontWeight: 700, fontSize: "0.85rem" }}>
+            <a href="/dashboard/lender/pools" style={{ display: "inline-block", marginTop: "0.75rem", color: "var(--accent)", fontWeight: 700, fontSize: "0.85rem" }}>
               Explore Available Pools →
             </a>
           </div>
@@ -358,8 +359,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                 <div
                   key={pool.poolId}
                   style={{
-                    background: "rgba(255,255,255,0.7)",
-                    border: "1px solid #eef0f8",
+                    background: "color-mix(in srgb, var(--fg) 70%, transparent)",
+                    border: "1px solid var(--surface-2)",
                     borderRadius: "0.75rem",
                     padding: "1.15rem",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
@@ -372,8 +373,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem" }}>
                       <div>
-                        <strong style={{ fontSize: "0.95rem", color: "#111827" }}>{pool.poolName}</strong>
-                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "#6b7280", fontFamily: "monospace" }}>
+                        <strong style={{ fontSize: "0.95rem", color: "var(--fg)" }}>{pool.poolName}</strong>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "var(--fg-muted)", fontFamily: "monospace" }}>
                           #{pool.poolId.slice(0, 8)}
                         </p>
                       </div>
@@ -383,8 +384,8 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                           fontWeight: 700,
                           padding: "0.15rem 0.5rem",
                           borderRadius: "9999px",
-                          background: pool.status === "active" ? "rgba(34,207,157,0.12)" : "rgba(107,114,128,0.12)",
-                          color: pool.status === "active" ? "#16a34a" : "#6b7280",
+                          background: pool.status === "active" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--fg-muted) 12%, transparent)",
+                          color: pool.status === "active" ? "var(--accent)" : "var(--fg-muted)",
                         }}
                       >
                         {pool.status.toUpperCase()}
@@ -393,14 +394,14 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", marginTop: "0.6rem" }}>
                       <div>
-                        <span style={{ fontSize: "0.7rem", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>Pool APY</span>
-                        <p style={{ margin: "0.1rem 0 0", fontWeight: 800, color: "#22cf9d", fontSize: "1.05rem" }}>
+                        <span style={{ fontSize: "0.7rem", color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600 }}>Pool APY</span>
+                        <p style={{ margin: "0.1rem 0 0", fontWeight: 800, color: "var(--accent)", fontSize: "1.05rem" }}>
                           {pool.apyPct.toFixed(2)}%
                         </p>
                       </div>
                       <div>
-                        <span style={{ fontSize: "0.7rem", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>Principal Deployed</span>
-                        <p style={{ margin: "0.1rem 0 0", fontWeight: 800, color: "#111827", fontSize: "1.05rem" }}>
+                        <span style={{ fontSize: "0.7rem", color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600 }}>Principal Deployed</span>
+                        <p style={{ margin: "0.1rem 0 0", fontWeight: 800, color: "var(--fg)", fontSize: "1.05rem" }}>
                           {formatCurrency(pool.principalDeployed)}
                         </p>
                       </div>
@@ -410,26 +411,26 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                   {/* Earnings stats & share */}
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "0.3rem" }}>
-                      <span style={{ color: "#6b7280" }}>Interest Earned:</span>
-                      <strong style={{ color: "#22cf9d" }}>+{formatXlmPrecise(pool.earnedInterest)}</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Interest Earned:</span>
+                      <strong style={{ color: "var(--accent)" }}>+{formatXlmPrecise(pool.earnedInterest)}</strong>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "0.4rem" }}>
-                      <span style={{ color: "#6b7280" }}>Projected Annual:</span>
-                      <strong style={{ color: "#7e2fd0" }}>+{formatCurrency(pool.projectedAnnualEarnings)}/yr</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Projected Annual:</span>
+                      <strong style={{ color: "var(--primary)" }}>+{formatCurrency(pool.projectedAnnualEarnings)}/yr</strong>
                     </div>
 
                     {/* Progress Bar for Share of Portfolio */}
                     <div style={{ marginTop: "0.4rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "#9ca3af", marginBottom: "0.2rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "var(--fg-subtle)", marginBottom: "0.2rem" }}>
                         <span>Share of Total Yield</span>
-                        <span style={{ fontWeight: 700, color: "#111827" }}>{pool.shareOfTotalEarningsPct.toFixed(1)}%</span>
+                        <span style={{ fontWeight: 700, color: "var(--fg)" }}>{pool.shareOfTotalEarningsPct.toFixed(1)}%</span>
                       </div>
-                      <div style={{ height: "6px", background: "#f3f4f6", borderRadius: "9999px", overflow: "hidden" }}>
+                      <div style={{ height: "6px", background: "var(--surface-2)", borderRadius: "9999px", overflow: "hidden" }}>
                         <div
                           style={{
                             height: "100%",
                             width: `${Math.min(100, Math.max(5, pool.shareOfTotalEarningsPct))}%`,
-                            background: "linear-gradient(90deg, #22cf9d, #7e2fd0)",
+                            background: "linear-gradient(90deg, var(--accent), var(--primary))",
                             borderRadius: "9999px",
                           }}
                         />
@@ -460,7 +461,7 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                     <tr key={pool.poolId}>
                       <td>
                         <strong>{pool.poolName}</strong>
-                        <span style={{ display: "block", fontSize: "0.72rem", color: "#6b7280", fontFamily: "monospace" }}>
+                        <span style={{ display: "block", fontSize: "0.72rem", color: "var(--fg-muted)", fontFamily: "monospace" }}>
                           #{pool.poolId.slice(0, 8)}
                         </span>
                       </td>
@@ -471,20 +472,20 @@ export function LenderPortfolioYieldAnalytics({ analytics }: Props) {
                             borderRadius: "9999px",
                             fontSize: "0.72rem",
                             fontWeight: 600,
-                            background: pool.status === "active" ? "rgba(34,207,157,0.12)" : "rgba(107,114,128,0.12)",
-                            color: pool.status === "active" ? "#16a34a" : "#6b7280",
+                            background: pool.status === "active" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--fg-muted) 12%, transparent)",
+                            color: pool.status === "active" ? "var(--accent)" : "var(--fg-muted)",
                           }}
                         >
                           {pool.status.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 700, color: "#22cf9d" }}>{pool.apyPct.toFixed(2)}%</td>
+                      <td style={{ fontWeight: 700, color: "var(--accent)" }}>{pool.apyPct.toFixed(2)}%</td>
                       <td style={{ fontWeight: 600 }}>{formatCurrency(pool.principalDeployed)}</td>
-                      <td style={{ color: "#22cf9d", fontWeight: 700 }}>+{formatXlmPrecise(pool.earnedInterest)}</td>
-                      <td style={{ color: "#7e2fd0", fontWeight: 600 }}>+{formatCurrency(pool.projectedMonthlyEarnings)}</td>
+                      <td style={{ color: "var(--accent)", fontWeight: 700 }}>+{formatXlmPrecise(pool.earnedInterest)}</td>
+                      <td style={{ color: "var(--primary)", fontWeight: 600 }}>+{formatCurrency(pool.projectedMonthlyEarnings)}</td>
                       <td style={{ fontWeight: 700 }}>+{formatCurrency(pool.projectedAnnualEarnings)}</td>
                       <td>
-                        <span style={{ fontWeight: 700, color: "#111827" }}>{pool.shareOfTotalEarningsPct.toFixed(1)}%</span>
+                        <span style={{ fontWeight: 700, color: "var(--fg)" }}>{pool.shareOfTotalEarningsPct.toFixed(1)}%</span>
                       </td>
                     </tr>
                   ))}

@@ -114,9 +114,9 @@ export function ProfileSettingsForm({
           style={{
             padding: "0.85rem 1rem",
             borderRadius: "0.6rem",
-            background: "rgba(220,38,38,0.06)",
-            border: "1px solid rgba(220,38,38,0.25)",
-            color: "#dc2626",
+            background: "color-mix(in srgb, var(--danger) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--danger) 25%, transparent)",
+            color: "var(--danger)",
             fontSize: "0.875rem",
             marginBottom: "0.25rem",
           }}
@@ -130,9 +130,9 @@ export function ProfileSettingsForm({
           style={{
             padding: "0.85rem 1rem",
             borderRadius: "0.6rem",
-            background: "rgba(34,207,157,0.08)",
-            border: "1px solid rgba(34,207,157,0.3)",
-            color: "#16a07a",
+            background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+            color: "var(--accent-hover)",
             fontSize: "0.875rem",
             fontWeight: 500,
           }}
@@ -147,7 +147,7 @@ export function ProfileSettingsForm({
         <div className="settings-field settings-field--full">
           <label htmlFor="full_name" className="settings-label">
             Full Legal Name
-            <span style={{ color: "#ff6b6b", marginLeft: "0.2rem" }}>*</span>
+            <span style={{ color: "var(--danger)", marginLeft: "0.2rem" }}>*</span>
           </label>
           <input
             id="full_name"
@@ -168,7 +168,7 @@ export function ProfileSettingsForm({
         <div className="settings-field">
           <label htmlFor="phone" className="settings-label">
             Phone Number
-            <span style={{ color: "#ff6b6b", marginLeft: "0.2rem" }}>*</span>
+            <span style={{ color: "var(--danger)", marginLeft: "0.2rem" }}>*</span>
           </label>
           <input
             id="phone"
@@ -189,7 +189,7 @@ export function ProfileSettingsForm({
         <div className="settings-field">
           <label htmlFor="date_of_birth" className="settings-label">
             Date of Birth
-            <span style={{ color: "#ff6b6b", marginLeft: "0.2rem" }}>*</span>
+            <span style={{ color: "var(--danger)", marginLeft: "0.2rem" }}>*</span>
           </label>
           <input
             id="date_of_birth"
@@ -220,8 +220,8 @@ export function ProfileSettingsForm({
               style={{
                 marginLeft: "0.6rem",
                 fontSize: "0.72rem",
-                background: "rgba(34,207,157,0.1)",
-                color: "#16a07a",
+                background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                color: "var(--accent-hover)",
                 padding: "0.15rem 0.5rem",
                 borderRadius: "0.3rem",
                 fontWeight: 700,
@@ -234,7 +234,7 @@ export function ProfileSettingsForm({
         </legend>
 
         {docLocked ? (
-          <p className="settings-help-text" style={{ color: "#16a07a", marginBottom: 0 }}>
+          <p className="settings-help-text" style={{ color: "var(--accent-hover)", marginBottom: 0 }}>
             ✓ Your government ID has been submitted and is under admin review.
             Contact support if you need to update it.
           </p>
@@ -301,7 +301,7 @@ export function ProfileSettingsForm({
           onClick={handleLogout}
           disabled={signingOut}
           className="workspace-button workspace-button--secondary settings-submit-btn"
-          style={{ background: "rgba(239,68,68,0.08)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.3)" }}
+          style={{ background: "color-mix(in srgb, var(--danger) 8%, transparent)", color: "var(--danger)", border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)" }}
         >
           {signingOut ? "Signing out…" : "Sign Out"}
         </button>

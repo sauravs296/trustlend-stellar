@@ -270,25 +270,25 @@ export function TreasuryDashboard() {
   const currentSigner = signers.find((s) => s.address === activeSignerAddress);
 
   return (
-    <div className="space-y-8 p-6 bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 shadow-xl">
+    <div className="space-y-8 p-6 bg-surface text-fg rounded-2xl border border-border shadow-xl">
       {/* ── Header with 3-of-5 Badge & Propose Button ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+            <div className="p-3 bg-primary-soft text-primary rounded-xl border border-primary/20">
               <Vault className="w-7 h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl font-bold text-white tracking-tight">
+                <h1 className="text-2xl font-bold text-fg tracking-tight">
                   Protocol Multi-Signature Treasury
                 </h1>
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold">
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-accent-soft text-accent border border-accent/30 rounded-full text-xs font-bold">
                   <Lock className="w-3.5 h-3.5" />
                   {threshold} of {totalSigners} Multi-Sig Security
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-fg-muted mt-0.5">
                 All platform treasury operations require 3 of 5 authorized admin signatures before execution.
               </p>
             </div>
@@ -298,7 +298,7 @@ export function TreasuryDashboard() {
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setIsProposeOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/20"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary text-fg font-medium text-sm rounded-xl transition-all shadow-lg shadow-primary/20"
           >
             <FileSignature className="w-4 h-4" />
             Propose Transaction
@@ -311,8 +311,8 @@ export function TreasuryDashboard() {
         <div
           className={`flex items-center justify-between gap-2 p-4 rounded-xl text-sm border ${
             message.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+              ? "bg-accent-soft border-accent/30 text-accent"
+              : "bg-danger-soft border-danger/30 text-danger-soft-fg"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export function TreasuryDashboard() {
           </div>
           <button
             onClick={() => setMessage(null)}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-surface-2 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -333,29 +333,29 @@ export function TreasuryDashboard() {
       )}
 
       {/* ── Active Admin Signer Selection Bar ── */}
-      <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 bg-surface-2 rounded-xl border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20">
+          <div className="p-2 bg-info-soft text-primary rounded-lg border border-info/20">
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider block">
               Current Connected Signer
             </span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-bold text-fg">
               {currentSigner?.name ?? "Admin Signer"} ({currentSigner?.role})
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-400 font-medium whitespace-nowrap">
+          <label className="text-xs text-fg-muted font-medium whitespace-nowrap">
             Switch Admin Signer:
           </label>
           <select
             value={activeSignerAddress}
             onChange={(e) => setActiveSignerAddress(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="bg-surface border border-border text-fg text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-ring focus:outline-none"
           >
             {signers.map((signer) => (
               <option key={signer.address} value={signer.address}>
@@ -368,48 +368,48 @@ export function TreasuryDashboard() {
 
       {/* ── Treasury Balance & Metrics Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700/50 space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="p-5 bg-surface-2 rounded-xl border border-border space-y-2">
+          <div className="flex items-center justify-between text-fg-muted text-xs font-semibold uppercase tracking-wider">
             <span>Treasury Vault</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <DollarSign className="w-4 h-4 text-accent" />
           </div>
-          <div className="text-2xl font-extrabold text-white">
+          <div className="text-2xl font-extrabold text-fg">
             ${currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400">Vault balance awaiting distribution</p>
+          <p className="text-xs text-fg-muted">Vault balance awaiting distribution</p>
         </div>
 
-        <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700/50 space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="p-5 bg-surface-2 rounded-xl border border-border space-y-2">
+          <div className="flex items-center justify-between text-fg-muted text-xs font-semibold uppercase tracking-wider">
             <span>Total Collected Fees</span>
-            <TrendingUp className="w-4 h-4 text-indigo-400" />
+            <TrendingUp className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-2xl font-extrabold text-white">
+          <div className="text-2xl font-extrabold text-fg">
             ${totalCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400">All-time protocol lending revenue</p>
+          <p className="text-xs text-fg-muted">All-time protocol lending revenue</p>
         </div>
 
-        <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700/50 space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="p-5 bg-surface-2 rounded-xl border border-border space-y-2">
+          <div className="flex items-center justify-between text-fg-muted text-xs font-semibold uppercase tracking-wider">
             <span>Insurance Fund ({insurancePct}%)</span>
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
+            <ShieldCheck className="w-4 h-4 text-info" />
           </div>
-          <div className="text-2xl font-extrabold text-white">
+          <div className="text-2xl font-extrabold text-fg">
             ${totalInsurance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400">Default & liquidation protection</p>
+          <p className="text-xs text-fg-muted">Default & liquidation protection</p>
         </div>
 
-        <div className="p-5 bg-slate-800/60 rounded-xl border border-slate-700/50 space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="p-5 bg-surface-2 rounded-xl border border-border space-y-2">
+          <div className="flex items-center justify-between text-fg-muted text-xs font-semibold uppercase tracking-wider">
             <span>DAO Treasury ({daoPct}%)</span>
-            <Building2 className="w-4 h-4 text-purple-400" />
+            <Building2 className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-2xl font-extrabold text-white">
+          <div className="text-2xl font-extrabold text-fg">
             ${totalDao.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-slate-400">Community & tokenholder pool</p>
+          <p className="text-xs text-fg-muted">Community & tokenholder pool</p>
         </div>
       </div>
 
@@ -417,19 +417,19 @@ export function TreasuryDashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <FileSignature className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-bold text-white">Active Multi-Signature Proposals</h2>
+            <FileSignature className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-fg">Active Multi-Signature Proposals</h2>
           </div>
-          <span className="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full font-semibold">
+          <span className="text-xs px-2.5 py-1 bg-primary-soft text-primary border border-primary/20 rounded-full font-semibold">
             {activeProposals.length} Pending Approval
           </span>
         </div>
 
         {activeProposals.length === 0 ? (
-          <div className="p-8 text-center bg-slate-800/20 rounded-xl border border-slate-800 text-slate-400 text-sm">
-            <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400/60 mb-2" />
-            <p className="font-semibold text-slate-300">All proposals executed</p>
-            <p className="text-xs text-slate-500 mt-1">
+          <div className="p-8 text-center bg-surface-2/20 rounded-xl border border-border text-fg-muted text-sm">
+            <CheckCircle2 className="w-8 h-8 mx-auto text-accent/60 mb-2" />
+            <p className="font-semibold text-fg">All proposals executed</p>
+            <p className="text-xs text-fg-muted mt-1">
               Click &quot;Propose Transaction&quot; above to create a new multi-sig treasury request.
             </p>
           </div>
@@ -445,26 +445,26 @@ export function TreasuryDashboard() {
               return (
                 <div
                   key={prop.id}
-                  className="p-5 bg-slate-800/50 rounded-xl border border-slate-700/80 space-y-4 hover:border-slate-600 transition-colors shadow-lg"
+                  className="p-5 bg-surface-2 rounded-xl border border-border space-y-4 hover:border-border-strong transition-colors shadow-lg"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                        <span className="text-xs font-mono font-bold text-primary bg-primary-soft px-2 py-0.5 rounded border border-primary/20">
                           #{prop.id}
                         </span>
-                        <h3 className="text-base font-bold text-white">{prop.title}</h3>
+                        <h3 className="text-base font-bold text-fg">{prop.title}</h3>
                         <span
                           className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
                             isReady
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                              : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                              ? "bg-accent-soft text-accent border border-accent/30"
+                              : "bg-warning-soft text-warning-soft-fg border border-warning/30"
                           }`}
                         >
                           {isReady ? "Ready to Execute" : "Collecting Signatures"}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1">{prop.description}</p>
+                      <p className="text-xs text-fg mt-1">{prop.description}</p>
                     </div>
 
                     {/* Action Buttons */}
@@ -473,7 +473,7 @@ export function TreasuryDashboard() {
                         <button
                           onClick={() => handleSignProposal(prop.id)}
                           disabled={isBusy}
-                          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary text-fg text-xs font-semibold rounded-lg transition-all shadow-md shadow-primary/20 disabled:opacity-50"
                         >
                           {actionLoading === `sign-${prop.id}` ? (
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -486,7 +486,7 @@ export function TreasuryDashboard() {
                         <button
                           onClick={() => handleRevokeSignature(prop.id)}
                           disabled={isBusy || isReady}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-slate-700/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-colors disabled:opacity-40"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-surface-2/80 hover:bg-surface-2 text-fg text-xs font-semibold rounded-lg transition-colors disabled:opacity-40"
                           title="Revoke your signature"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -497,7 +497,7 @@ export function TreasuryDashboard() {
                       <button
                         onClick={() => handleExecuteProposal(prop.id)}
                         disabled={!isReady || isBusy}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-emerald-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-hover text-accent-fg text-xs font-bold rounded-lg transition-all shadow-md shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {actionLoading === `execute-${prop.id}` ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -510,26 +510,26 @@ export function TreasuryDashboard() {
                   </div>
 
                   {/* Signature Progress Bar & Signers */}
-                  <div className="space-y-2 pt-2 border-t border-slate-700/50">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="flex items-center justify-between text-xs text-fg-muted">
                       <span>
                         Signatures Required:{" "}
-                        <strong className="text-white font-mono font-bold">
+                        <strong className="text-fg font-mono font-bold">
                           {prop.approvals.length} / {prop.threshold}
                         </strong>{" "}
                         (of {prop.totalSigners} total admins)
                       </span>
-                      <span className="text-slate-400">
+                      <span className="text-fg-muted">
                         Proposed on {new Date(prop.createdAt).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700/50">
+                    <div className="w-full bg-surface h-2.5 rounded-full overflow-hidden border border-border">
                       <div
                         className={`h-full transition-all duration-300 ${
                           isReady
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                            : "bg-gradient-to-r from-indigo-500 to-purple-500"
+                            ? "bg-gradient-to-r from-accent to-accent-hover"
+                            : "bg-gradient-to-r from-primary to-primary-hover"
                         }`}
                         style={{ width: `${Math.min(100, (prop.approvals.length / prop.threshold) * 100)}%` }}
                       />
@@ -537,7 +537,7 @@ export function TreasuryDashboard() {
 
                     {/* Signer Avatars / Status Badges */}
                     <div className="flex items-center gap-2 pt-1 flex-wrap">
-                      <span className="text-xs text-slate-500 mr-1">Admin Signers:</span>
+                      <span className="text-xs text-fg-muted mr-1">Admin Signers:</span>
                       {signers.map((s) => {
                         const signedThis = prop.approvals.some(
                           (a) => a.toLowerCase() === s.address.toLowerCase()
@@ -547,11 +547,11 @@ export function TreasuryDashboard() {
                             key={s.address}
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-mono font-medium ${
                               signedThis
-                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
-                                : "bg-slate-800 text-slate-500 border border-slate-700"
+                                ? "bg-accent-soft text-accent border border-accent/30"
+                                : "bg-surface-2 text-fg-muted border border-border"
                             }`}
                           >
-                            {signedThis ? <Check className="w-3 h-3 text-emerald-400" /> : <Clock className="w-3 h-3" />}
+                            {signedThis ? <Check className="w-3 h-3 text-accent" /> : <Clock className="w-3 h-3" />}
                             {s.name.split(" ")[0]} {signedThis ? "✓" : "…"}
                           </span>
                         );
@@ -566,13 +566,13 @@ export function TreasuryDashboard() {
       </div>
 
       {/* ── 5 Authorized Admin Signers Roster ── */}
-      <div className="p-6 bg-slate-800/40 rounded-xl border border-slate-700/60 space-y-4">
+      <div className="p-6 bg-surface-2 rounded-xl border border-border space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-bold text-white">Authorized Treasury Signers (3-of-5 Multi-Sig)</h2>
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-fg">Authorized Treasury Signers (3-of-5 Multi-Sig)</h2>
           </div>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-fg-muted">
             3 distinct signatures needed for on-chain authorization
           </span>
         </div>
@@ -583,25 +583,25 @@ export function TreasuryDashboard() {
               key={s.address}
               className={`p-3.5 rounded-xl border flex items-center justify-between ${
                 s.address === activeSignerAddress
-                  ? "bg-indigo-950/40 border-indigo-500/40 shadow-sm"
-                  : "bg-slate-900/60 border-slate-800"
+                  ? "bg-primary-soft border-primary/40 shadow-sm"
+                  : "bg-surface/60 border-border"
               }`}
             >
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white">{s.name}</span>
+                  <span className="text-xs font-bold text-fg">{s.name}</span>
                   {s.address === activeSignerAddress && (
-                    <span className="px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold rounded">
+                    <span className="px-1.5 py-0.2 bg-primary/20 text-primary text-[10px] font-bold rounded">
                       YOU
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400">{s.role}</p>
-                <p className="text-[11px] font-mono text-slate-500 mt-1">
+                <p className="text-xs text-fg-muted">{s.role}</p>
+                <p className="text-[11px] font-mono text-fg-muted mt-1">
                   {s.address.slice(0, 10)}...{s.address.slice(-6)}
                 </p>
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+              <span className="w-2.5 h-2.5 rounded-full bg-accent shadow-sm shadow-accent/50" />
             </div>
           ))}
         </div>
@@ -610,15 +610,15 @@ export function TreasuryDashboard() {
       {/* ── Historical Executed Distributions Log ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Historical Multi-Sig Distributions Log</h2>
-          <span className="text-xs text-slate-400">
+          <h2 className="text-lg font-semibold text-fg">Historical Multi-Sig Distributions Log</h2>
+          <span className="text-xs text-fg-muted">
             {data?.history.length ?? 0} Recorded Operations
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-800/80 text-xs uppercase text-slate-400 tracking-wider">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-left text-sm text-fg">
+            <thead className="bg-surface-2/80 text-xs uppercase text-fg-muted tracking-wider">
               <tr>
                 <th className="p-3.5">ID</th>
                 <th className="p-3.5">Date</th>
@@ -629,12 +629,12 @@ export function TreasuryDashboard() {
                 <th className="p-3.5">Tx Hash</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 bg-slate-900/50">
+            <tbody className="divide-y divide-slate-800 bg-surface/50">
               {data?.history && data.history.length > 0 ? (
                 data.history.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-3.5 font-mono text-xs text-slate-400">#{item.id}</td>
-                    <td className="p-3.5 text-xs text-slate-300">
+                  <tr key={item.id} className="hover:bg-surface-2 transition-colors">
+                    <td className="p-3.5 font-mono text-xs text-fg-muted">#{item.id}</td>
+                    <td className="p-3.5 text-xs text-fg">
                       {new Date(item.timestamp).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",
@@ -643,27 +643,27 @@ export function TreasuryDashboard() {
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="p-3.5 font-semibold text-white">{item.asset}</td>
-                    <td className="p-3.5 text-blue-400 font-mono">
+                    <td className="p-3.5 font-semibold text-fg">{item.asset}</td>
+                    <td className="p-3.5 text-info font-mono">
                       +${item.insuranceAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3.5 text-purple-400 font-mono">
+                    <td className="p-3.5 text-primary font-mono">
                       +${item.daoAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-3.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-soft text-accent border border-accent/20">
                         <Check className="w-3 h-3" />
                         {item.signaturesCount ?? 3} of 5 Signed
                       </span>
                     </td>
-                    <td className="p-3.5 font-mono text-xs text-slate-400">
-                      <span className="hover:text-indigo-400 cursor-pointer">{item.txHash}</span>
+                    <td className="p-3.5 font-mono text-xs text-fg-muted">
+                      <span className="hover:text-primary cursor-pointer">{item.txHash}</span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500 text-sm">
+                  <td colSpan={7} className="p-6 text-center text-fg-muted text-sm">
                     No distributions recorded yet.
                   </td>
                 </tr>
@@ -675,16 +675,16 @@ export function TreasuryDashboard() {
 
       {/* ── Propose Multi-Sig Transaction Modal ── */}
       {isProposeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-border pb-4">
               <div className="flex items-center gap-2">
-                <FileSignature className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-lg font-bold text-white">Propose Multi-Sig Transaction</h3>
+                <FileSignature className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-bold text-fg">Propose Multi-Sig Transaction</h3>
               </div>
               <button
                 onClick={() => setIsProposeOpen(false)}
-                className="p-1 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+                className="p-1 hover:bg-surface-2 rounded-lg transition-colors text-fg-muted hover:text-fg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -692,7 +692,7 @@ export function TreasuryDashboard() {
 
             <form onSubmit={handleProposeSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                <label className="text-xs font-semibold text-fg block mb-1.5">
                   Transaction Type
                 </label>
                 <select
@@ -702,7 +702,7 @@ export function TreasuryDashboard() {
                       e.target.value as "distribute" | "collect_fees" | "transfer",
                     )
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-surface-2 border border-border text-fg rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
                 >
                   <option value="distribute">Distribute Treasury (50% Insurance / 50% DAO)</option>
                   <option value="collect_fees">Collect Protocol Fees from Lending Pool</option>
@@ -711,7 +711,7 @@ export function TreasuryDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                <label className="text-xs font-semibold text-fg block mb-1.5">
                   Proposal Title
                 </label>
                 <input
@@ -720,12 +720,12 @@ export function TreasuryDashboard() {
                   placeholder="e.g. Q3 Treasury Fee Distribution"
                   value={proposeTitle}
                   onChange={(e) => setProposeTitle(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-surface-2 border border-border text-fg rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                <label className="text-xs font-semibold text-fg block mb-1.5">
                   Amount ({data?.asset ?? "USDC"})
                 </label>
                 <input
@@ -736,13 +736,13 @@ export function TreasuryDashboard() {
                   placeholder={data?.currentBalance.toFixed(2) ?? "1000"}
                   value={proposeAmount}
                   onChange={(e) => setProposeAmount(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-surface-2 border border-border text-fg rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
                 />
               </div>
 
               {proposeActionType === "transfer" && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  <label className="text-xs font-semibold text-fg block mb-1.5">
                     Recipient Address
                   </label>
                   <input
@@ -751,13 +751,13 @@ export function TreasuryDashboard() {
                     placeholder="G..."
                     value={proposeRecipient}
                     onChange={(e) => setProposeRecipient(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full bg-surface-2 border border-border text-fg rounded-xl px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-ring focus:outline-none"
                   />
                 </div>
               )}
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                <label className="text-xs font-semibold text-fg block mb-1.5">
                   Description / Justification
                 </label>
                 <textarea
@@ -765,11 +765,11 @@ export function TreasuryDashboard() {
                   placeholder="Explain why this treasury movement is requested..."
                   value={proposeDescription}
                   onChange={(e) => setProposeDescription(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-surface-2 border border-border text-fg rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
                 />
               </div>
 
-              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-300 flex items-center gap-2">
+              <div className="p-3 bg-primary-soft border border-primary/20 rounded-xl text-xs text-primary flex items-center gap-2">
                 <Lock className="w-4 h-4 shrink-0" />
                 <span>
                   Submitting automatically records your signature as 1 of 3 required approvals.
@@ -780,14 +780,14 @@ export function TreasuryDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsProposeOpen(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm rounded-xl transition-colors"
+                  className="px-4 py-2.5 bg-surface-2 hover:bg-surface-2 text-fg font-medium text-sm rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading === "propose"}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/25 disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary text-fg font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/25 disabled:opacity-50"
                 >
                   {actionLoading === "propose" ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />

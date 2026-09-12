@@ -47,16 +47,16 @@ export function ExportCsvButton({ data, filename = "transactions.csv" }: ExportC
         gap: "0.5rem",
         padding: "0.4rem 0.85rem",
         borderRadius: "0.4rem",
-        background: "#111827",
-        color: "#fff",
+        background: "var(--primary)",
+        color: "var(--primary-fg)",
         border: "none",
         fontWeight: 600,
         fontSize: "0.8rem",
         cursor: "pointer",
         transition: "background 0.2s"
       }}
-      onMouseOver={(e) => e.currentTarget.style.background = "#374151"}
-      onMouseOut={(e) => e.currentTarget.style.background = "#111827"}
+      onMouseOver={(e) => e.currentTarget.style.background = "var(--primary-hover)"}
+      onMouseOut={(e) => e.currentTarget.style.background = "var(--primary)"}
     >
       <span>⬇️</span> Export CSV
     </button>

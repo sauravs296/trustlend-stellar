@@ -69,7 +69,7 @@ export function LineChartSkeleton({
     >
       {/* Chart card shell */}
       <div
-        className="animate-pulse rounded-xl bg-gray-100 dark:bg-white/5"
+        className="animate-pulse rounded-xl bg-surface-2 dark:bg-surface-2"
         style={{
           width: "100%",
           height: "100%",
@@ -91,12 +91,12 @@ export function LineChartSkeleton({
           }}
         >
           {/* Area fill */}
-          <path d={areaD} fill="rgba(34,207,157,0.08)" />
+          <path d={areaD} fill="color-mix(in srgb, var(--accent) 8%, transparent)" />
           {/* Line stroke */}
           <path
             d={d}
             fill="none"
-            stroke="rgba(34,207,157,0.25)"
+            stroke="color-mix(in srgb, var(--accent) 25%, transparent)"
             strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -107,7 +107,7 @@ export function LineChartSkeleton({
         {pts.map((p, i) => (
           <div
             key={i}
-            className="animate-pulse rounded-full bg-gray-300 dark:bg-white/15"
+            className="animate-pulse rounded-full bg-surface-2"
             style={{
               position: "absolute",
               left: `${(p.x / W) * 100}%`,
@@ -144,7 +144,7 @@ export function BarChartSkeleton({
     <div
       aria-busy="true"
       aria-label="Loading bar chart…"
-      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
+      className="rounded-xl border border-border dark:border-border bg-surface dark:bg-surface p-5"
     >
       {/* Header: title + legend */}
       <div
@@ -191,7 +191,7 @@ export function BarChartSkeleton({
                 style={{
                   flex: 1,
                   height: `${h1 * 100}%`,
-                  background: "rgba(34, 207, 157, 0.2)",
+                  background: "color-mix(in srgb, var(--accent) 20%, transparent)",
                   minHeight: "8px",
                 }}
               />
@@ -200,7 +200,7 @@ export function BarChartSkeleton({
                 style={{
                   flex: 1,
                   height: `${h2 * 100}%`,
-                  background: "rgba(126, 47, 208, 0.15)",
+                  background: "color-mix(in srgb, var(--primary) 15%, transparent)",
                   minHeight: "8px",
                 }}
               />
@@ -243,7 +243,7 @@ export function StatCardSkeleton({ delay = 0 }: StatCardSkeletonProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay, ease: "easeOut" }}
-      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
+      className="rounded-xl border border-border dark:border-border bg-surface dark:bg-surface p-5"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -270,28 +270,28 @@ export function MetricCardSkeleton({ delay = 0 }: MetricCardSkeletonProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay, ease: "easeOut" }}
-      className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-5"
+      className="rounded-xl border border-border bg-surface-2 p-5"
       style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}
     >
       {/* Header label */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div
-          className="animate-pulse rounded-md bg-slate-700/50"
+          className="animate-pulse rounded-md bg-surface-2"
           style={{ width: "50%", height: "0.65rem" }}
         />
         <div
-          className="animate-pulse rounded-md bg-slate-700/50"
+          className="animate-pulse rounded-md bg-surface-2"
           style={{ width: "1.2rem", height: "1.2rem" }}
         />
       </div>
       {/* Value */}
       <div
-        className="animate-pulse rounded-md bg-slate-700/50"
+        className="animate-pulse rounded-md bg-surface-2"
         style={{ width: "70%", height: "1.6rem" }}
       />
       {/* Subtitle */}
       <div
-        className="animate-pulse rounded-md bg-slate-700/40"
+        className="animate-pulse rounded-md bg-surface-2/40"
         style={{ width: "45%", height: "0.55rem" }}
       />
     </motion.article>
@@ -319,14 +319,14 @@ export function TableSkeleton({
           display: "flex",
           gap: "0.75rem",
           padding: "0.75rem 1rem",
-          background: "rgba(30, 41, 59, 0.8)",
-          borderBottom: "1px solid rgba(30, 41, 59, 1)",
+          background: "color-mix(in srgb, var(--fg) 80%, transparent)",
+          borderBottom: "1px solid color-mix(in srgb, var(--fg) 100%, transparent)",
         }}
       >
         {Array.from({ length: columnCount }).map((_, i) => (
           <div
             key={i}
-            className="rounded-md bg-slate-700/50"
+            className="rounded-md bg-surface-2"
             style={{
               flex: i === 0 ? 0.5 : i === columnCount - 1 ? 1.5 : 1,
               height: "0.6rem",
@@ -344,13 +344,13 @@ export function TableSkeleton({
             display: "flex",
             gap: "0.75rem",
             padding: "0.75rem 1rem",
-            borderBottom: "1px solid rgba(30, 41, 59, 0.5)",
+            borderBottom: "1px solid color-mix(in srgb, var(--fg) 50%, transparent)",
           }}
         >
           {Array.from({ length: columnCount }).map((_, col) => (
             <div
               key={col}
-              className="rounded-md bg-slate-800/60"
+              className="rounded-md bg-surface-2"
               style={{
                 flex: col === 0 ? 0.5 : col === columnCount - 1 ? 1.5 : 1,
                 height: col === 1 || col === columnCount - 1 ? "0.65rem" : "0.85rem",
@@ -370,8 +370,8 @@ export function TableSkeleton({
 export function TreasuryDashboardSkeleton() {
   return (
     <div
-      className="space-y-8 p-6 rounded-2xl border border-slate-800 shadow-xl"
-      style={{ background: "rgb(15, 23, 42)" }}
+      className="space-y-8 p-6 rounded-2xl border border-border shadow-xl"
+      style={{ background: "var(--surface-2)" }}
       aria-busy="true"
       aria-label="Loading treasury dashboard…"
     >
@@ -382,7 +382,7 @@ export function TreasuryDashboardSkeleton() {
           alignItems: "center",
           justifyContent: "space-between",
           paddingBottom: "1.5rem",
-          borderBottom: "1px solid rgba(30, 41, 59, 1)",
+          borderBottom: "1px solid color-mix(in srgb, var(--fg) 100%, transparent)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -413,7 +413,7 @@ export function TreasuryDashboardSkeleton() {
         <Skeleton style={{ width: "10rem", height: "0.9rem" }} />
         <Skeleton style={{ width: "8rem", height: "0.7rem" }} />
       </div>
-      <div className="overflow-hidden rounded-xl border border-slate-800">
+      <div className="overflow-hidden rounded-xl border border-border">
         <TableSkeleton rowCount={4} columnCount={7} />
       </div>
     </div>

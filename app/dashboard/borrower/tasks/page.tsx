@@ -52,7 +52,7 @@ export default async function BorrowerTasksPage() {
         {/* How the score works */}
         <article
           className="workspace-card workspace-card--full"
-          style={{ background: "rgba(126,47,208,0.05)", border: "1px solid rgba(126,47,208,0.15)" }}
+          style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
         >
           <h2 className="workspace-card-title">How Your Trust Score Works</h2>
           <div
@@ -74,13 +74,13 @@ export default async function BorrowerTasksPage() {
                 style={{
                   display: "flex", gap: "0.65rem", alignItems: "flex-start",
                   padding: "0.75rem", borderRadius: "0.6rem",
-                  background: "rgba(255,255,255,0.03)",
+                  background: "color-mix(in srgb, var(--fg) 3%, transparent)",
                 }}
               >
                 <span style={{ fontSize: "1.4rem" }}>{row.icon}</span>
                 <div>
                   <p style={{ fontWeight: 600, fontSize: "0.86rem", marginBottom: "0.2rem" }}>{row.event}</p>
-                  <p style={{ fontSize: "0.82rem", color: "#22cf9d", fontWeight: 700 }}>{row.pts} pts</p>
+                  <p style={{ fontSize: "0.82rem", color: "var(--accent)", fontWeight: 700 }}>{row.pts} pts</p>
                   <p style={{ fontSize: "0.75rem", opacity: 0.5 }}>{row.note}</p>
                 </div>
               </div>

@@ -124,8 +124,8 @@ export default async function LenderMarketplacePage({
             <article
               className="workspace-card workspace-card--full"
               style={{
-                background: "rgba(126,47,208,0.06)",
-                border: "1px solid rgba(126,47,208,0.2)",
+                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
               }}
             >
               <h2 className="workspace-card-title">How Direct Lending Works</h2>
@@ -168,7 +168,7 @@ export default async function LenderMarketplacePage({
                         width: "1.75rem",
                         height: "1.75rem",
                         borderRadius: "50%",
-                        background: "rgba(126,47,208,0.25)",
+                        background: "color-mix(in srgb, var(--primary) 25%, transparent)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -215,8 +215,8 @@ export default async function LenderMarketplacePage({
                   marginBottom: "1rem",
                   padding: "1rem",
                   borderRadius: "0.9rem",
-                  background: "rgba(126,47,208,0.04)",
-                  border: "1px solid rgba(126,47,208,0.12)",
+                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                 }}
               >
                 <label
@@ -286,8 +286,8 @@ export default async function LenderMarketplacePage({
                     minHeight: "44px",
                     padding: "0.8rem 1rem",
                     borderRadius: "0.75rem",
-                    border: "1px solid rgba(126,47,208,0.16)",
-                    background: "rgba(255,255,255,0.72)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+                    background: "color-mix(in srgb, var(--fg) 72%, transparent)",
                   }}
                 >
                   <input
@@ -295,7 +295,7 @@ export default async function LenderMarketplacePage({
                     name="highReputation"
                     value="true"
                     defaultChecked={highReputationOnly}
-                    style={{ accentColor: "#7e2fd0" }}
+                    style={{ accentColor: "var(--primary)" }}
                   />
                   <span style={{ fontSize: "0.9rem", fontWeight: 600 }}>
                     High Reputation only (score {HIGH_REPUTATION_THRESHOLD}+)
@@ -340,8 +340,8 @@ export default async function LenderMarketplacePage({
                 {visibleMarketplaceLoans.length > 0 ? (
                   <span
                     style={{
-                      background: "rgba(255,107,107,0.15)",
-                      color: "#ff9966",
+                      background: "color-mix(in srgb, var(--danger) 15%, transparent)",
+                      color: "var(--warning)",
                       borderRadius: "9999px",
                       padding: "0.2rem 0.7rem",
                       fontSize: "0.75rem",
@@ -353,8 +353,8 @@ export default async function LenderMarketplacePage({
                 ) : (
                   <span
                     style={{
-                      background: "rgba(34,207,157,0.12)",
-                      color: "#22cf9d",
+                      background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                      color: "var(--accent)",
                       borderRadius: "9999px",
                       padding: "0.2rem 0.7rem",
                       fontSize: "0.75rem",

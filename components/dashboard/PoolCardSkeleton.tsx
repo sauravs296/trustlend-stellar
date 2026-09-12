@@ -16,7 +16,7 @@ function ShimmerBar({
 }) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-gray-200 dark:bg-white/10 ${className}`}
+      className={`animate-pulse rounded-md bg-surface-2 dark:bg-surface-2 ${className}`}
       style={{ width, height }}
     />
   );
@@ -33,7 +33,7 @@ function PoolCardItem({ delay = 0 }: { delay?: number }) {
       transition={{ duration: 0.35, delay, ease: "easeOut" }}
       style={{
         borderRadius: "0.95rem",
-        border: "1px solid rgba(122, 138, 177, 0.18)",
+        border: "1px solid color-mix(in srgb, var(--fg-muted) 18%, transparent)",
         background: "var(--card-bg, #f9fbff)",
         padding: "1.25rem",
         display: "flex",
@@ -46,7 +46,7 @@ function PoolCardItem({ delay = 0 }: { delay?: number }) {
         <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
           {/* Icon placeholder */}
           <div
-            className="animate-pulse rounded-full bg-gray-200 dark:bg-white/10"
+            className="animate-pulse rounded-full bg-surface-2 dark:bg-surface-2"
             style={{ width: "2.25rem", height: "2.25rem", flexShrink: 0 }}
           />
           {/* Pool name */}
@@ -62,7 +62,7 @@ function PoolCardItem({ delay = 0 }: { delay?: number }) {
       {/* Divider */}
       <div
         className="animate-pulse"
-        style={{ height: "1px", background: "rgba(122,138,177,0.15)" }}
+        style={{ height: "1px", background: "color-mix(in srgb, var(--fg-muted) 15%, transparent)" }}
       />
 
       {/* Stats grid */}
@@ -123,8 +123,8 @@ function BannerSkeleton() {
       transition={{ duration: 0.3, ease: "easeOut" }}
       style={{
         borderRadius: "1rem",
-        border: "1px solid rgba(34,207,157,0.2)",
-        background: "linear-gradient(135deg, rgba(34,207,157,0.07) 0%, rgba(34,207,157,0.02) 100%)",
+        border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+        background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 7%, transparent) 0%, color-mix(in srgb, var(--accent) 2%, transparent) 100%)",
         padding: "1.5rem 2rem",
         display: "flex",
         alignItems: "center",
@@ -136,7 +136,7 @@ function BannerSkeleton() {
       {/* Left: icon + label + balance */}
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
         <div
-          className="animate-pulse rounded-full bg-gray-200 dark:bg-white/10"
+          className="animate-pulse rounded-full bg-surface-2 dark:bg-surface-2"
           style={{ width: "3rem", height: "3rem", flexShrink: 0 }}
         />
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -215,7 +215,7 @@ export function LenderPoolsPageSkeleton() {
         >
           <ShimmerBar width="60%" height="0.7rem" />
           <div
-            className="animate-pulse rounded-lg bg-gray-100 dark:bg-white/5"
+            className="animate-pulse rounded-lg bg-surface-2 dark:bg-surface-2"
             style={{ flex: 1, minHeight: "130px" }}
           />
         </motion.article>
@@ -265,7 +265,7 @@ export function LenderPoolsPageSkeleton() {
                 style={{
                   padding: "0.75rem",
                   borderRadius: "0.6rem",
-                  background: "rgba(122,138,177,0.07)",
+                  background: "color-mix(in srgb, var(--fg-muted) 7%, transparent)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.45rem",

@@ -141,16 +141,16 @@ export function HealthFactorGauge({
         >
           <defs>
             <linearGradient id="hf-red-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#dc2626" />
-              <stop offset="100%" stopColor="#f59e0b" />
+              <stop offset="0%" stopColor="var(--danger)" />
+              <stop offset="100%" stopColor="var(--warning)" />
             </linearGradient>
             <linearGradient id="hf-yellow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f59e0b" />
+              <stop offset="0%" stopColor="var(--warning)" />
               <stop offset="100%" stopColor="#84cc16" />
             </linearGradient>
             <linearGradient id="hf-green-grad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#84cc16" />
-              <stop offset="100%" stopColor="#22cf9d" />
+              <stop offset="100%" stopColor="var(--accent)" />
             </linearGradient>
             <filter id="hf-glow">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -165,7 +165,7 @@ export function HealthFactorGauge({
           <path
             d={trackPath}
             fill="none"
-            stroke="rgba(122,138,177,0.12)"
+            stroke="color-mix(in srgb, var(--fg-muted) 12%, transparent)"
             strokeWidth={STROKE_WIDTH}
             strokeLinecap="round"
           />
@@ -220,9 +220,9 @@ export function HealthFactorGauge({
 
       {/* Zone markers */}
       <div className="hf-gauge__zone-markers">
-        <span style={{ color: "#ef4444" }}>Risk</span>
-        <span style={{ color: "#f59e0b" }}>Warning</span>
-        <span style={{ color: "#22cf9d" }}>Safe</span>
+        <span style={{ color: "var(--danger)" }}>Risk</span>
+        <span style={{ color: "var(--warning)" }}>Warning</span>
+        <span style={{ color: "var(--accent)" }}>Safe</span>
       </div>
 
       {/* Numeric value */}
@@ -254,7 +254,7 @@ export function HealthFactorGauge({
             </span>
             <span
               className="hf-gauge__slider-value"
-              style={{ color: collateralDelta > 0 ? "#22cf9d" : undefined }}
+              style={{ color: collateralDelta > 0 ? "var(--accent)" : undefined }}
             >
               +${collateralDelta.toFixed(0)}
             </span>
@@ -280,7 +280,7 @@ export function HealthFactorGauge({
             </span>
             <span
               className="hf-gauge__slider-value"
-              style={{ color: debtDelta > 0 ? "#ef4444" : undefined }}
+              style={{ color: debtDelta > 0 ? "var(--danger)" : undefined }}
             >
               +${debtDelta.toFixed(0)}
             </span>

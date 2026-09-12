@@ -42,13 +42,13 @@ function LenderDashboardSkeleton() {
             style={{ minHeight: "140px", display: "flex", flexDirection: "column", gap: "0.75rem" }}
           >
             <div
-              className="rounded-full bg-gray-200 dark:bg-white/10"
+              className="rounded-full bg-surface-2 dark:bg-surface-2"
               style={{ width: "2.25rem", height: "2.25rem" }}
             />
-            <div className="rounded bg-gray-200 dark:bg-white/10" style={{ height: "0.9rem", width: "55%" }} />
-            <div className="rounded bg-gray-100 dark:bg-white/5" style={{ height: "0.7rem", width: "85%" }} />
-            <div className="rounded bg-gray-100 dark:bg-white/5" style={{ height: "0.7rem", width: "70%" }} />
-            <div className="rounded bg-gray-200 dark:bg-white/10" style={{ height: "0.75rem", width: "8rem", marginTop: "auto" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.9rem", width: "55%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.7rem", width: "85%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.7rem", width: "70%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.75rem", width: "8rem", marginTop: "auto" }} />
           </article>
         ))}
       </section>
@@ -61,9 +61,9 @@ function LenderDashboardSkeleton() {
             className="workspace-card animate-pulse"
             style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
           >
-            <div className="rounded bg-gray-200 dark:bg-white/10" style={{ height: "0.65rem", width: "50%" }} />
-            <div className="rounded bg-gray-200 dark:bg-white/10" style={{ height: "1.6rem", width: "70%" }} />
-            <div className="rounded bg-gray-100 dark:bg-white/5" style={{ height: "0.6rem", width: "45%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.65rem", width: "50%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "1.6rem", width: "70%" }} />
+            <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.6rem", width: "45%" }} />
           </article>
         ))}
       </section>
@@ -73,9 +73,9 @@ function LenderDashboardSkeleton() {
         className="workspace-card workspace-card--full animate-pulse"
         style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
       >
-        <div className="rounded bg-gray-200 dark:bg-white/10" style={{ height: "0.9rem", width: "9rem" }} />
+        <div className="rounded bg-surface-2 dark:bg-surface-2" style={{ height: "0.9rem", width: "9rem" }} />
         <div
-          className="rounded-xl bg-gray-100 dark:bg-white/5"
+          className="rounded-xl bg-surface-2 dark:bg-surface-2"
           style={{ height: "180px" }}
         />
       </article>

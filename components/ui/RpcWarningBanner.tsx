@@ -2,6 +2,7 @@
 
 import { useRpcHealth } from "@/components/RpcHealthProvider";
 import { X, AlertTriangle, WifiOff } from "lucide-react";
+import { cn } from "./cn";
 
 export function RpcWarningBanner() {
   const { status, message, isDismissed, dismiss } = useRpcHealth();
@@ -12,22 +13,23 @@ export function RpcWarningBanner() {
 
   return (
     <div
-      className="rpc-banner"
-      data-variant={isDown ? "down" : "degraded"}
+      className={cn(
+        "flex items-start gap-3 border-b px-4 py-3 text-sm sm:px-6 lg:px-8",
+        isDown ? "border-danger/30 bg-danger-soft text-danger-soft-fg" : "border-warning/30 bg-warning-soft text-warning-soft-fg",
+      )}
       role="alert"
       aria-live="polite"
     >
-      <span className="rpc-banner-icon">
+      <span className="mt-0.5 shrink-0" aria-hidden="true">
         {isDown ? <WifiOff size={18} /> : <AlertTriangle size={18} />}
       </span>
-      <div className="rpc-banner-body">
-        <p className="rpc-banner-title">
-          {isDown ? "RPC Endpoint Unavailable" : "RPC Endpoint Degraded"}
-        </p>
-        <p className="rpc-banner-message">{message}</p>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{isDown ? "RPC endpoint unavailable" : "RPC endpoint degraded"}</p>
+        <p className="text-xs opacity-90">{message}</p>
       </div>
       <button
-        className="rpc-banner-dismiss"
+        type="button"
+        className="-m-1 shrink-0 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100"
         onClick={dismiss}
         aria-label="Dismiss warning"
       >

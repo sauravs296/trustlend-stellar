@@ -112,16 +112,16 @@ export function TransactionList({
               padding: "0.9rem 1rem",
               borderRadius: "0.65rem",
               background: isRequested
-                ? "rgba(245,166,35,0.08)"
+                ? "color-mix(in srgb, var(--warning) 8%, transparent)"
                 : isFunding
-                  ? "rgba(126,47,208,0.04)"
-                  : "rgba(34,207,157,0.04)",
+                  ? "color-mix(in srgb, var(--primary) 4%, transparent)"
+                  : "color-mix(in srgb, var(--accent) 4%, transparent)",
               border: `1px solid ${
                 isRequested
-                  ? "rgba(245,166,35,0.28)"
+                  ? "color-mix(in srgb, var(--warning) 28%, transparent)"
                   : isFunding
-                    ? "rgba(126,47,208,0.12)"
-                    : "rgba(34,207,157,0.12)"
+                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                    : "color-mix(in srgb, var(--accent) 12%, transparent)"
               }`,
               flexWrap: "wrap",
             }}
@@ -134,10 +134,10 @@ export function TransactionList({
                 borderRadius: "50%",
                 flexShrink: 0,
                 background: isRequested
-                  ? "rgba(245,166,35,0.14)"
+                  ? "color-mix(in srgb, var(--warning) 14%, transparent)"
                   : isFunding
-                    ? "rgba(126,47,208,0.1)"
-                    : "rgba(34,207,157,0.1)",
+                    ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                    : "color-mix(in srgb, var(--accent) 10%, transparent)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -154,7 +154,7 @@ export function TransactionList({
                   margin: 0,
                   fontWeight: 700,
                   fontSize: "0.88rem",
-                  color: "#111827",
+                  color: "var(--fg)",
                 }}
               >
                 {isRequested
@@ -167,7 +167,7 @@ export function TransactionList({
                 style={{
                   margin: "0.15rem 0 0",
                   fontSize: "0.75rem",
-                  color: "#9ca3af",
+                  color: "var(--fg-subtle)",
                   fontFamily: "monospace",
                 }}
               >
@@ -184,7 +184,7 @@ export function TransactionList({
                   margin: 0,
                   fontWeight: 800,
                   fontSize: "0.95rem",
-                  color: isRequested ? "#d97706" : isFunding ? "#7e2fd0" : "#22cf9d",
+                  color: isRequested ? "var(--warning)" : isFunding ? "var(--primary)" : "var(--accent)",
                 }}
               >
                 {isRequested ? "" : isRepayment ? "-" : "+"}
@@ -197,10 +197,10 @@ export function TransactionList({
                   textTransform: "uppercase",
                   color:
                     tx.loanStatus === "repaid"
-                      ? "#22cf9d"
+                      ? "var(--accent)"
                       : tx.loanStatus === "active" || tx.loanStatus === "funded"
-                        ? "#f5a623"
-                        : "#9ca3af",
+                        ? "var(--warning)"
+                        : "var(--fg-subtle)",
                 }}
               >
                 {tx.loanStatus || "—"}
@@ -219,11 +219,11 @@ export function TransactionList({
                   gap: "0.3rem",
                   padding: "0.35rem 0.75rem",
                   borderRadius: "0.4rem",
-                  background: "rgba(34,207,157,0.1)",
-                  border: "1px solid rgba(34,207,157,0.25)",
+                  background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                   fontSize: "0.75rem",
                   fontWeight: 700,
-                  color: "#22cf9d",
+                  color: "var(--accent)",
                   textDecoration: "none",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
@@ -235,7 +235,7 @@ export function TransactionList({
               <span
                 style={{
                   fontSize: "0.72rem",
-                  color: "#d1d5db",
+                  color: "var(--border)",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
                 }}
@@ -250,10 +250,10 @@ export function TransactionList({
                   gap: "0.3rem",
                   padding: "0.35rem 0.75rem",
                   borderRadius: "0.4rem",
-                  background: "rgba(245,166,35,0.12)",
-                  border: "1px solid rgba(245,166,35,0.28)",
+                  background: "color-mix(in srgb, var(--warning) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--warning) 28%, transparent)",
                   fontSize: "0.72rem",
-                  color: "#d97706",
+                  color: "var(--warning)",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
                 }}
@@ -268,10 +268,10 @@ export function TransactionList({
                   gap: "0.3rem",
                   padding: "0.35rem 0.75rem",
                   borderRadius: "0.4rem",
-                  background: "rgba(107,114,128,0.08)",
-                  border: "1px solid rgba(107,114,128,0.15)",
+                  background: "color-mix(in srgb, var(--fg-muted) 8%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--fg-muted) 15%, transparent)",
                   fontSize: "0.72rem",
-                  color: "#6b7280",
+                  color: "var(--fg-muted)",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
                 }}
@@ -295,12 +295,12 @@ export function TransactionList({
         }}
       >
         {isLoading && (
-          <span style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.9rem", color: "var(--fg-muted)" }}>
             Loading more...
           </span>
         )}
         {!hasMore && transactions.length > 0 && (
-          <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+          <span style={{ fontSize: "0.8rem", color: "var(--fg-subtle)" }}>
             No more transactions
           </span>
         )}

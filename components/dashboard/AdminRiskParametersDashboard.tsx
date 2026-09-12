@@ -338,10 +338,10 @@ export function AdminRiskParametersDashboard({
         <div
           style={{
             padding: "0.85rem 1.25rem",
-            background: "rgba(34,207,157,0.12)",
-            border: "1px solid rgba(34,207,157,0.35)",
+            background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
             borderRadius: "0.75rem",
-            color: "#17a87a",
+            color: "var(--accent-hover)",
             fontWeight: 600,
             fontSize: "0.9rem",
           }}
@@ -354,10 +354,10 @@ export function AdminRiskParametersDashboard({
         <div
           style={{
             padding: "0.85rem 1.25rem",
-            background: "rgba(239,68,68,0.12)",
-            border: "1px solid rgba(239,68,68,0.35)",
+            background: "color-mix(in srgb, var(--danger) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--danger) 35%, transparent)",
             borderRadius: "0.75rem",
-            color: "#dc2626",
+            color: "var(--danger)",
             fontWeight: 600,
             fontSize: "0.9rem",
           }}
@@ -369,43 +369,43 @@ export function AdminRiskParametersDashboard({
       {/* ── Executive Metric Cards ── */}
       <section className="workspace-grid workspace-grid--four">
         <div className="workspace-card">
-          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#7e2fd0", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary)", fontWeight: 700 }}>
             Average Max LTV
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "#111827" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "var(--fg)" }}>
             {avgLtv}%
           </p>
-          <span style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.78rem", color: "var(--fg-muted)" }}>
             Across {state.assets.length} whitelisted assets
           </span>
         </div>
 
         <div className="workspace-card">
-          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#22cf9d", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--accent)", fontWeight: 700 }}>
             Target Kink Util
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "#111827" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "var(--fg)" }}>
             {(activeCurve.kinkBps / 100).toFixed(1)}%
           </p>
-          <span style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.78rem", color: "var(--fg-muted)" }}>
             Optimal efficiency threshold
           </span>
         </div>
 
         <div className="workspace-card">
-          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#f5a623", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--warning)", fontWeight: 700 }}>
             Base Borrow APY
           </span>
-          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "#111827" }}>
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0.3rem 0 0", color: "var(--fg)" }}>
             {(activeCurve.baseRateBps / 100).toFixed(2)}%
           </p>
-          <span style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.78rem", color: "var(--fg-muted)" }}>
             At 0% pool utilization
           </span>
         </div>
 
         <div className="workspace-card">
-          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#ec4899", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--primary)", fontWeight: 700 }}>
             Circuit Breaker
           </span>
           <p
@@ -413,19 +413,19 @@ export function AdminRiskParametersDashboard({
               fontSize: "1.25rem",
               fontWeight: 800,
               margin: "0.5rem 0 0",
-              color: state.protocolFees.isPaused ? "#ef4444" : "#10b981",
+              color: state.protocolFees.isPaused ? "var(--danger)" : "var(--accent)",
             }}
           >
             {state.protocolFees.isPaused ? "🔴 PAUSED" : "🟢 ACTIVE"}
           </p>
-          <span style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+          <span style={{ fontSize: "0.78rem", color: "var(--fg-muted)" }}>
             Protocol operations status
           </span>
         </div>
       </section>
 
       {/* ── Tab Navigation ── */}
-      <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(17,24,39,0.08)", paddingBottom: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)", paddingBottom: "0.5rem" }}>
         {([
           { id: "collateral", label: "Collateral & LTV Limits", emoji: "🛡️" },
           { id: "curves", label: "Interest Rate Curves", emoji: "📈" },
@@ -440,8 +440,8 @@ export function AdminRiskParametersDashboard({
               padding: "0.6rem 1rem",
               borderRadius: "0.5rem",
               border: "none",
-              background: activeTab === tab.id ? "rgba(126,47,208,0.12)" : "transparent",
-              color: activeTab === tab.id ? "#7e2fd0" : "#4b5563",
+              background: activeTab === tab.id ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
+              color: activeTab === tab.id ? "var(--primary)" : "var(--fg)",
               fontWeight: activeTab === tab.id ? 700 : 500,
               fontSize: "0.88rem",
               cursor: "pointer",
@@ -461,10 +461,10 @@ export function AdminRiskParametersDashboard({
         <section className="workspace-stack" style={{ gap: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#111827" }}>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "var(--fg)" }}>
                 Whitelisted Collateral Assets &amp; LTV Limits
               </h2>
-              <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "0.2rem 0 0" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", margin: "0.2rem 0 0" }}>
                 Adjust max borrow limits, volatility buffers, and liquidation thresholds per supported collateral asset.
               </p>
             </div>
@@ -476,7 +476,7 @@ export function AdminRiskParametersDashboard({
                 key={asset.assetSymbol}
                 className="workspace-card"
                 style={{
-                  border: "1px solid rgba(126,47,208,0.18)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
                   borderRadius: "1rem",
                   padding: "1.25rem",
                   display: "flex",
@@ -491,8 +491,8 @@ export function AdminRiskParametersDashboard({
                         {asset.assetSymbol === "XLM" ? "🪙" : asset.assetSymbol === "USDC" ? "💵" : "₿"}
                       </span>
                       <div>
-                        <strong style={{ fontSize: "1.1rem", color: "#111827" }}>{asset.assetSymbol}</strong>
-                        <p style={{ margin: 0, fontSize: "0.75rem", color: "#6b7280" }}>{asset.assetName}</p>
+                        <strong style={{ fontSize: "1.1rem", color: "var(--fg)" }}>{asset.assetSymbol}</strong>
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--fg-muted)" }}>{asset.assetName}</p>
                       </div>
                     </div>
                     <span
@@ -501,8 +501,8 @@ export function AdminRiskParametersDashboard({
                         fontWeight: 700,
                         padding: "0.2rem 0.5rem",
                         borderRadius: "9999px",
-                        background: asset.isWhitelisted ? "rgba(34,207,157,0.15)" : "rgba(239,68,68,0.15)",
-                        color: asset.isWhitelisted ? "#17a87a" : "#ef4444",
+                        background: asset.isWhitelisted ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "color-mix(in srgb, var(--danger) 15%, transparent)",
+                        color: asset.isWhitelisted ? "var(--accent-hover)" : "var(--danger)",
                         textTransform: "uppercase",
                       }}
                     >
@@ -510,28 +510,28 @@ export function AdminRiskParametersDashboard({
                     </span>
                   </div>
 
-                  <hr style={{ margin: "1rem 0", borderColor: "rgba(17,24,39,0.06)" }} />
+                  <hr style={{ margin: "1rem 0", borderColor: "color-mix(in srgb, var(--fg) 6%, transparent)" }} />
 
                   <div style={{ display: "grid", gap: "0.6rem", fontSize: "0.85rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#6b7280" }}>Max LTV (Collateral Factor):</span>
-                      <strong style={{ color: "#7e2fd0" }}>{(asset.collateralFactorBps / 100).toFixed(2)}%</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Max LTV (Collateral Factor):</span>
+                      <strong style={{ color: "var(--primary)" }}>{(asset.collateralFactorBps / 100).toFixed(2)}%</strong>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#6b7280" }}>Volatility Buffer:</span>
-                      <strong style={{ color: "#111827" }}>{(asset.volatilityBps / 100).toFixed(2)}%</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Volatility Buffer:</span>
+                      <strong style={{ color: "var(--fg)" }}>{(asset.volatilityBps / 100).toFixed(2)}%</strong>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#6b7280" }}>Liquidation Threshold:</span>
-                      <strong style={{ color: "#f5a623" }}>{(asset.liquidationThresholdBps / 100).toFixed(2)}%</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Liquidation Threshold:</span>
+                      <strong style={{ color: "var(--warning)" }}>{(asset.liquidationThresholdBps / 100).toFixed(2)}%</strong>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#6b7280" }}>Liquidation Penalty/Bonus:</span>
-                      <strong style={{ color: "#111827" }}>{(asset.liquidationBonusBps / 100).toFixed(2)}%</strong>
+                      <span style={{ color: "var(--fg-muted)" }}>Liquidation Penalty/Bonus:</span>
+                      <strong style={{ color: "var(--fg)" }}>{(asset.liquidationBonusBps / 100).toFixed(2)}%</strong>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#6b7280" }}>Price Oracle Feed:</span>
-                      <strong style={{ color: asset.hasPriceOracle ? "#10b981" : "#6b7280" }}>
+                      <span style={{ color: "var(--fg-muted)" }}>Price Oracle Feed:</span>
+                      <strong style={{ color: asset.hasPriceOracle ? "var(--accent)" : "var(--fg-muted)" }}>
                         {asset.hasPriceOracle ? "Active (Oracle)" : "Manual/Off"}
                       </strong>
                     </div>
@@ -545,10 +545,10 @@ export function AdminRiskParametersDashboard({
                     marginTop: "1.25rem",
                     width: "100%",
                     padding: "0.6rem",
-                    background: "rgba(126,47,208,0.08)",
-                    border: "1px solid rgba(126,47,208,0.25)",
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                     borderRadius: "0.5rem",
-                    color: "#7e2fd0",
+                    color: "var(--primary)",
                     fontWeight: 700,
                     fontSize: "0.82rem",
                     cursor: "pointer",
@@ -567,10 +567,10 @@ export function AdminRiskParametersDashboard({
         <section className="workspace-stack" style={{ gap: "1.25rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
             <div>
-              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#111827" }}>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "var(--fg)" }}>
                 Interest Rate Curve &amp; Jump-Rate Model
               </h2>
-              <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "0.2rem 0 0" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", margin: "0.2rem 0 0" }}>
                 Dynamic interest rate models with two-slope jump-rate math protecting liquidity reserves.
               </p>
             </div>
@@ -593,9 +593,9 @@ export function AdminRiskParametersDashboard({
                   style={{
                     padding: "0.45rem 0.85rem",
                     borderRadius: "0.45rem",
-                    border: selectedPoolId === c.poolId ? "1px solid #7e2fd0" : "1px solid rgba(17,24,39,0.12)",
-                    background: selectedPoolId === c.poolId ? "rgba(126,47,208,0.1)" : "#f9fafb",
-                    color: selectedPoolId === c.poolId ? "#7e2fd0" : "#4b5563",
+                    border: selectedPoolId === c.poolId ? "1px solid var(--primary)" : "1px solid color-mix(in srgb, var(--fg) 12%, transparent)",
+                    background: selectedPoolId === c.poolId ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "var(--surface-2)",
+                    color: selectedPoolId === c.poolId ? "var(--primary)" : "var(--fg)",
                     fontWeight: 600,
                     fontSize: "0.82rem",
                     cursor: "pointer",
@@ -611,10 +611,10 @@ export function AdminRiskParametersDashboard({
             {/* Interactive Curve Visualizer */}
             <div className="workspace-card" style={{ padding: "1.25rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <strong style={{ fontSize: "0.95rem", color: "#111827" }}>
+                <strong style={{ fontSize: "0.95rem", color: "var(--fg)" }}>
                   Curve Simulation: {previewCurveConfig.poolName}
                 </strong>
-                <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>
                   Kink at <strong>{curveForm.kinkPct}%</strong> utilization
                 </span>
               </div>
@@ -623,7 +623,7 @@ export function AdminRiskParametersDashboard({
               <div
                 style={{
                   height: "220px",
-                  background: "#0f172a",
+                  background: "var(--surface-2)",
                   borderRadius: "0.75rem",
                   padding: "1rem",
                   position: "relative",
@@ -634,18 +634,18 @@ export function AdminRiskParametersDashboard({
               >
                 <svg viewBox="0 0 400 180" style={{ width: "100%", height: "100%", overflow: "visible" }}>
                   {/* Grid Lines */}
-                  <line x1="40" y1="20" x2="380" y2="20" stroke="rgba(255,255,255,0.07)" strokeDasharray="3" />
-                  <line x1="40" y1="70" x2="380" y2="70" stroke="rgba(255,255,255,0.07)" strokeDasharray="3" />
-                  <line x1="40" y1="120" x2="380" y2="120" stroke="rgba(255,255,255,0.07)" strokeDasharray="3" />
-                  <line x1="40" y1="160" x2="380" y2="160" stroke="rgba(255,255,255,0.2)" />
+                  <line x1="40" y1="20" x2="380" y2="20" stroke="color-mix(in srgb, var(--fg) 7%, transparent)" strokeDasharray="3" />
+                  <line x1="40" y1="70" x2="380" y2="70" stroke="color-mix(in srgb, var(--fg) 7%, transparent)" strokeDasharray="3" />
+                  <line x1="40" y1="120" x2="380" y2="120" stroke="color-mix(in srgb, var(--fg) 7%, transparent)" strokeDasharray="3" />
+                  <line x1="40" y1="160" x2="380" y2="160" stroke="color-mix(in srgb, var(--fg) 20%, transparent)" />
 
                   {/* Kink line marker */}
                   {(() => {
                     const kinkX = 40 + (curveForm.kinkPct / 100) * 340;
                     return (
                       <>
-                        <line x1={kinkX} y1="10" x2={kinkX} y2="160" stroke="#f59e0b" strokeDasharray="4" strokeWidth="1.5" />
-                        <text x={kinkX} y="15" fill="#f59e0b" fontSize="9" textAnchor="middle" fontWeight="bold">
+                        <line x1={kinkX} y1="10" x2={kinkX} y2="160" stroke="var(--warning)" strokeDasharray="4" strokeWidth="1.5" />
+                        <text x={kinkX} y="15" fill="var(--warning)" fontSize="9" textAnchor="middle" fontWeight="bold">
                           KINK ({curveForm.kinkPct}%)
                         </text>
                       </>
@@ -665,7 +665,7 @@ export function AdminRiskParametersDashboard({
                     return (
                       <polyline
                         fill="none"
-                        stroke="#7e2fd0"
+                        stroke="var(--primary)"
                         strokeWidth="3"
                         points={pointsStr}
                       />
@@ -685,7 +685,7 @@ export function AdminRiskParametersDashboard({
                     return (
                       <polyline
                         fill="none"
-                        stroke="#22cf9d"
+                        stroke="var(--accent)"
                         strokeWidth="2.5"
                         points={pointsStr}
                       />
@@ -693,17 +693,17 @@ export function AdminRiskParametersDashboard({
                   })()}
 
                   {/* Axes labels */}
-                  <text x="40" y="175" fill="rgba(255,255,255,0.5)" fontSize="9">0% Util</text>
-                  <text x="380" y="175" fill="rgba(255,255,255,0.5)" fontSize="9" textAnchor="end">100% Util</text>
+                  <text x="40" y="175" fill="color-mix(in srgb, var(--fg) 50%, transparent)" fontSize="9">0% Util</text>
+                  <text x="380" y="175" fill="color-mix(in srgb, var(--fg) 50%, transparent)" fontSize="9" textAnchor="end">100% Util</text>
                 </svg>
 
                 {/* Legend */}
                 <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem", marginTop: "0.25rem", fontSize: "0.75rem" }}>
-                  <span style={{ color: "#a855f7", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <span style={{ width: "10px", height: "3px", background: "#7e2fd0", display: "inline-block" }} /> Borrow APY (Slope 1 + Jump)
+                  <span style={{ color: "var(--primary-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <span style={{ width: "10px", height: "3px", background: "var(--primary)", display: "inline-block" }} /> Borrow APY (Slope 1 + Jump)
                   </span>
-                  <span style={{ color: "#22cf9d", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <span style={{ width: "10px", height: "3px", background: "#22cf9d", display: "inline-block" }} /> Supply APY (Lender Return)
+                  <span style={{ color: "var(--accent)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <span style={{ width: "10px", height: "3px", background: "var(--accent)", display: "inline-block" }} /> Supply APY (Lender Return)
                   </span>
                 </div>
               </div>
@@ -712,7 +712,7 @@ export function AdminRiskParametersDashboard({
               <div style={{ marginTop: "1rem", overflowX: "auto" }}>
                 <table style={{ width: "100%", fontSize: "0.78rem", textAlign: "left", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ color: "#6b7280", borderBottom: "1px solid rgba(17,24,39,0.08)" }}>
+                    <tr style={{ color: "var(--fg-muted)", borderBottom: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)" }}>
                       <th style={{ padding: "0.4rem" }}>Utilization</th>
                       <th style={{ padding: "0.4rem" }}>Borrow APY</th>
                       <th style={{ padding: "0.4rem" }}>Supply APY</th>
@@ -725,11 +725,11 @@ export function AdminRiskParametersDashboard({
                       const sBps = computeSupplyRateBps(previewCurveConfig, u * 100, bBps);
                       const isKink = u === Math.round(curveForm.kinkPct);
                       return (
-                        <tr key={u} style={{ borderBottom: "1px solid rgba(17,24,39,0.04)", background: isKink ? "rgba(245,166,35,0.06)" : undefined }}>
+                        <tr key={u} style={{ borderBottom: "1px solid color-mix(in srgb, var(--fg) 4%, transparent)", background: isKink ? "color-mix(in srgb, var(--warning) 6%, transparent)" : undefined }}>
                           <td style={{ padding: "0.4rem", fontWeight: isKink ? 700 : 500 }}>{u}%</td>
-                          <td style={{ padding: "0.4rem", color: "#7e2fd0", fontWeight: 700 }}>{(bBps / 100).toFixed(2)}%</td>
-                          <td style={{ padding: "0.4rem", color: "#10b981", fontWeight: 700 }}>{(sBps / 100).toFixed(2)}%</td>
-                          <td style={{ padding: "0.4rem", fontSize: "0.7rem", color: isKink ? "#f59e0b" : "#6b7280" }}>
+                          <td style={{ padding: "0.4rem", color: "var(--primary)", fontWeight: 700 }}>{(bBps / 100).toFixed(2)}%</td>
+                          <td style={{ padding: "0.4rem", color: "var(--accent)", fontWeight: 700 }}>{(sBps / 100).toFixed(2)}%</td>
+                          <td style={{ padding: "0.4rem", fontSize: "0.7rem", color: isKink ? "var(--warning)" : "var(--fg-muted)" }}>
                             {isKink ? "⭐ Target Kink" : u > curveForm.kinkPct ? "⚡ Jump Slope" : "Base Slope"}
                           </td>
                         </tr>
@@ -742,10 +742,10 @@ export function AdminRiskParametersDashboard({
 
             {/* Curve Parameters Adjustment Controls */}
             <div className="workspace-card" style={{ padding: "1.25rem" }}>
-              <strong style={{ fontSize: "0.95rem", color: "#111827" }}>
+              <strong style={{ fontSize: "0.95rem", color: "var(--fg)" }}>
                 Adjust Curve Parameters: {activeCurve.poolName}
               </strong>
-              <p style={{ fontSize: "0.78rem", color: "#6b7280", margin: "0.2rem 0 1rem" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)", margin: "0.2rem 0 1rem" }}>
                 Modify base rates, multipliers, and jump thresholds with immediate preview.
               </p>
 
@@ -785,7 +785,7 @@ export function AdminRiskParametersDashboard({
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", marginBottom: "0.25rem" }}>
                     <span>Optimal Utilization (Kink):</span>
-                    <strong style={{ color: "#f59e0b" }}>{curveForm.kinkPct.toFixed(0)}%</strong>
+                    <strong style={{ color: "var(--warning)" }}>{curveForm.kinkPct.toFixed(0)}%</strong>
                   </div>
                   <input
                     type="range"
@@ -801,7 +801,7 @@ export function AdminRiskParametersDashboard({
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", marginBottom: "0.25rem" }}>
                     <span>Jump Multiplier (Slope 2 past kink):</span>
-                    <strong style={{ color: "#ef4444" }}>{curveForm.jumpMultiplierPct.toFixed(2)}%</strong>
+                    <strong style={{ color: "var(--danger)" }}>{curveForm.jumpMultiplierPct.toFixed(2)}%</strong>
                   </div>
                   <input
                     type="range"
@@ -848,17 +848,17 @@ export function AdminRiskParametersDashboard({
       {activeTab === "fees" && (
         <section className="workspace-stack" style={{ gap: "1rem" }}>
           <div>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#111827" }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "var(--fg)" }}>
               Protocol Fees &amp; Security Controls
             </h2>
-            <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "0.2rem 0 0" }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", margin: "0.2rem 0 0" }}>
               Configure platform revenue share, flash loan charges, and emergency circuit breakers.
             </p>
           </div>
 
           <div className="workspace-grid workspace-grid--two" style={{ gap: "1.5rem" }}>
             <div className="workspace-card" style={{ padding: "1.25rem" }}>
-              <strong style={{ fontSize: "0.95rem", color: "#111827" }}>Fee Parameters</strong>
+              <strong style={{ fontSize: "0.95rem", color: "var(--fg)" }}>Fee Parameters</strong>
               <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
                 <div>
                   <label className="workspace-label">Flash Loan Fee (%)</label>
@@ -902,8 +902,8 @@ export function AdminRiskParametersDashboard({
             </div>
 
             <div className="workspace-card" style={{ padding: "1.25rem" }}>
-              <strong style={{ fontSize: "0.95rem", color: "#111827" }}>Emergency Circuit Breaker</strong>
-              <p style={{ fontSize: "0.82rem", color: "#6b7280", margin: "0.2rem 0 1rem" }}>
+              <strong style={{ fontSize: "0.95rem", color: "var(--fg)" }}>Emergency Circuit Breaker</strong>
+              <p style={{ fontSize: "0.82rem", color: "var(--fg-muted)", margin: "0.2rem 0 1rem" }}>
                 Instantly pauses all deposit and borrow disbursements on-chain in the event of an anomaly.
               </p>
 
@@ -911,17 +911,17 @@ export function AdminRiskParametersDashboard({
                 style={{
                   padding: "1rem",
                   borderRadius: "0.75rem",
-                  background: feesForm.isPaused ? "rgba(239,68,68,0.1)" : "rgba(34,207,157,0.1)",
-                  border: feesForm.isPaused ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(34,207,157,0.3)",
+                  background: feesForm.isPaused ? "color-mix(in srgb, var(--danger) 10%, transparent)" : "color-mix(in srgb, var(--accent) 10%, transparent)",
+                  border: feesForm.isPaused ? "1px solid color-mix(in srgb, var(--danger) 30%, transparent)" : "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
                   marginBottom: "1rem",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <strong style={{ color: feesForm.isPaused ? "#dc2626" : "#17a87a" }}>
+                    <strong style={{ color: feesForm.isPaused ? "var(--danger)" : "var(--accent-hover)" }}>
                       {feesForm.isPaused ? "Protocol is Paused" : "Protocol is Active"}
                     </strong>
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "#6b7280" }}>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--fg-muted)" }}>
                       {feesForm.isPaused ? "New borrowings and withdrawals are frozen" : "Normal loan operations ongoing"}
                     </p>
                   </div>
@@ -931,8 +931,8 @@ export function AdminRiskParametersDashboard({
                     style={{
                       padding: "0.4rem 0.8rem",
                       borderRadius: "0.4rem",
-                      background: feesForm.isPaused ? "#10b981" : "#ef4444",
-                      color: "#ffffff",
+                      background: feesForm.isPaused ? "var(--accent)" : "var(--danger)",
+                      color: "var(--fg)",
                       border: "none",
                       fontWeight: 700,
                       fontSize: "0.8rem",
@@ -961,10 +961,10 @@ export function AdminRiskParametersDashboard({
       {activeTab === "audit" && (
         <section className="workspace-stack" style={{ gap: "1rem" }}>
           <div>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#111827" }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "var(--fg)" }}>
               Risk Parameters Audit Trail
             </h2>
-            <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "0.2rem 0 0" }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", margin: "0.2rem 0 0" }}>
               Immutable record of all risk parameter modifications, administrator signatures, and justifications.
             </p>
           </div>
@@ -972,7 +972,7 @@ export function AdminRiskParametersDashboard({
           <div className="workspace-card" style={{ padding: "0" }}>
             <table style={{ width: "100%", fontSize: "0.85rem", textAlign: "left", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ color: "#6b7280", borderBottom: "1px solid rgba(17,24,39,0.08)", background: "#f9fafb" }}>
+                <tr style={{ color: "var(--fg-muted)", borderBottom: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)", background: "var(--surface-2)" }}>
                   <th style={{ padding: "0.75rem 1rem" }}>Timestamp</th>
                   <th style={{ padding: "0.75rem 1rem" }}>Category</th>
                   <th style={{ padding: "0.75rem 1rem" }}>Target Parameter</th>
@@ -983,8 +983,8 @@ export function AdminRiskParametersDashboard({
               </thead>
               <tbody>
                 {state.auditHistory.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: "1px solid rgba(17,24,39,0.04)" }}>
-                    <td style={{ padding: "0.75rem 1rem", whiteSpace: "nowrap", color: "#6b7280", fontSize: "0.78rem" }}>
+                  <tr key={item.id} style={{ borderBottom: "1px solid color-mix(in srgb, var(--fg) 4%, transparent)" }}>
+                    <td style={{ padding: "0.75rem 1rem", whiteSpace: "nowrap", color: "var(--fg-muted)", fontSize: "0.78rem" }}>
                       {new Date(item.timestamp).toLocaleString()}
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
@@ -994,26 +994,26 @@ export function AdminRiskParametersDashboard({
                           fontWeight: 700,
                           padding: "0.2rem 0.45rem",
                           borderRadius: "9999px",
-                          background: "rgba(126,47,208,0.1)",
-                          color: "#7e2fd0",
+                          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          color: "var(--primary)",
                           textTransform: "uppercase",
                         }}
                       >
                         {item.category.replace("_", " ")}
                       </span>
                     </td>
-                    <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "#111827" }}>
+                    <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--fg)" }}>
                       {item.targetName}
                     </td>
-                    <td style={{ padding: "0.75rem 1rem", fontSize: "0.8rem", color: "#374151" }}>
-                      <span style={{ textDecoration: "line-through", color: "#9ca3af" }}>{item.previousValue}</span>
+                    <td style={{ padding: "0.75rem 1rem", fontSize: "0.8rem", color: "var(--fg)" }}>
+                      <span style={{ textDecoration: "line-through", color: "var(--fg-subtle)" }}>{item.previousValue}</span>
                       {" → "}
-                      <strong style={{ color: "#10b981" }}>{item.newValue}</strong>
+                      <strong style={{ color: "var(--accent)" }}>{item.newValue}</strong>
                     </td>
-                    <td style={{ padding: "0.75rem 1rem", color: "#6b7280", fontSize: "0.78rem" }}>
+                    <td style={{ padding: "0.75rem 1rem", color: "var(--fg-muted)", fontSize: "0.78rem" }}>
                       {item.updatedBy}
                     </td>
-                    <td style={{ padding: "0.75rem 1rem", color: "#4b5563", fontSize: "0.8rem", maxWidth: "250px" }}>
+                    <td style={{ padding: "0.75rem 1rem", color: "var(--fg)", fontSize: "0.8rem", maxWidth: "250px" }}>
                       {item.reason}
                     </td>
                   </tr>
@@ -1032,7 +1032,7 @@ export function AdminRiskParametersDashboard({
             position: "fixed",
             inset: 0,
             zIndex: 1000,
-            background: "rgba(15, 23, 42, 0.5)",
+            background: "color-mix(in srgb, var(--fg) 50%, transparent)",
             backdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
@@ -1110,7 +1110,7 @@ export function AdminRiskParametersDashboard({
                   checked={assetForm.hasPriceOracle}
                   onChange={(e) => setAssetForm((prev) => ({ ...prev, hasPriceOracle: e.target.checked }))}
                 />
-                <label htmlFor="oracle-check" style={{ fontSize: "0.85rem", color: "#374151", cursor: "pointer" }}>
+                <label htmlFor="oracle-check" style={{ fontSize: "0.85rem", color: "var(--fg)", cursor: "pointer" }}>
                   Active Decentralized Price Oracle Feed
                 </label>
               </div>
@@ -1146,7 +1146,7 @@ export function AdminRiskParametersDashboard({
             position: "fixed",
             inset: 0,
             zIndex: 1000,
-            background: "rgba(15, 23, 42, 0.55)",
+            background: "color-mix(in srgb, var(--fg) 55%, transparent)",
             backdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
@@ -1159,13 +1159,13 @@ export function AdminRiskParametersDashboard({
             style={{
               maxWidth: "34rem",
               width: "100%",
-              border: "1px solid rgba(126,47,208,0.3)",
+              border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
               boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "#7e2fd0", fontWeight: 700 }}>
+                <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--primary)", fontWeight: 700 }}>
                   Security &amp; Authorization Guard
                 </span>
                 <h3 style={{ margin: "0.2rem 0 0", fontSize: "1.15rem", fontWeight: 800 }}>
@@ -1181,15 +1181,15 @@ export function AdminRiskParametersDashboard({
               </button>
             </div>
 
-            <p style={{ fontSize: "0.85rem", color: "#6b7280", margin: "0.5rem 0 1rem" }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", margin: "0.5rem 0 1rem" }}>
               Review the proposed parameter changes below. This action updates protocol risk rules and will be logged permanently in the audit trail.
             </p>
 
             {/* Parameter Diff Table */}
-            <div style={{ background: "#f9fafb", borderRadius: "0.75rem", padding: "0.75rem 1rem", border: "1px solid rgba(17,24,39,0.06)" }}>
+            <div style={{ background: "var(--surface-2)", borderRadius: "0.75rem", padding: "0.75rem 1rem", border: "1px solid color-mix(in srgb, var(--fg) 6%, transparent)" }}>
               <table style={{ width: "100%", fontSize: "0.82rem", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ color: "#6b7280", borderBottom: "1px solid rgba(17,24,39,0.06)" }}>
+                  <tr style={{ color: "var(--fg-muted)", borderBottom: "1px solid color-mix(in srgb, var(--fg) 6%, transparent)" }}>
                     <th style={{ textAlign: "left", padding: "0.35rem 0" }}>Parameter</th>
                     <th style={{ textAlign: "left", padding: "0.35rem 0" }}>Current</th>
                     <th style={{ textAlign: "left", padding: "0.35rem 0" }}>New Value</th>
@@ -1197,10 +1197,10 @@ export function AdminRiskParametersDashboard({
                 </thead>
                 <tbody>
                   {pendingUpdate.diffs.map((d, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid rgba(17,24,39,0.04)" }}>
-                      <td style={{ padding: "0.35rem 0", color: "#374151" }}>{d.label}</td>
-                      <td style={{ padding: "0.35rem 0", textDecoration: "line-through", color: "#9ca3af" }}>{d.oldVal}</td>
-                      <td style={{ padding: "0.35rem 0", color: "#10b981", fontWeight: 700 }}>{d.newVal}</td>
+                    <tr key={i} style={{ borderBottom: "1px solid color-mix(in srgb, var(--fg) 4%, transparent)" }}>
+                      <td style={{ padding: "0.35rem 0", color: "var(--fg)" }}>{d.label}</td>
+                      <td style={{ padding: "0.35rem 0", textDecoration: "line-through", color: "var(--fg-subtle)" }}>{d.oldVal}</td>
+                      <td style={{ padding: "0.35rem 0", color: "var(--accent)", fontWeight: 700 }}>{d.newVal}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1210,7 +1210,7 @@ export function AdminRiskParametersDashboard({
             {/* Mandatory Reason Input */}
             <div style={{ marginTop: "1rem" }}>
               <label className="workspace-label">
-                Administrative Rationale / Reason <span style={{ color: "#ef4444" }}>*</span>
+                Administrative Rationale / Reason <span style={{ color: "var(--danger)" }}>*</span>
               </label>
               <textarea
                 value={reason}

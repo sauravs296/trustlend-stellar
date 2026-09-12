@@ -111,30 +111,30 @@ export default async function AdminActivityPage() {
       <div className="workspace-stack">
         {!walletConnected ? (
           <article className="workspace-card workspace-card--full" style={{
-            background: "linear-gradient(to right, rgba(155,111,224,0.05), rgba(155,111,224,0.15))",
-            border: "1px solid rgba(155,111,224,0.2)"
+            background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 5%, transparent), color-mix(in srgb, var(--primary) 15%, transparent))",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)"
           }}>
-            <h2 className="workspace-card-title" style={{ color: "#9b6fe0" }}>Wallet Connection Required</h2>
+            <h2 className="workspace-card-title" style={{ color: "var(--primary-muted)" }}>Wallet Connection Required</h2>
             <p className="workspace-card-copy">Connect your Admin Treasury wallet first to unlock platform flow analytics.</p>
           </article>
         ) : (
           <>
             <section className="workspace-grid workspace-grid--three">
-              <article className="workspace-card" style={{ background: "linear-gradient(145deg, rgba(34,207,157,0.05), transparent)", border: "1px solid rgba(34,207,157,0.15)" }}>
+              <article className="workspace-card" style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent)", border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)" }}>
                 <h2 className="workspace-card-title" style={{ fontSize: "0.85rem", opacity: 0.8 }}>Transactions Today</h2>
-                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "#22cf9d", margin: "0.25rem 0 0 0" }}>
+                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--accent)", margin: "0.25rem 0 0 0" }}>
                   {formatCurrency(today)}
                 </p>
               </article>
-              <article className="workspace-card" style={{ background: "linear-gradient(145deg, rgba(84,160,255,0.05), transparent)", border: "1px solid rgba(84,160,255,0.15)" }}>
+              <article className="workspace-card" style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--info) 5%, transparent), transparent)", border: "1px solid color-mix(in srgb, var(--info) 15%, transparent)" }}>
                 <h2 className="workspace-card-title" style={{ fontSize: "0.85rem", opacity: 0.8 }}>Transactions Weekly</h2>
-                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "#54a0ff", margin: "0.25rem 0 0 0" }}>
+                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--info)", margin: "0.25rem 0 0 0" }}>
                   {formatCurrency(weekly)}
                 </p>
               </article>
-              <article className="workspace-card" style={{ background: "linear-gradient(145deg, rgba(155,111,224,0.05), transparent)", border: "1px solid rgba(155,111,224,0.15)" }}>
+              <article className="workspace-card" style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--primary) 5%, transparent), transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
                 <h2 className="workspace-card-title" style={{ fontSize: "0.85rem", opacity: 0.8 }}>Transactions Monthly</h2>
-                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "#9b6fe0", margin: "0.25rem 0 0 0" }}>
+                <p className="workspace-card-copy" style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--primary-muted)", margin: "0.25rem 0 0 0" }}>
                   {formatCurrency(monthly)}
                 </p>
               </article>
@@ -142,31 +142,31 @@ export default async function AdminActivityPage() {
 
             <section className="workspace-grid workspace-grid--two">
               <article className="workspace-card workspace-card--full" style={{ position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "radial-gradient(circle, rgba(155,111,224,0.1) 0%, transparent 70%)", borderRadius: "50%" }} />
+                <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 10%, transparent) 0%, transparent 70%)", borderRadius: "50%" }} />
                 <h2 className="workspace-card-title" style={{ fontSize: "0.9rem", letterSpacing: "1px", textTransform: "uppercase" }}>Global Ecosystem Volume</h2>
-                <p className="workspace-card-copy" style={{ fontSize: "2.5rem", fontWeight: 800, margin: "0.5rem 0", background: "linear-gradient(90deg, #9b6fe0, #54a0ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                <p className="workspace-card-copy" style={{ fontSize: "2.5rem", fontWeight: 800, margin: "0.5rem 0", background: "linear-gradient(90deg, var(--primary-muted), var(--info))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   {formatCurrency(allTime)}
                 </p>
                 <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
-                  <span style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem", background: "rgba(0,0,0,0.03)", borderRadius: "9999px", border: "1px solid rgba(0,0,0,0.08)", color: "inherit" }}>
+                  <span style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem", background: "color-mix(in srgb, var(--fg) 3%, transparent)", borderRadius: "9999px", border: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)", color: "inherit" }}>
                     🌐 {STELLAR_NETWORK_LABEL}
                   </span>
-                  <span style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem", background: "rgba(84,160,255,0.1)", color: "#54a0ff", borderRadius: "9999px", border: "1px solid rgba(84,160,255,0.2)" }}>
+                  <span style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem", background: "color-mix(in srgb, var(--info) 10%, transparent)", color: "var(--info)", borderRadius: "9999px", border: "1px solid color-mix(in srgb, var(--info) 20%, transparent)" }}>
                     🛡️ Authenticated
                   </span>
                 </div>
               </article>
 
               <article className="workspace-card workspace-card--full">
-                <h2 className="workspace-card-title" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.75rem" }}>Active Whales (Top Protocol Users)</h2>
+                <h2 className="workspace-card-title" style={{ borderBottom: "1px solid color-mix(in srgb, var(--fg) 10%, transparent)", paddingBottom: "0.75rem" }}>Active Whales (Top Protocol Users)</h2>
                 <ul className="workspace-list workspace-list--compact" style={{ marginTop: "1rem" }}>
                   {topUsers.length === 0 ? (
                     <li style={{ opacity: 0.5 }}>No activity recorded yet.</li>
                   ) : (
                     topUsers.map(([userId, amount], index) => (
-                      <li key={userId} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", borderBottom: index === topUsers.length -1 ? "none" : "1px solid rgba(255,255,255,0.05)" }}>
+                      <li key={userId} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", borderBottom: index === topUsers.length -1 ? "none" : "1px solid color-mix(in srgb, var(--fg) 5%, transparent)" }}>
                         <span style={{ fontFamily: "monospace", opacity: 0.7, fontSize: "0.85rem" }}>{userId.slice(0, 12)}...</span>
-                        <strong style={{ color: "#22cf9d", fontSize: "0.9rem" }}>{formatCurrency(amount)}</strong>
+                        <strong style={{ color: "var(--accent)", fontSize: "0.9rem" }}>{formatCurrency(amount)}</strong>
                       </li>
                     ))
                   )}
@@ -175,13 +175,13 @@ export default async function AdminActivityPage() {
             </section>
 
             <section className="workspace-card workspace-card--full" style={{ padding: "0", overflow: "hidden" }}>
-              <div style={{ padding: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.1)" }}>
+              <div style={{ padding: "1.5rem", borderBottom: "1px solid color-mix(in srgb, var(--fg) 5%, transparent)", background: "color-mix(in srgb, var(--fg) 10%, transparent)" }}>
                 <h2 className="workspace-card-title" style={{ margin: 0 }}>Platform Ledger Verifications</h2>
                 <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8rem", opacity: 0.6 }}>Immutable feed of all platform transactions interacting with Stellar testnet</p>
               </div>
               <div className="workspace-table-wrap">
                 <table className="workspace-table" style={{ margin: 0, width: "100%" }} aria-label="Ledger activity table">
-                  <thead style={{ background: "rgba(255,255,255,0.02)" }}>
+                  <thead style={{ background: "color-mix(in srgb, var(--fg) 2%, transparent)" }}>
                     <tr>
                       <th style={{ padding: "1rem" }}>Date</th>
                       <th>Category</th>
@@ -197,16 +197,16 @@ export default async function AdminActivityPage() {
                       </tr>
                     ) : (
                       chainRows.map((row) => (
-                        <tr key={row.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                        <tr key={row.id} style={{ borderBottom: "1px solid color-mix(in srgb, var(--fg) 3%, transparent)" }}>
                           <td style={{ padding: "1rem", fontSize: "0.85rem", opacity: 0.7 }}>
                             {row.createdAt ? new Date(row.createdAt).toLocaleDateString() + " " + new Date(row.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "—"}
                           </td>
                           <td>
                             <span style={{ 
                               padding: "0.2rem 0.6rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase",
-                              background: row.category.includes("fund") || row.category.includes("deposit") ? "rgba(34,207,157,0.1)" : "rgba(84,160,255,0.1)",
-                              color: row.category.includes("fund") || row.category.includes("deposit") ? "#22cf9d" : "#54a0ff",
-                              border: `1px solid ${row.category.includes("fund") || row.category.includes("deposit") ? "rgba(34,207,157,0.2)" : "rgba(84,160,255,0.2)"}`
+                              background: row.category.includes("fund") || row.category.includes("deposit") ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "color-mix(in srgb, var(--info) 10%, transparent)",
+                              color: row.category.includes("fund") || row.category.includes("deposit") ? "var(--accent)" : "var(--info)",
+                              border: `1px solid ${row.category.includes("fund") || row.category.includes("deposit") ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--info) 20%, transparent)"}`
                             }}>
                               {row.category.replace("_", " ")}
                             </span>
@@ -220,7 +220,7 @@ export default async function AdminActivityPage() {
                                 target="_blank" 
                                 rel="noreferrer" 
                                 className="workspace-nav-link"
-                                style={{ display: "inline-block", background: "rgba(155,111,224,0.1)", color: "#9b6fe0", padding: "0.35rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid rgba(155,111,224,0.3)" }}
+                                style={{ display: "inline-block", background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "var(--primary-muted)", padding: "0.35rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 600, border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }}
                               >
                                 ✅ View Hash ↗
                               </a>

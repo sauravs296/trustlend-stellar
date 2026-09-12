@@ -99,7 +99,7 @@ export default function AdminKYCClient({
             </CardHeader>
             <CardContent>
               {pendingDocuments.length === 0 ? (
-                <p style={{ color: "#999", textAlign: "center", padding: "1.5rem 0" }}>
+                <p style={{ color: "var(--fg-subtle)", textAlign: "center", padding: "1.5rem 0" }}>
                   No pending documents
                 </p>
               ) : (
@@ -115,8 +115,8 @@ export default function AdminKYCClient({
                       className={`kyc-doc-row ${selectedDoc?.id === doc.id ? "is-selected-pending" : ""}`}
                     >
                       <div style={{ fontWeight: 600 }}>{doc.full_name}</div>
-                      <div style={{ fontSize: "0.85rem", color: "#666" }}>{doc.email}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#999", marginTop: "0.25rem" }}>
+                      <div style={{ fontSize: "0.85rem", color: "var(--fg-muted)" }}>{doc.email}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--fg-subtle)", marginTop: "0.25rem" }}>
                         Submitted: {formatSubmittedDate(doc.submitted_at)}
                       </div>
                     </div>
@@ -134,7 +134,7 @@ export default function AdminKYCClient({
             </CardHeader>
             <CardContent>
               {reviewedDocuments.length === 0 ? (
-                <p style={{ color: "#999", textAlign: "center", padding: "1.5rem 0" }}>
+                <p style={{ color: "var(--fg-subtle)", textAlign: "center", padding: "1.5rem 0" }}>
                   No reviewed documents
                 </p>
               ) : (
@@ -151,12 +151,12 @@ export default function AdminKYCClient({
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ fontWeight: 600 }}>{doc.full_name}</div>
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: doc.kyc_status === "verified" ? "rgba(34,207,157,0.12)" : "rgba(245,166,35,0.12)", color: doc.kyc_status === "verified" ? "#22cf9d" : "#f5a623" }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: doc.kyc_status === "verified" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--warning) 12%, transparent)", color: doc.kyc_status === "verified" ? "var(--accent)" : "var(--warning)" }}>
                           {doc.kyc_status.toUpperCase()}
                         </span>
                       </div>
-                      <div style={{ fontSize: "0.85rem", color: "#666" }}>{doc.email}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#999", marginTop: "0.25rem" }}>
+                      <div style={{ fontSize: "0.85rem", color: "var(--fg-muted)" }}>{doc.email}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--fg-subtle)", marginTop: "0.25rem" }}>
                         Submitted: {formatSubmittedDate(doc.submitted_at)}
                       </div>
                     </div>
@@ -185,10 +185,10 @@ export default function AdminKYCClient({
                 <div
                   style={{
                     marginBottom: "1rem",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid var(--border)",
                     borderRadius: "0.5rem",
                     overflow: "hidden",
-                    backgroundColor: "#f9f9f9",
+                    backgroundColor: "var(--surface-2)",
                     minHeight: "240px",
                   }}
                 >
@@ -200,7 +200,7 @@ export default function AdminKYCClient({
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          color: "#4f46e5",
+                          color: "var(--primary)",
                           textDecoration: "none",
                           fontSize: "0.85rem",
                         }}
@@ -232,9 +232,9 @@ export default function AdminKYCClient({
                         marginBottom: "1rem",
                         borderRadius: "0.4rem",
                         backgroundColor:
-                          message.type === "success" ? "#dcf5e3" : "#f5dcdc",
+                          message.type === "success" ? "var(--success-soft)" : "var(--danger-soft)",
                         color:
-                          message.type === "success" ? "#22863a" : "#cb2431",
+                          message.type === "success" ? "var(--success-soft-fg)" : "var(--danger-soft-fg)",
                         fontSize: "0.85rem",
                       }}
                     >
@@ -277,8 +277,8 @@ export default function AdminKYCClient({
                           onClick={() => handleApprove(selectedDoc.id)}
                           disabled={loading}
                           style={{
-                            backgroundColor: "#10b981",
-                            color: "white",
+                            backgroundColor: "var(--accent)",
+                            color: "var(--primary-fg)",
                             padding: "0.5rem 1rem",
                             border: "none",
                             borderRadius: "0.4rem",
@@ -291,8 +291,8 @@ export default function AdminKYCClient({
                           onClick={() => handleReject(selectedDoc.id)}
                           disabled={loading}
                           style={{
-                            backgroundColor: "#ef4444",
-                            color: "white",
+                            backgroundColor: "var(--danger)",
+                            color: "var(--primary-fg)",
                             padding: "0.5rem 1rem",
                             border: "none",
                             borderRadius: "0.4rem",
@@ -307,7 +307,7 @@ export default function AdminKYCClient({
                 </div>
               </>
             ) : (
-              <p style={{ color: "#999" }}>No document uploaded yet</p>
+              <p style={{ color: "var(--fg-subtle)" }}>No document uploaded yet</p>
             )}
           </CardContent>
         </Card>
@@ -320,7 +320,7 @@ export default function AdminKYCClient({
           </CardHeader>
           <CardContent>
             <div className="kyc-empty-state">
-              <p style={{ color: "#64748b", textAlign: "center", margin: 0 }}>
+              <p style={{ color: "var(--fg-muted)", textAlign: "center", margin: 0 }}>
                 Choose a record from Pending Verification or KYC History to preview details.
               </p>
               <div className="kyc-empty-stats">
@@ -346,8 +346,8 @@ export default function AdminKYCClient({
           align-items: center;
           gap: 0.5rem;
           padding: 1rem;
-          background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08));
-          border: 1px solid rgba(99, 102, 241, 0.3);
+          background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, transparent), color-mix(in srgb, var(--info) 8%, transparent));
+          border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
           border-radius: 0.75rem;
           color: #4338ca;
           font-size: 0.9rem;
@@ -380,26 +380,26 @@ export default function AdminKYCClient({
 
         .kyc-doc-row {
           padding: 0.9rem;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--border);
           border-radius: 0.6rem;
           cursor: pointer;
-          background: #ffffff;
+          background: var(--surface);
           transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
         }
 
         .kyc-doc-row:hover {
           border-color: #c7d2fe;
-          box-shadow: 0 8px 20px rgba(79, 70, 229, 0.08);
+          box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 8%, transparent);
           transform: translateY(-1px);
         }
 
         .is-selected-pending {
-          border: 2px solid #4f46e5;
+          border: 2px solid var(--primary);
           background: #eef2ff;
         }
 
         .is-selected-reviewed {
-          border: 2px solid #94a3b8;
+          border: 2px solid var(--fg-subtle);
           background: #f8fafc;
         }
 
@@ -429,7 +429,7 @@ export default function AdminKYCClient({
           border-radius: 999px;
           font-size: 0.75rem;
           font-weight: 700;
-          background: rgba(79, 70, 229, 0.14);
+          background: color-mix(in srgb, var(--primary) 14%, transparent);
           color: #4338ca;
         }
 
@@ -445,10 +445,10 @@ export default function AdminKYCClient({
           align-items: center;
           justify-content: center;
           gap: 1rem;
-          border: 1px dashed #cbd5e1;
+          border: 1px dashed var(--border);
           border-radius: 0.75rem;
           padding: 1.25rem;
-          background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.75));
+          background: linear-gradient(180deg, var(--surface), var(--surface-2));
         }
 
         .kyc-empty-stats {
@@ -461,7 +461,7 @@ export default function AdminKYCClient({
           font-size: 0.8rem;
           color: #334155;
           background: #e2e8f0;
-          border: 1px solid #cbd5e1;
+          border: 1px solid var(--border);
           border-radius: 999px;
           padding: 0.2rem 0.65rem;
           font-weight: 600;

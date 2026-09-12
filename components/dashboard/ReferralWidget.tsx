@@ -35,22 +35,22 @@ interface ReferralData {
 const STATUS_META: Record<string, { label: string; color: string; hint: string }> = {
   pending: {
     label: "Signed up",
-    color: "#f5a623",
+    color: "var(--warning)",
     hint: "Waiting for their first loan to be funded.",
   },
   qualified: {
     label: "Bonus earned",
-    color: "#7e2fd0",
+    color: "var(--primary)",
     hint: "Their loan is active — your bonus is being paid on-chain.",
   },
   paid: {
     label: "Paid",
-    color: "#22cf9d",
+    color: "var(--accent)",
     hint: "Bonus delivered to your wallet.",
   },
   rejected: {
     label: "Not eligible",
-    color: "#ff6b6b",
+    color: "var(--danger)",
     hint: "This referral did not qualify for a bonus.",
   },
 };
@@ -58,7 +58,7 @@ const STATUS_META: Record<string, { label: string; color: string; hint: string }
 function StatusPill({ status }: { status: string }) {
   const meta = STATUS_META[status] ?? {
     label: status,
-    color: "#7a86a8",
+    color: "var(--fg-muted)",
     hint: "",
   };
   return (
@@ -70,9 +70,9 @@ function StatusPill({ status }: { status: string }) {
         borderRadius: "9999px",
         fontSize: "0.7rem",
         fontWeight: 700,
-        background: `${meta.color}1a`,
+        background: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
         color: meta.color,
-        border: `1px solid ${meta.color}44`,
+        border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
         whiteSpace: "nowrap",
       }}
     >

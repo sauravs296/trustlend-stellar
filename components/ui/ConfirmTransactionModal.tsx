@@ -183,7 +183,7 @@ export function ConfirmTransactionModal({
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0,0,0,0.55)",
+          background: "color-mix(in srgb, var(--fg) 55%, transparent)",
           backdropFilter: "blur(4px)",
           animation: "modalFadeIn 200ms ease",
         }}
@@ -201,10 +201,10 @@ export function ConfirmTransactionModal({
           maxHeight: "90dvh",
           overflowY: "auto",
           background: "linear-gradient(180deg, #1a1a2e, #16213e)",
-          border: `1px solid ${isSimFailed ? "rgba(255,77,77,0.3)" : "rgba(167,139,250,0.2)"}`,
+          border: `1px solid ${isSimFailed ? "color-mix(in srgb, var(--danger) 30%, transparent)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
           borderRadius: "1.2rem",
           padding: "1.5rem",
-          boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px ${isSimFailed ? "rgba(255,77,77,0.15)" : "rgba(167,139,250,0.1)"}`,
+          boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px ${isSimFailed ? "color-mix(in srgb, var(--danger) 15%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
           animation: "modalSlideUp 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)",
           color: "#e6e8f0",
         }}
@@ -227,15 +227,15 @@ export function ConfirmTransactionModal({
             onClick={onClose}
             disabled={confirming}
             style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "color-mix(in srgb, var(--fg) 6%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)",
               borderRadius: "999px",
               width: "32px",
               height: "32px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "rgba(255,255,255,0.5)",
+              color: "color-mix(in srgb, var(--fg) 50%, transparent)",
               cursor: confirming ? "not-allowed" : "pointer",
               fontSize: "0.9rem",
               flexShrink: 0,
@@ -262,10 +262,10 @@ export function ConfirmTransactionModal({
               marginTop: "0.75rem",
               padding: "0.6rem 0.75rem",
               borderRadius: "0.65rem",
-              background: "rgba(255,77,77,0.1)",
-              border: "1px solid rgba(255,77,77,0.2)",
+              background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--danger) 20%, transparent)",
               fontSize: "0.78rem",
-              color: "#ff6b6b",
+              color: "var(--danger)",
             }}
           >
             <AlertTriangle size={16} />
@@ -286,7 +286,7 @@ export function ConfirmTransactionModal({
                 gap: "0.35rem",
                 background: "transparent",
                 border: "none",
-                color: "rgba(255,255,255,0.5)",
+                color: "color-mix(in srgb, var(--fg) 50%, transparent)",
                 fontSize: "0.75rem",
                 fontWeight: 600,
                 cursor: "pointer",
@@ -301,7 +301,7 @@ export function ConfirmTransactionModal({
             {detailsOpen && (
               <div
                 style={{
-                  background: "rgba(0,0,0,0.2)",
+                  background: "color-mix(in srgb, var(--fg) 20%, transparent)",
                   borderRadius: "0.6rem",
                   padding: "0.6rem 0.75rem",
                   display: "grid",
@@ -341,7 +341,7 @@ export function ConfirmTransactionModal({
             style={{
               margin: "0.5rem 0 0",
               fontSize: "0.7rem",
-              color: "#ff6b6b",
+              color: "var(--danger)",
               textAlign: "center",
               opacity: 0.7,
             }}
@@ -365,9 +365,9 @@ export function ConfirmTransactionModal({
               flex: 1,
               minHeight: "44px",
               borderRadius: "0.8rem",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.06)",
-              color: "rgba(255,255,255,0.7)",
+              border: "1px solid color-mix(in srgb, var(--fg) 12%, transparent)",
+              background: "color-mix(in srgb, var(--fg) 6%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 70%, transparent)",
               fontSize: "0.85rem",
               fontWeight: 700,
               cursor: confirming ? "not-allowed" : "pointer",
@@ -386,9 +386,9 @@ export function ConfirmTransactionModal({
               borderRadius: "0.8rem",
               border: "none",
               background: isSimFailed
-                ? "linear-gradient(135deg, #ff6b6b, #ee5a24)"
-                : "linear-gradient(135deg, #a78bfa, #34d399)",
-              color: "#ffffff",
+                ? "linear-gradient(135deg, var(--danger), #ee5a24)"
+                : "linear-gradient(135deg, var(--primary-muted), #34d399)",
+              color: "var(--fg)",
               fontSize: "0.85rem",
               fontWeight: 800,
               cursor: simLoading || confirming ? "not-allowed" : "pointer",

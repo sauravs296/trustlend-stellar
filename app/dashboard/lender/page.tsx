@@ -102,7 +102,7 @@ export default async function LenderHomePage() {
               className="workspace-card"
               style={{
                 cursor: "pointer",
-                border: "1px solid rgba(126,47,208,0.35)",
+                border: "1px solid color-mix(in srgb, var(--primary) 35%, transparent)",
                 transition: "border-color 0.2s, transform 0.15s",
                 height: "100%",
               }}
@@ -119,8 +119,8 @@ export default async function LenderHomePage() {
                 {openLoanCount > 0 && (
                   <span
                     style={{
-                      background: "rgba(255,107,107,0.15)",
-                      color: "#ff9966",
+                      background: "color-mix(in srgb, var(--danger) 15%, transparent)",
+                      color: "var(--warning)",
                       borderRadius: "9999px",
                       padding: "0.2rem 0.7rem",
                       fontSize: "0.75rem",
@@ -144,7 +144,7 @@ export default async function LenderHomePage() {
                 style={{
                   marginTop: "1rem",
                   fontSize: "0.85rem",
-                  color: "#7e2fd0",
+                  color: "var(--primary)",
                   fontWeight: 600,
                 }}
               >
@@ -162,7 +162,7 @@ export default async function LenderHomePage() {
               className="workspace-card"
               style={{
                 cursor: "pointer",
-                border: "1px solid rgba(34,207,157,0.25)",
+                border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                 transition: "border-color 0.2s, transform 0.15s",
                 height: "100%",
               }}
@@ -179,8 +179,8 @@ export default async function LenderHomePage() {
                 {positions.length > 0 && (
                   <span
                     style={{
-                      background: "rgba(34,207,157,0.12)",
-                      color: "#22cf9d",
+                      background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                      color: "var(--accent)",
                       borderRadius: "9999px",
                       padding: "0.2rem 0.7rem",
                       fontSize: "0.75rem",
@@ -205,7 +205,7 @@ export default async function LenderHomePage() {
                 style={{
                   marginTop: "1rem",
                   fontSize: "0.85rem",
-                  color: "#22cf9d",
+                  color: "var(--accent)",
                   fontWeight: 600,
                 }}
               >
@@ -249,8 +249,8 @@ export default async function LenderHomePage() {
                   fontWeight: 700,
                   color: stat.highlight
                     ? stat.positive
-                      ? "#22cf9d"
-                      : "#ff6b6b"
+                      ? "var(--accent)"
+                      : "var(--danger)"
                     : "inherit",
                   lineHeight: 1.1,
                 }}
@@ -340,10 +340,10 @@ export default async function LenderHomePage() {
                               fontWeight: 600,
                               background:
                                 pos.status === "active"
-                                  ? "rgba(34,207,157,0.12)"
-                                  : "rgba(255,107,107,0.12)",
+                                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                                  : "color-mix(in srgb, var(--danger) 12%, transparent)",
                               color:
-                                pos.status === "active" ? "#22cf9d" : "#ff6b6b",
+                                pos.status === "active" ? "var(--accent)" : "var(--danger)",
                             }}
                           >
                             {String(pos.status ?? "active").toUpperCase()}
@@ -354,7 +354,7 @@ export default async function LenderHomePage() {
                             {formatTokenBalance(Number(pos.principal_amount ?? 0))}
                           </strong>
                         </td>
-                        <td style={{ color: "#22cf9d" }}>
+                        <td style={{ color: "var(--accent)" }}>
                           {formatTokenBalance(Number(pos.earned_interest ?? 0))}
                         </td>
                       </tr>
@@ -411,19 +411,19 @@ export default async function LenderHomePage() {
                       const isDefaulted = rawStatus === "defaulted";
                       const isProcessing = rawStatus === "processing";
                       const stColor = isRepaid
-                        ? "#9b6fe0"
+                        ? "var(--primary-muted)"
                         : isDefaulted
-                          ? "#ff6b6b"
+                          ? "var(--danger)"
                           : isProcessing
-                            ? "#6b7280"
-                            : "#22cf9d";
+                            ? "var(--fg-muted)"
+                            : "var(--accent)";
                       const stBg = isRepaid
-                        ? "rgba(155,111,224,0.12)"
+                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                         : isDefaulted
-                          ? "rgba(255,107,107,0.12)"
+                          ? "color-mix(in srgb, var(--danger) 12%, transparent)"
                           : isProcessing
-                            ? "rgba(107,114,128,0.12)"
-                            : "rgba(34,207,157,0.12)";
+                            ? "color-mix(in srgb, var(--fg-muted) 12%, transparent)"
+                            : "color-mix(in srgb, var(--accent) 12%, transparent)";
 
                       // Use repayment hash if it's repaid, otherwise fallback to funding hash
                       const finalTxHash =
@@ -462,7 +462,7 @@ export default async function LenderHomePage() {
                           </td>
                           <td
                             style={{
-                              color: profit > 0 ? "#22cf9d" : "#9ca3af",
+                              color: profit > 0 ? "var(--accent)" : "var(--fg-subtle)",
                               fontWeight: profit > 0 ? 700 : 400,
                             }}
                           >
@@ -482,11 +482,11 @@ export default async function LenderHomePage() {
                                   gap: "0.3rem",
                                   padding: "0.25rem 0.6rem",
                                   borderRadius: "0.4rem",
-                                  background: "rgba(126,47,208,0.1)",
-                                  border: "1px solid rgba(126,47,208,0.25)",
+                                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                  border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                                   fontSize: "0.72rem",
                                   fontWeight: 700,
-                                  color: "#7e2fd0",
+                                  color: "var(--primary)",
                                   textDecoration: "none",
                                   whiteSpace: "nowrap",
                                 }}
@@ -495,7 +495,7 @@ export default async function LenderHomePage() {
                               </a>
                             ) : (
                               <span
-                                style={{ fontSize: "0.7rem", color: "#9ca3af" }}
+                                style={{ fontSize: "0.7rem", color: "var(--fg-subtle)" }}
                               >
                                 Off-chain
                               </span>
@@ -516,8 +516,8 @@ export default async function LenderHomePage() {
           <article
             className="workspace-card workspace-card--full"
             style={{
-              border: "1px solid rgba(245,166,35,0.3)",
-              background: "rgba(245,166,35,0.05)",
+              border: "1px solid color-mix(in srgb, var(--warning) 30%, transparent)",
+              background: "color-mix(in srgb, var(--warning) 5%, transparent)",
             }}
           >
             <h2 className="workspace-card-title">⚠️ KYC Not Verified</h2>

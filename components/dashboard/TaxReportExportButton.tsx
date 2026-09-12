@@ -82,7 +82,7 @@ export function TaxReportExportButton({ years, defaultYear }: TaxReportExportBut
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", alignItems: "flex-end" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-        <label htmlFor="tax-report-year" style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>
+        <label htmlFor="tax-report-year" style={{ fontSize: "0.78rem", color: "var(--fg-muted)", fontWeight: 600 }}>
           Tax year
         </label>
 
@@ -98,9 +98,9 @@ export function TaxReportExportButton({ years, defaultYear }: TaxReportExportBut
           style={{
             padding: "0.4rem 0.6rem",
             borderRadius: "0.4rem",
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "#fff",
-            color: "#111827",
+            border: "1px solid color-mix(in srgb, var(--fg) 15%, transparent)",
+            background: "var(--surface)",
+            color: "var(--fg)",
             fontSize: "0.8rem",
             fontWeight: 600,
             cursor: busy ? "not-allowed" : "pointer",
@@ -124,8 +124,8 @@ export function TaxReportExportButton({ years, defaultYear }: TaxReportExportBut
             gap: "0.5rem",
             padding: "0.45rem 0.9rem",
             borderRadius: "0.4rem",
-            background: busy ? "#6b7280" : "#111827",
-            color: "#fff",
+            background: busy ? "var(--fg-muted)" : "var(--fg)",
+            color: "var(--fg)",
             border: "none",
             fontWeight: 600,
             fontSize: "0.8rem",
@@ -144,7 +144,7 @@ export function TaxReportExportButton({ years, defaultYear }: TaxReportExportBut
           style={{
             margin: 0,
             fontSize: "0.75rem",
-            color: status === "error" ? "#e03e3e" : "#6b7280",
+            color: status === "error" ? "var(--danger)" : "var(--fg-muted)",
             textAlign: "right",
           }}
         >

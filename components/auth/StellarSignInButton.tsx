@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { buttonClasses } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 import { signInWithStellar } from "@/lib/auth/siws-client";
 import { getDashboardPath } from "@/lib/auth/roles";
 import { WalletSelectionModal } from "@/components/ui/WalletSelectionModal";
@@ -71,7 +73,7 @@ export function StellarSignInButton({ className, disabled, role }: StellarSignIn
         type="button"
         id="siws-auth-btn"
         data-wallet-select-trigger
-        className={className ?? "auth-page-google-btn"}
+        className={cn(buttonClasses({ size: "lg" }), className)}
         onClick={() => {
           setError(null);
           // Default the picker to whichever wallet this browser used last. Read
@@ -93,7 +95,7 @@ export function StellarSignInButton({ className, disabled, role }: StellarSignIn
       </button>
 
       {error ? (
-        <p className="text-xs text-red-500" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}

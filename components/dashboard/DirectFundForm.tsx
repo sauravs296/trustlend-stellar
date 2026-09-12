@@ -225,10 +225,10 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
       className="direct-fund-form"
       style={{
         padding: "1.75rem",
-        border: "1px solid rgba(126, 47, 208, 0.15)",
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
         borderRadius: "1rem",
-        background: "#ffffff", // Clean white background for light theme
-        boxShadow: "0 12px 40px rgba(126, 47, 208, 0.08)",
+        background: "var(--surface)", // Clean white background for light theme
+        boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 8%, transparent)",
         maxWidth: "600px",
         margin: "0 auto",
       }}
@@ -246,7 +246,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
             margin: 0,
             fontSize: "1.25rem",
             fontWeight: 700,
-            color: "#111",
+            color: "var(--fg)",
             display: "flex",
             alignItems: "center",
             gap: "0.6rem",
@@ -258,7 +258,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
         <span
           style={{
             fontSize: "0.75rem",
-            color: "rgba(0,0,0,0.4)",
+            color: "color-mix(in srgb, var(--fg) 40%, transparent)",
             letterSpacing: "0.05em",
             fontWeight: 600,
           }}
@@ -269,8 +269,8 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
 
       <div
         style={{
-          background: "#fafafa",
-          border: "1px solid rgba(126,47,208,0.1)",
+          background: "var(--surface-2)",
+          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
           borderRadius: "0.75rem",
           padding: "1.25rem",
           marginBottom: "1.5rem",
@@ -289,7 +289,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               style={{
                 margin: "0 0 0.2rem 0",
                 fontSize: "0.75rem",
-                color: "rgba(0,0,0,0.5)",
+                color: "color-mix(in srgb, var(--fg) 50%, transparent)",
                 textTransform: "uppercase",
                 fontWeight: 600,
               }}
@@ -301,11 +301,11 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 margin: 0,
                 fontSize: "1.1rem",
                 fontWeight: 700,
-                color: "#111",
+                color: "var(--fg)",
               }}
             >
               {loan.principal_amount}{" "}
-              <span style={{ fontSize: "0.8rem", color: "rgba(0,0,0,0.4)" }}>
+              <span style={{ fontSize: "0.8rem", color: "color-mix(in srgb, var(--fg) 40%, transparent)" }}>
                 XLM
               </span>
             </p>
@@ -322,7 +322,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               style={{
                 margin: "0 0 0.2rem 0",
                 fontSize: "0.75rem",
-                color: "rgba(0,0,0,0.5)",
+                color: "color-mix(in srgb, var(--fg) 50%, transparent)",
                 textTransform: "uppercase",
                 fontWeight: 600,
                 display: "flex",
@@ -338,7 +338,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 margin: 0,
                 fontSize: "1.1rem",
                 fontWeight: 700,
-                color: "#22cf9d",
+                color: "var(--accent)",
               }}
             >
               {(loan.apr_bps / 100).toFixed(2)}%
@@ -349,7 +349,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               style={{
                 margin: "0 0 0.2rem 0",
                 fontSize: "0.75rem",
-                color: "rgba(0,0,0,0.5)",
+                color: "color-mix(in srgb, var(--fg) 50%, transparent)",
                 textTransform: "uppercase",
                 fontWeight: 600,
               }}
@@ -361,11 +361,11 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 margin: 0,
                 fontSize: "1rem",
                 fontWeight: 600,
-                color: "#444",
+                color: "var(--fg)",
               }}
             >
               +{interestXlm}{" "}
-              <span style={{ fontSize: "0.8rem", color: "rgba(0,0,0,0.4)" }}>
+              <span style={{ fontSize: "0.8rem", color: "color-mix(in srgb, var(--fg) 40%, transparent)" }}>
                 XLM
               </span>
             </p>
@@ -375,7 +375,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               style={{
                 margin: "0 0 0.2rem 0",
                 fontSize: "0.75rem",
-                color: "rgba(0,0,0,0.5)",
+                color: "color-mix(in srgb, var(--fg) 50%, transparent)",
                 textTransform: "uppercase",
                 fontWeight: 600,
               }}
@@ -387,7 +387,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 margin: 0,
                 fontSize: "1rem",
                 fontWeight: 600,
-                color: "#111",
+                color: "var(--fg)",
               }}
             >
               {totalReturn.toFixed(4)} XLM
@@ -399,7 +399,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           style={{
             marginTop: "1.25rem",
             paddingTop: "1rem",
-            borderTop: "1px dashed rgba(0,0,0,0.1)",
+            borderTop: "1px dashed color-mix(in srgb, var(--fg) 10%, transparent)",
           }}
         >
           <label
@@ -408,7 +408,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               display: "block",
               margin: "0 0 0.4rem 0",
               fontSize: "0.75rem",
-              color: "rgba(0,0,0,0.5)",
+              color: "color-mix(in srgb, var(--fg) 50%, transparent)",
               textTransform: "uppercase",
               fontWeight: 600,
             }}
@@ -435,9 +435,9 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 padding: "0.6rem 0.75rem",
                 fontSize: "1rem",
                 fontWeight: 600,
-                color: "#111",
-                background: "#fff",
-                border: `1px solid ${validation.ok ? "rgba(126,47,208,0.25)" : "#e03e3e"}`,
+                color: "var(--fg)",
+                background: "var(--surface)",
+                border: `1px solid ${validation.ok ? "color-mix(in srgb, var(--primary) 25%, transparent)" : "var(--danger)"}`,
                 borderRadius: "0.5rem",
               }}
             />
@@ -449,9 +449,9 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
                 padding: "0.6rem 0.9rem",
                 fontSize: "0.78rem",
                 fontWeight: 700,
-                color: "#7e2fd0",
-                background: "rgba(126,47,208,0.08)",
-                border: "1px solid rgba(126,47,208,0.25)",
+                color: "var(--primary)",
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                 borderRadius: "0.5rem",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
@@ -467,7 +467,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               margin: "0.4rem 0 0",
               fontSize: "0.75rem",
               lineHeight: 1.45,
-              color: validation.ok ? "rgba(0,0,0,0.55)" : "#e03e3e",
+              color: validation.ok ? "color-mix(in srgb, var(--fg) 55%, transparent)" : "var(--danger)",
             }}
           >
             {!validation.ok
@@ -482,14 +482,14 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           style={{
             marginTop: "1.25rem",
             paddingTop: "1rem",
-            borderTop: "1px dashed rgba(0,0,0,0.1)",
+            borderTop: "1px dashed color-mix(in srgb, var(--fg) 10%, transparent)",
           }}
         >
           <p
             style={{
               margin: "0 0 0.4rem 0",
               fontSize: "0.75rem",
-              color: "rgba(0,0,0,0.5)",
+              color: "color-mix(in srgb, var(--fg) 50%, transparent)",
               textTransform: "uppercase",
               fontWeight: 600,
             }}
@@ -501,7 +501,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               margin: 0,
               fontFamily: "monospace",
               fontSize: "0.85rem",
-              color: "#7e2fd0",
+              color: "var(--primary)",
               wordBreak: "break-all",
             }}
           >
@@ -513,9 +513,9 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
       <div
         style={{
           padding: "0.85rem",
-          background: "rgba(126, 47, 208, 0.05)",
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
           borderRadius: "0.6rem",
-          border: "1px solid rgba(126, 47, 208, 0.15)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           marginBottom: "1.5rem",
         }}
       >
@@ -523,7 +523,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           style={{
             margin: 0,
             fontSize: "0.8rem",
-            color: "rgba(0,0,0,0.7)",
+            color: "color-mix(in srgb, var(--fg) 70%, transparent)",
             lineHeight: 1.5,
           }}
         >
@@ -538,8 +538,8 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
             padding: "1rem",
             textAlign: "center",
             borderRadius: "0.75rem",
-            background: "rgba(126,47,208,0.05)",
-            border: "1px solid rgba(126,47,208,0.2)",
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
             marginBottom: "1.5rem",
             animation: "pulse 2s infinite",
           }}
@@ -548,7 +548,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           <p
             style={{
               margin: 0,
-              color: "#7e2fd0",
+              color: "var(--primary)",
               fontWeight: 600,
               fontSize: "0.9rem",
             }}
@@ -560,7 +560,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           <p
             style={{
               margin: "0.25rem 0 0 0",
-              color: "rgba(0,0,0,0.4)",
+              color: "color-mix(in srgb, var(--fg) 40%, transparent)",
               fontSize: "0.7rem",
             }}
           >
@@ -575,19 +575,19 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
             padding: "1.25rem",
             textAlign: "center",
             borderRadius: "0.75rem",
-            background: "rgba(34,207,157,0.08)",
-            border: "1px solid rgba(34,207,157,0.3)",
+            background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
             marginBottom: "1.5rem",
           }}
         >
           <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🎉</div>
-          <p style={{ margin: 0, color: "#20bd8e", fontWeight: 700 }}>
+          <p style={{ margin: 0, color: "var(--accent)", fontWeight: 700 }}>
             {fundedFully ? "Loan Fully Funded!" : "Contribution Confirmed!"}
           </p>
           <p
             style={{
               margin: "0.25rem 0 0.75rem 0",
-              color: "rgba(0,0,0,0.6)",
+              color: "color-mix(in srgb, var(--fg) 60%, transparent)",
               fontSize: "0.8rem",
             }}
           >
@@ -603,7 +603,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
               rel="noreferrer"
               style={{
                 display: "inline-block",
-                color: "#20bd8e",
+                color: "var(--accent)",
                 fontSize: "0.8rem",
                 textDecoration: "underline",
                 fontWeight: 600,
@@ -620,15 +620,15 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           style={{
             padding: "1rem",
             borderRadius: "0.75rem",
-            background: "rgba(255,107,107,0.08)",
-            border: "1px solid rgba(255,107,107,0.3)",
+            background: "color-mix(in srgb, var(--danger) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
             marginBottom: "1.5rem",
           }}
         >
           <p
             style={{
               margin: "0 0 0.25rem 0",
-              color: "#e03e3e",
+              color: "var(--danger)",
               fontWeight: 700,
               fontSize: "0.9rem",
             }}
@@ -638,7 +638,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           <p
             style={{
               margin: 0,
-              color: "rgba(0,0,0,0.7)",
+              color: "color-mix(in srgb, var(--fg) 70%, transparent)",
               fontSize: "0.8rem",
               lineHeight: 1.4,
             }}
@@ -661,9 +661,9 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
             height: "3.25rem",
             fontSize: "1rem",
             fontWeight: 700,
-            background: "linear-gradient(135deg, #7e2fd0 0%, #5a1fad 100%)",
-            color: "#fff",
-            boxShadow: "0 4px 15px rgba(126, 47, 208, 0.25)",
+            background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)",
+            color: "var(--primary-fg)",
+            boxShadow: "0 4px 15px color-mix(in srgb, var(--primary) 25%, transparent)",
             border: "none",
             borderRadius: "0.5rem",
             opacity: validation.ok ? 1 : 0.55,
@@ -691,9 +691,9 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           className="workspace-button workspace-button--secondary"
           style={{
             flex: 1,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "#fff",
-            color: "#444",
+            border: "1px solid color-mix(in srgb, var(--fg) 15%, transparent)",
+            background: "var(--surface)",
+            color: "var(--fg)",
             borderRadius: "0.5rem",
             fontWeight: 600,
           }}

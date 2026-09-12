@@ -117,7 +117,7 @@ export default async function LenderPortfolioPage() {
 
         {/* High-level Profit Summary */}
         <section className="workspace-grid workspace-grid--two">
-           <article className="workspace-card" style={{ background: "linear-gradient(135deg, #7e2fd0, #5a1fad)", color: "#fff", border: "none" }}>
+           <article className="workspace-card" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-hover))", color: "var(--primary-fg)", border: "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
                  <div style={{ fontSize: "2rem" }}>🏪</div>
                  <div>
@@ -128,13 +128,13 @@ export default async function LenderPortfolioPage() {
               <p style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem" }}>
                 {marketplaceProfit > 0 ? "+" : ""}{formatCurrency(marketplaceProfit)}
               </p>
-              <div style={{ fontSize: "0.85rem", opacity: 0.8, display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+              <div style={{ fontSize: "0.85rem", opacity: 0.8, display: "flex", justifyContent: "space-between", borderTop: "1px solid color-mix(in srgb, var(--primary-fg) 25%, transparent)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
                  <span>Deployed: {formatCurrency(marketplaceDeployed)}</span>
                  <span>Received: {formatCurrency(marketplaceReceived)}</span>
               </div>
            </article>
 
-           <article className="workspace-card" style={{ background: "linear-gradient(135deg, #22cf9d, #149972)", color: "#fff", border: "none" }}>
+           <article className="workspace-card" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-hover))", color: "var(--primary-fg)", border: "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
                  <div style={{ fontSize: "2rem" }}>🏦</div>
                  <div>
@@ -145,7 +145,7 @@ export default async function LenderPortfolioPage() {
               <p style={{ fontSize: "2rem", fontWeight: 800, margin: "0 0 0.5rem" }}>
                 {poolProfit > 0 ? "+" : ""}{formatXlmPrecise(poolProfit)}
               </p>
-              <div style={{ fontSize: "0.85rem", opacity: 0.8, display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+              <div style={{ fontSize: "0.85rem", opacity: 0.8, display: "flex", justifyContent: "space-between", borderTop: "1px solid color-mix(in srgb, var(--primary-fg) 25%, transparent)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
                  <span>Total Deployed: {formatCurrency(positions.reduce((s,p) => s + Number(p.principal_amount), 0))}</span>
                  <span>Positions: {positions.length}</span>
               </div>

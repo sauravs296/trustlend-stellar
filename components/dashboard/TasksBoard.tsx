@@ -20,12 +20,12 @@ interface TaskCardProps {
 }
 
 function DifficultyPill({ level }: { level: string }) {
-  const color = level === "Easy" ? "#22cf9d" : level === "Medium" ? "#f5a623" : "#ff6b6b";
+  const color = level === "Easy" ? "var(--accent)" : level === "Medium" ? "var(--warning)" : "var(--danger)";
   return (
     <span style={{
       fontSize: "0.72rem", fontWeight: 700, padding: "0.15rem 0.5rem",
-      borderRadius: "9999px", background: `${color}18`, color,
-      border: `1px solid ${color}33`, letterSpacing: "0.04em",
+      borderRadius: "9999px", background: `color-mix(in srgb, ${color} 10%, transparent)`, color,
+      border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`, letterSpacing: "0.04em",
     }}>
       {level}
     </span>
@@ -54,8 +54,8 @@ function TaskCard({ task, onComplete }: TaskCardProps) {
       className="workspace-card"
       style={{
         border: done
-          ? "1px solid rgba(34,207,157,0.35)"
-          : "1px solid rgba(255,255,255,0.07)",
+          ? "1px solid color-mix(in srgb, var(--accent) 35%, transparent)"
+          : "1px solid color-mix(in srgb, var(--fg) 7%, transparent)",
         opacity: done ? 0.75 : 1,
         transition: "border-color 0.3s, opacity 0.3s",
         position: "relative",
@@ -65,7 +65,7 @@ function TaskCard({ task, onComplete }: TaskCardProps) {
       {/* Top-left accent bar */}
       <div style={{
         position: "absolute", top: 0, left: 0, width: "3px",
-        height: "100%", background: done ? "#22cf9d" : "#7e2fd0", borderRadius: "9999px 0 0 9999px",
+        height: "100%", background: done ? "var(--accent)" : "var(--primary)", borderRadius: "9999px 0 0 9999px",
       }} />
 
       <div style={{ paddingLeft: "0.5rem" }}>
@@ -73,16 +73,16 @@ function TaskCard({ task, onComplete }: TaskCardProps) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.6rem", gap: "0.5rem" }}>
           <span style={{
             fontSize: "0.72rem", fontWeight: 600, padding: "0.15rem 0.5rem",
-            borderRadius: "9999px", background: "rgba(126,47,208,0.12)",
-            color: "#9b6fe0", letterSpacing: "0.04em",
+            borderRadius: "9999px", background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "var(--primary-muted)", letterSpacing: "0.04em",
           }}>
             {task.category}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
             <DifficultyPill level={task.difficulty} />
             <span style={{
-              fontSize: "0.78rem", fontWeight: 700, color: "#f5a623",
-              background: "rgba(245,166,35,0.1)", borderRadius: "9999px",
+              fontSize: "0.78rem", fontWeight: 700, color: "var(--warning)",
+              background: "color-mix(in srgb, var(--warning) 10%, transparent)", borderRadius: "9999px",
               padding: "0.15rem 0.5rem",
             }}>
               +{task.points} pts
@@ -105,7 +105,7 @@ function TaskCard({ task, onComplete }: TaskCardProps) {
             rel="noreferrer"
             style={{
               display: "inline-block", marginBottom: "0.85rem",
-              fontSize: "0.82rem", color: "#9b6fe0", textDecoration: "underline",
+              fontSize: "0.82rem", color: "var(--primary-muted)", textDecoration: "underline",
             }}
           >
             Read the guide ↗
@@ -113,13 +113,13 @@ function TaskCard({ task, onComplete }: TaskCardProps) {
         )}
 
         {error && (
-          <p style={{ fontSize: "0.8rem", color: "#ff6b6b", marginBottom: "0.5rem" }}>
+          <p style={{ fontSize: "0.8rem", color: "var(--danger)", marginBottom: "0.5rem" }}>
             {error}
           </p>
         )}
 
         {done ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#22cf9d", fontSize: "0.85rem", fontWeight: 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--accent)", fontSize: "0.85rem", fontWeight: 600 }}>
             <span>✅</span>
             <span>Completed — +{task.points} trust points awarded</span>
           </div>
@@ -166,8 +166,8 @@ export function TasksBoard({ tasks, currentScore }: TasksBoardProps) {
       {/* Score progress banner */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(126,47,208,0.15) 0%, rgba(34,207,157,0.1) 100%)",
-          border: "1px solid rgba(126,47,208,0.2)",
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 10%, transparent) 100%)",
+          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
           borderRadius: "0.85rem",
           padding: "1.25rem 1.5rem",
           marginBottom: "1.5rem",
@@ -182,7 +182,7 @@ export function TasksBoard({ tasks, currentScore }: TasksBoardProps) {
           <p style={{ fontSize: "0.78rem", opacity: 0.55, marginBottom: "0.2rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Current Trust Score
           </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: localScore >= 200 ? "#22cf9d" : localScore >= 100 ? "#f5a623" : "#ff6b6b", lineHeight: 1 }}>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: localScore >= 200 ? "var(--accent)" : localScore >= 100 ? "var(--warning)" : "var(--danger)", lineHeight: 1 }}>
             {localScore} <span style={{ fontSize: "0.9rem", opacity: 0.4 }}>/ 750</span>
           </p>
         </div>
@@ -191,11 +191,11 @@ export function TasksBoard({ tasks, currentScore }: TasksBoardProps) {
             <span>{completedCount}/{tasks.length} tasks done</span>
             <span>{Math.round((localScore / 750) * 100)}% to max</span>
           </div>
-          <div style={{ height: "7px", borderRadius: "9999px", background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{ height: "7px", borderRadius: "9999px", background: "color-mix(in srgb, var(--fg) 8%, transparent)", overflow: "hidden" }}>
             <div style={{
               height: "100%",
               width: `${Math.min(100, (localScore / 750) * 100)}%`,
-              background: "linear-gradient(90deg, #7e2fd0, #22cf9d)",
+              background: "linear-gradient(90deg, var(--primary), var(--accent))",
               borderRadius: "9999px",
               transition: "width 0.5s ease",
             }} />

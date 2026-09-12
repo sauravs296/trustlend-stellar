@@ -106,8 +106,8 @@ export function LoanApplicationForm({
           gap: "0.75rem",
           padding: "0.75rem 1rem",
           borderRadius: "0.6rem",
-          background: "rgba(126,47,208,0.06)",
-          border: "1px solid rgba(126,47,208,0.2)",
+          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
           marginBottom: "0.75rem",
         }}
       >
@@ -115,15 +115,15 @@ export function LoanApplicationForm({
           <span style={{ fontSize: "1.1rem" }}>🦊</span>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <strong style={{ fontSize: "0.88rem", color: "#111827" }}>
+              <strong style={{ fontSize: "0.88rem", color: "var(--fg)" }}>
                 {getWalletProviderLabel(walletProvider)}
               </strong>
               <span
                 style={{
                   fontSize: "0.68rem",
                   fontWeight: 700,
-                  color: "#17a87a",
-                  background: "rgba(34,207,157,0.14)",
+                  color: "var(--accent-hover)",
+                  background: "color-mix(in srgb, var(--accent) 14%, transparent)",
                   padding: "0.15rem 0.45rem",
                   borderRadius: "9999px",
                   textTransform: "uppercase",
@@ -136,7 +136,7 @@ export function LoanApplicationForm({
               style={{
                 margin: "0.15rem 0 0",
                 fontSize: "0.78rem",
-                color: "#6b7280",
+                color: "var(--fg-muted)",
                 fontFamily: "monospace",
               }}
             >
@@ -150,8 +150,8 @@ export function LoanApplicationForm({
           onClick={onOpenWalletModal}
           style={{
             background: "transparent",
-            border: "1px solid rgba(126,47,208,0.3)",
-            color: "#7e2fd0",
+            border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+            color: "var(--primary)",
             padding: "0.35rem 0.65rem",
             borderRadius: "0.45rem",
             fontSize: "0.78rem",
@@ -250,7 +250,7 @@ export function LoanApplicationForm({
             />
             <div>
               <strong>Fixed Rate</strong>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#666" }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--fg-muted)" }}>
                 Lock in your rate. Predictable payments.
               </p>
             </div>
@@ -274,7 +274,7 @@ export function LoanApplicationForm({
             />
             <div>
               <strong>Floating Rate</strong>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#666" }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--fg-muted)" }}>
                 Starts lower, adjusts with market.
               </p>
 
@@ -285,10 +285,10 @@ export function LoanApplicationForm({
                     display: "flex",
                     gap: "1rem",
                     flexWrap: "wrap",
-                    background: "rgba(255,255,255,0.03)",
+                    background: "color-mix(in srgb, var(--fg) 3%, transparent)",
                     padding: "0.75rem",
                     borderRadius: "0.5rem",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    border: "1px solid color-mix(in srgb, var(--fg) 10%, transparent)",
                   }}
                 >
                   <div
@@ -309,7 +309,7 @@ export function LoanApplicationForm({
                         style={{
                           fontSize: "0.75rem",
                           fontWeight: 600,
-                          color: "rgba(255,255,255,0.7)",
+                          color: "color-mix(in srgb, var(--fg) 70%, transparent)",
                         }}
                       >
                         Base Rate
@@ -345,7 +345,7 @@ export function LoanApplicationForm({
                         style={{
                           fontSize: "0.75rem",
                           fontWeight: 600,
-                          color: "rgba(255,255,255,0.7)",
+                          color: "color-mix(in srgb, var(--fg) 70%, transparent)",
                         }}
                       >
                         Utilization Rate
@@ -381,7 +381,7 @@ export function LoanApplicationForm({
                         style={{
                           fontSize: "0.75rem",
                           fontWeight: 600,
-                          color: "rgba(255,255,255,0.7)",
+                          color: "color-mix(in srgb, var(--fg) 70%, transparent)",
                         }}
                       >
                         Multiplier
@@ -410,11 +410,11 @@ export function LoanApplicationForm({
         <div
           style={{
             padding: "0.6rem 0.85rem",
-            background: "rgba(126,47,208,0.08)",
-            border: "1px solid rgba(126,47,208,0.25)",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
             borderRadius: "0.5rem",
             fontSize: "0.82rem",
-            color: "#7e2fd0",
+            color: "var(--primary)",
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
@@ -506,8 +506,8 @@ export function RepaymentForm({
       {loan?.id && (
         <div
           style={{
-            background: "rgba(126,47,208,0.06)",
-            border: "1px solid rgba(126,47,208,0.2)",
+            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
             borderRadius: "0.5rem",
             padding: "0.75rem 0.9rem",
             marginBottom: "0.75rem",
@@ -522,7 +522,7 @@ export function RepaymentForm({
               flexWrap: "wrap",
             }}
           >
-            <span style={{ fontSize: "0.8rem", color: "#4b5563" }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--fg)" }}>
               ⚡ <strong>Freighter On-Chain Repayment:</strong> Sign settlement transaction with adjusted interest.
             </span>
             <a
@@ -530,7 +530,7 @@ export function RepaymentForm({
               style={{
                 fontSize: "0.78rem",
                 fontWeight: 700,
-                color: "#7e2fd0",
+                color: "var(--primary)",
                 textDecoration: "underline",
                 whiteSpace: "nowrap",
               }}
@@ -839,8 +839,8 @@ export function BorrowerForms({
         <article
           className="workspace-card workspace-card--full"
           style={{
-            borderColor: "rgba(245,166,35,0.25)",
-            background: "rgba(245,166,35,0.04)",
+            borderColor: "color-mix(in srgb, var(--warning) 25%, transparent)",
+            background: "color-mix(in srgb, var(--warning) 4%, transparent)",
           }}
         >
           <h2 className="workspace-card-title">
@@ -862,8 +862,8 @@ export function BorrowerForms({
                   alignItems: "center",
                   padding: "0.85rem 1rem",
                   borderRadius: "0.7rem",
-                  background: "rgba(255,255,255,0.75)",
-                  border: "1px solid rgba(245,166,35,0.18)",
+                  background: "color-mix(in srgb, var(--fg) 75%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--warning) 18%, transparent)",
                   flexWrap: "wrap",
                 }}
               >
@@ -874,7 +874,7 @@ export function BorrowerForms({
                   <p
                     style={{
                       fontSize: "0.8rem",
-                      color: "#6b7280",
+                      color: "var(--fg-muted)",
                       margin: "0.15rem 0 0",
                     }}
                   >
@@ -896,7 +896,7 @@ export function BorrowerForms({
                     style={{
                       margin: 0,
                       fontWeight: 800,
-                      color: "#7e2fd0",
+                      color: "var(--primary)",
                     }}
                   >
                     {formatTokenBalance(Number(loan.principal_amount ?? 0))}
@@ -904,7 +904,7 @@ export function BorrowerForms({
                   <p
                     style={{
                       fontSize: "0.75rem",
-                      color: "#f59e0b",
+                      color: "var(--warning)",
                       fontWeight: 700,
                       margin: "0.15rem 0 0",
                     }}
@@ -930,7 +930,7 @@ export function BorrowerForms({
             {pendingLoans.length > 0 && (
               <p
                 className="workspace-card-copy"
-                style={{ marginTop: "0.5rem", color: "#f59e0b" }}
+                style={{ marginTop: "0.5rem", color: "var(--warning)" }}
               >
                 You still have a pending loan request. Repayment will appear
                 after a lender funds it.

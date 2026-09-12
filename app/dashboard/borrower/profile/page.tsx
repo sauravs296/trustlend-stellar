@@ -23,29 +23,29 @@ const KYC_CONFIG: Record<
 > = {
   pending: {
     label: "Pending Review",
-    color: "#d97706",
-    bg: "rgba(217, 119, 6, 0.08)",
+    color: "var(--warning)",
+    bg: "color-mix(in srgb, var(--warning) 8%, transparent)",
     icon: "⏳",
     description: "Submit your details and government ID to start the KYC review.",
   },
   submitted: {
     label: "Under Review",
-    color: "#7e2fd0",
-    bg: "rgba(126, 47, 208, 0.08)",
+    color: "var(--primary)",
+    bg: "color-mix(in srgb, var(--primary) 8%, transparent)",
     icon: "🔍",
     description: "Your documents are being reviewed by our compliance team. Usually takes 1–2 business days.",
   },
   verified: {
     label: "Verified",
-    color: "#16a07a",
-    bg: "rgba(34, 207, 157, 0.08)",
+    color: "var(--accent-hover)",
+    bg: "color-mix(in srgb, var(--accent) 8%, transparent)",
     icon: "✅",
     description: "Your identity is verified. You now have full access to lending pools.",
   },
   rejected: {
     label: "Action Required",
-    color: "#dc2626",
-    bg: "rgba(220, 38, 38, 0.08)",
+    color: "var(--danger)",
+    bg: "color-mix(in srgb, var(--danger) 8%, transparent)",
     icon: "❌",
     description: "Your submission was rejected. Please re-upload a clear, valid government ID.",
   },
@@ -55,10 +55,10 @@ const RISK_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; dot: string }
 > = {
-  low:     { label: "Low Risk",     color: "#16a07a", bg: "rgba(34,207,157,0.1)",    dot: "#22cf9d" },
-  medium:  { label: "Medium Risk",  color: "#d97706", bg: "rgba(217,119,6,0.1)",     dot: "#f59e0b" },
-  high:    { label: "High Risk",    color: "#dc2626", bg: "rgba(220,38,38,0.1)",      dot: "#ef4444" },
-  blocked: { label: "Blocked",      color: "#6b7280", bg: "rgba(107,114,128,0.1)",   dot: "#9ca3af" },
+  low:     { label: "Low Risk",     color: "var(--accent-hover)", bg: "color-mix(in srgb, var(--accent) 10%, transparent)",    dot: "var(--accent)" },
+  medium:  { label: "Medium Risk",  color: "var(--warning)", bg: "color-mix(in srgb, var(--warning) 10%, transparent)",     dot: "var(--warning)" },
+  high:    { label: "High Risk",    color: "var(--danger)", bg: "color-mix(in srgb, var(--danger) 10%, transparent)",      dot: "var(--danger)" },
+  blocked: { label: "Blocked",      color: "var(--fg-muted)", bg: "color-mix(in srgb, var(--fg-muted) 10%, transparent)",   dot: "var(--fg-subtle)" },
 };
 
 /**
@@ -207,8 +207,8 @@ export default async function BorrowerProfilePage() {
               marginBottom: "1.5rem",
               padding: "0.9rem 1rem",
               borderRadius: "0.6rem",
-              background: "linear-gradient(135deg, rgba(126,47,208,0.04) 0%, rgba(34,207,157,0.04) 100%)",
-              border: "1px solid rgba(126,47,208,0.1)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, transparent) 0%, color-mix(in srgb, var(--accent) 4%, transparent) 100%)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             }}
           >
             <div
@@ -219,14 +219,14 @@ export default async function BorrowerProfilePage() {
                 marginBottom: "0.5rem",
               }}
             >
-              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#374151" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--fg)" }}>
                 Profile Completion
               </span>
               <span
                 style={{
                   fontSize: "0.8rem",
                   fontWeight: 700,
-                  color: completionPct === 100 ? "#16a07a" : "#7e2fd0",
+                  color: completionPct === 100 ? "var(--accent-hover)" : "var(--primary)",
                 }}
               >
                 {completionPct}%
@@ -236,7 +236,7 @@ export default async function BorrowerProfilePage() {
               style={{
                 height: "6px",
                 borderRadius: "3px",
-                background: "#e5e7eb",
+                background: "var(--border)",
                 overflow: "hidden",
               }}
             >
@@ -246,8 +246,8 @@ export default async function BorrowerProfilePage() {
                   width: `${completionPct}%`,
                   background:
                     completionPct === 100
-                      ? "linear-gradient(90deg, #16a07a 0%, #22cf9d 100%)"
-                      : "linear-gradient(90deg, #7e2fd0 0%, #22cf9d 100%)",
+                      ? "linear-gradient(90deg, var(--accent-hover) 0%, var(--accent) 100%)"
+                      : "linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)",
                   transition: "width 0.4s ease",
                   borderRadius: "3px",
                 }}
@@ -269,9 +269,9 @@ export default async function BorrowerProfilePage() {
                     padding: "0.2rem 0.5rem",
                     borderRadius: "999px",
                     background: c.done
-                      ? "rgba(34,207,157,0.1)"
-                      : "rgba(107,114,128,0.08)",
-                    color: c.done ? "#16a07a" : "#6b7280",
+                      ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                      : "color-mix(in srgb, var(--fg-muted) 8%, transparent)",
+                    color: c.done ? "var(--accent-hover)" : "var(--fg-muted)",
                     fontWeight: 500,
                     display: "flex",
                     alignItems: "center",
@@ -293,12 +293,12 @@ export default async function BorrowerProfilePage() {
           />
 
           {/* ── KYC Verification Widget ── */}
-          <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(126,47,208,0.1)" }}>
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
             <h3
               style={{
                 fontSize: "0.85rem",
                 fontWeight: 700,
-                color: "#374151",
+                color: "var(--fg)",
                 marginBottom: "0.75rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
@@ -330,7 +330,7 @@ export default async function BorrowerProfilePage() {
                 padding: "1rem",
                 borderRadius: "0.75rem",
                 background: kycInfo.bg,
-                border: `1px solid ${kycInfo.color}30`,
+                border: `1px solid color-mix(in srgb, ${kycInfo.color} 19%, transparent)`,
               }}
             >
               <span style={{ fontSize: "1.4rem", lineHeight: 1 }}>{kycInfo.icon}</span>
@@ -347,11 +347,11 @@ export default async function BorrowerProfilePage() {
                 >
                   KYC · {kycInfo.label}
                 </p>
-                <p style={{ fontSize: "0.82rem", color: "#4b5563", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "0.82rem", color: "var(--fg)", lineHeight: 1.5 }}>
                   {kycInfo.description}
                 </p>
                 {profile?.kyc_submitted_at && (
-                  <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.35rem" }}>
+                  <p style={{ fontSize: "0.75rem", color: "var(--fg-subtle)", marginTop: "0.35rem" }}>
                     Submitted:{" "}
                     {new Date(String(profile.kyc_submitted_at)).toLocaleDateString("en-US", {
                       month: "short",
@@ -363,9 +363,9 @@ export default async function BorrowerProfilePage() {
               </div>
             </div>
 
-            <div style={{ marginTop: "1rem", padding: "0.85rem", borderRadius: "0.5rem", background: "rgba(126, 47, 208, 0.04)", border: "1px dashed rgba(126, 47, 208, 0.3)", marginBottom: "1rem" }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7e2fd0", textTransform: "uppercase", marginBottom: "0.2rem" }}>🚀 Upcoming Security Feature</p>
-              <p style={{ fontSize: "0.78rem", color: "#64719a", lineHeight: 1.5 }}>
+            <div style={{ marginTop: "1rem", padding: "0.85rem", borderRadius: "0.5rem", background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px dashed color-mix(in srgb, var(--primary) 30%, transparent)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", marginBottom: "0.2rem" }}>🚀 Upcoming Security Feature</p>
+              <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)", lineHeight: 1.5 }}>
                 <strong>Live Facial Recognition</strong> is coming soon. Once deployed, biometric hashes will strictly enforce a &quot;one person, one account&quot; rule to dramatically harden network security and prevent identity fraud.
               </p>
             </div>
@@ -379,7 +379,7 @@ export default async function BorrowerProfilePage() {
                 padding: "0.85rem 1rem",
                 borderRadius: "0.75rem",
                 background: riskInfo.bg,
-                border: `1px solid ${riskInfo.dot}30`,
+                border: `1px solid color-mix(in srgb, ${riskInfo.dot} 19%, transparent)`,
                 marginBottom: "1rem",
               }}
             >
@@ -390,7 +390,7 @@ export default async function BorrowerProfilePage() {
                   borderRadius: "50%",
                   background: riskInfo.dot,
                   flexShrink: 0,
-                  boxShadow: `0 0 0 3px ${riskInfo.dot}30`,
+                  boxShadow: `0 0 0 3px color-mix(in srgb, ${riskInfo.dot} 19%, transparent)`,
                 }}
               />
               <div>
@@ -404,7 +404,7 @@ export default async function BorrowerProfilePage() {
                 >
                   Risk Profile · {riskInfo.label}
                 </p>
-                <p style={{ fontSize: "0.78rem", color: "#6b7280", marginTop: "0.2rem" }}>
+                <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)", marginTop: "0.2rem" }}>
                   {riskStatusKey === "low"
                     ? "Excellent standing. You qualify for higher loan tiers."
                     : riskStatusKey === "medium"
@@ -420,12 +420,12 @@ export default async function BorrowerProfilePage() {
             <p
               style={{
                 fontSize: "0.78rem",
-                color: "#9ca3af",
+                color: "var(--fg-subtle)",
                 lineHeight: 1.6,
                 padding: "0.75rem",
                 borderRadius: "0.5rem",
-                background: "rgba(126,47,208,0.03)",
-                border: "1px solid rgba(126,47,208,0.08)",
+                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
               🔗 Your profile data is anchored to an on-chain reputation score on the
@@ -451,8 +451,8 @@ export default async function BorrowerProfilePage() {
                 <span
                   style={{
                     fontSize: "0.75rem",
-                    background: "rgba(126,47,208,0.08)",
-                    color: "#7e2fd0",
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    color: "var(--primary)",
                     padding: "0.2rem 0.6rem",
                     borderRadius: "999px",
                     fontWeight: 600,
@@ -470,7 +470,7 @@ export default async function BorrowerProfilePage() {
                     alignItems: "center",
                     gap: "0.4rem",
                     fontSize: "0.8rem",
-                    color: user.walletAddress ? "#16a07a" : "#d97706",
+                    color: user.walletAddress ? "var(--accent-hover)" : "var(--warning)",
                     fontWeight: 600,
                   }}
                 >
@@ -479,7 +479,7 @@ export default async function BorrowerProfilePage() {
                       width: "7px",
                       height: "7px",
                       borderRadius: "50%",
-                      background: user.walletAddress ? "#22cf9d" : "#f59e0b",
+                      background: user.walletAddress ? "var(--accent)" : "var(--warning)",
                       display: "inline-block",
                     }}
                   />

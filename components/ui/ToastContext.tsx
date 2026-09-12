@@ -1,6 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
+import { EASE_OUT } from "@/lib/motion";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -158,29 +161,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function ToastContainer() {
   const { toasts, dismiss } = useContext(ToastContext)!;
 
-  if (toasts.length === 0) return null;
-
   return (
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="toast-container"
-      style={{
-        position: "fixed",
-        bottom: "1.5rem",
-        right: "1.5rem",
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.75rem",
-        maxWidth: "400px",
-        width: "100%",
-        pointerEvents: "none",
-      }}
+      className="pointer-events-none fixed bottom-6 right-4 z-[9999] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3 sm:right-6"
     >
-      {toasts.map((t, index) => (
-        <ToastItem key={t.id} toast={t} onDismiss={dismiss} index={index} />
-      ))}
+      <AnimatePresence initial={false}>
+        {toasts.map((t) => (
+          <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
@@ -188,10 +179,16 @@ function ToastContainer() {
 interface ToastItemProps {
   toast: Toast;
   onDismiss: (id: string) => void;
-  index: number;
 }
 
-function ToastItem({ toast, onDismiss, index }: ToastItemProps) {
+const TOAST_TONE: Record<ToastType, { icon: typeof CheckCircle2; classes: string }> = {
+  success: { icon: CheckCircle2, classes: "bg-success-soft text-success-soft-fg" },
+  error: { icon: XCircle, classes: "bg-danger-soft text-danger-soft-fg" },
+  warning: { icon: AlertTriangle, classes: "bg-warning-soft text-warning-soft-fg" },
+  info: { icon: Info, classes: "bg-info-soft text-info-soft-fg" },
+};
+
+function ToastItem({ toast, onDismiss }: ToastItemProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onDismiss(toast.id);
@@ -200,99 +197,35 @@ function ToastItem({ toast, onDismiss, index }: ToastItemProps) {
     return () => clearTimeout(timer);
   }, [toast.id, toast.duration, onDismiss]);
 
-  const icons: Record<ToastType, string> = {
-    success: "✓",
-    error: "✕",
-    warning: "⚠",
-    info: "ℹ",
-  };
-
-  const colors: Record<ToastType, string> = {
-    success: "#22c55e",
-    error: "#ef4444",
-    warning: "#f59e0b",
-    info: "#3b82f6",
-  };
+  const { icon: Icon, classes } = TOAST_TONE[toast.type];
 
   return (
-    <div
+    <motion.div
       role="alert"
       aria-live="assertive"
-      className="toast-item"
-      style={{
-        pointerEvents: "auto",
-        transform: `translateY(${index * 10}px)`,
-        opacity: 1,
-        transition: "transform 0.3s ease, opacity 0.3s ease",
-        background: "#1f2937",
-        borderRadius: "0.75rem",
-        padding: "1rem",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
-        border: `1px solid ${colors[toast.type]}33`,
-        display: "flex",
-        gap: "0.75rem",
-        alignItems: "flex-start",
-      }}
+      layout
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+      transition={{ duration: 0.22, ease: EASE_OUT }}
+      className="pointer-events-auto flex items-start gap-3 rounded-card border border-border bg-surface p-4 shadow-lg"
     >
-      <div
-        style={{
-          width: "24px",
-          height: "24px",
-          borderRadius: "50%",
-          background: `${colors[toast.type]}20`,
-          color: colors[toast.type],
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "12px",
-          fontWeight: 700,
-          flexShrink: 0,
-        }}
-      >
-        {icons[toast.type]}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            margin: 0,
-            fontWeight: 600,
-            fontSize: "0.9rem",
-            color: "#fff",
-          }}
-        >
-          {toast.title}
-        </p>
-        {toast.message && (
-          <p
-            style={{
-              margin: "0.25rem 0 0",
-              fontSize: "0.8rem",
-              color: "#9ca3af",
-              lineHeight: 1.4,
-            }}
-          >
-            {toast.message}
-          </p>
-        )}
+      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${classes}`} aria-hidden="true">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-fg">{toast.title}</p>
+        {toast.message && <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">{toast.message}</p>}
       </div>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#6b7280",
-          cursor: "pointer",
-          padding: "0.25rem",
-          fontSize: "1rem",
-          lineHeight: 1,
-          flexShrink: 0,
-        }}
+        className="-m-1 rounded-md p-1 text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg"
       >
-        ×
+        <X className="h-4 w-4" />
       </button>
-    </div>
+    </motion.div>
   );
 }
 

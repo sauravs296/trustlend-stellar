@@ -145,7 +145,8 @@ describe("health factor bands", () => {
     for (const band of healthFactorBands) {
       expect(band.meaning.trim(), `${band.status} meaning`).not.toBe("");
       expect(band.action.trim(), `${band.status} action`).not.toBe("");
-      expect(band.color).toMatch(/^#[0-9a-f]{6}$/i);
+      // Colours are theme tokens so the bands follow light/dark mode.
+      expect(band.color).toMatch(/^var\(--[a-z-]+\)$/);
     }
   });
 });

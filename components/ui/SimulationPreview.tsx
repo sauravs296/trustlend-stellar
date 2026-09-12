@@ -61,11 +61,11 @@ function MetricTile({
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.06)",
+        background: "color-mix(in srgb, var(--fg) 6%, transparent)",
         borderRadius: "0.75rem",
         padding: "0.7rem 0.6rem",
         textAlign: "center",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid color-mix(in srgb, var(--fg) 8%, transparent)",
       }}
     >
       <span style={{ fontSize: "1.1rem", display: "block", marginBottom: "0.2rem" }}>{icon}</span>
@@ -89,7 +89,7 @@ function SimulationSkeleton() {
           height: "14px",
           width: "60%",
           borderRadius: "999px",
-          background: "rgba(255,255,255,0.08)",
+          background: "color-mix(in srgb, var(--fg) 8%, transparent)",
           animation: "simShimmer 1.4s infinite",
         }}
       />
@@ -100,7 +100,7 @@ function SimulationSkeleton() {
             style={{
               height: "72px",
               borderRadius: "0.75rem",
-              background: "rgba(255,255,255,0.05)",
+              background: "color-mix(in srgb, var(--fg) 5%, transparent)",
               animation: "simShimmer 1.4s infinite",
               animationDelay: `${i * 0.15}s`,
             }}
@@ -112,7 +112,7 @@ function SimulationSkeleton() {
           height: "14px",
           width: "40%",
           borderRadius: "999px",
-          background: "rgba(255,255,255,0.08)",
+          background: "color-mix(in srgb, var(--fg) 8%, transparent)",
           animation: "simShimmer 1.4s infinite",
           animationDelay: "0.3s",
         }}
@@ -127,15 +127,15 @@ function SimulationError({ error, methodLabel }: { error: string; methodLabel?: 
   return (
     <div
       style={{
-        background: "rgba(255,77,77,0.08)",
-        border: "1px solid rgba(255,77,77,0.25)",
+        background: "color-mix(in srgb, var(--danger) 8%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--danger) 25%, transparent)",
         borderRadius: "0.85rem",
         padding: "1rem",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <span style={{ fontSize: "1.1rem" }}>⚠️</span>
-        <p style={{ margin: 0, fontWeight: 700, color: "#ff6b6b", fontSize: "0.85rem" }}>
+        <p style={{ margin: 0, fontWeight: 700, color: "var(--danger)", fontSize: "0.85rem" }}>
           Simulation {methodLabel ? `"${methodLabel}"` : ""}Failed
         </p>
       </div>
@@ -175,7 +175,7 @@ export function SimulationPreview({ result, loading, methodLabel }: SimulationPr
           icon="⚡"
           label="CPU Instructions"
           value={result.resources.instructions}
-          color="#a78bfa"
+          color="var(--primary-muted)"
         />
         <MetricTile
           icon="💾"
@@ -196,18 +196,18 @@ export function SimulationPreview({ result, loading, methodLabel }: SimulationPr
       {/* Fee display */}
       <div
         style={{
-          background: "rgba(255,255,255,0.04)",
+          background: "color-mix(in srgb, var(--fg) 4%, transparent)",
           borderRadius: "0.7rem",
           padding: "0.65rem 0.85rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "0.5rem",
-          border: "1px solid rgba(255,255,255,0.06)",
+          border: "1px solid color-mix(in srgb, var(--fg) 6%, transparent)",
         }}
       >
         <span style={{ fontSize: "0.78rem", opacity: 0.7, fontWeight: 600 }}>Estimated Network Fee</span>
-        <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#a78bfa" }}>
+        <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "var(--primary-muted)" }}>
           ≈ {result.feeXlm} XLM
         </span>
       </div>

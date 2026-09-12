@@ -89,7 +89,7 @@ function SuccessOverlay({
         position: "fixed",
         inset: 0,
         zIndex: 1000,
-        background: "rgba(0,0,0,0.55)",
+        background: "color-mix(in srgb, var(--fg) 55%, transparent)",
         backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
@@ -101,7 +101,7 @@ function SuccessOverlay({
       <div
         className="borrower-success-card"
         style={{
-          background: "#fff",
+          background: "var(--surface)",
           borderRadius: "1.25rem",
           padding: "2.5rem 2rem",
           maxWidth: "420px",
@@ -120,7 +120,7 @@ function SuccessOverlay({
           style={{
             fontSize: "1.3rem",
             fontWeight: 800,
-            color: "#111827",
+            color: "var(--fg)",
             margin: "0 0 0.5rem",
           }}
         >
@@ -128,12 +128,12 @@ function SuccessOverlay({
         </h2>
         <p
           style={{
-            color: "#6b7280",
+            color: "var(--fg-muted)",
             fontSize: "0.9rem",
             margin: "0 0 0.25rem",
           }}
         >
-          <strong style={{ color: "#22cf9d" }}>
+          <strong style={{ color: "var(--accent)" }}>
             {formatCurrency(data.amount)}
           </strong>{" "}
           has been sent and recorded.
@@ -147,7 +147,7 @@ function SuccessOverlay({
             style={{
               display: "inline-block",
               margin: "0.5rem 0 1.5rem",
-              color: "#7e2fd0",
+              color: "var(--primary)",
               fontSize: "0.85rem",
               fontWeight: 700,
             }}
@@ -165,8 +165,8 @@ function SuccessOverlay({
             style={{
               flex: 1,
               padding: "0.7rem 1.25rem",
-              background: "linear-gradient(135deg,#7e2fd0,#5a1fad)",
-              color: "#fff",
+              background: "linear-gradient(135deg,var(--primary),var(--primary-hover))",
+              color: "var(--primary-fg)",
               border: "none",
               borderRadius: "0.6rem",
               fontSize: "0.9rem",
@@ -178,7 +178,7 @@ function SuccessOverlay({
           </button>
         </div>
 
-        <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#9ca3af" }}>
+        <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "var(--fg-subtle)" }}>
           📋 Repayment recorded in TrustLend ledger. Your trust score has been
           updated.
         </p>
@@ -477,11 +477,11 @@ export function BorrowerRepayWidget({
                   style={{
                     fontSize: "0.72rem",
                     fontWeight: 800,
-                    color: "#7e2fd0",
-                    background: "rgba(126,47,208,0.1)",
+                    color: "var(--primary)",
+                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                     padding: "0.2rem 0.55rem",
                     borderRadius: "9999px",
-                    border: "1px solid rgba(126,47,208,0.25)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
                   }}
@@ -494,7 +494,7 @@ export function BorrowerRepayWidget({
               style={{
                 margin: "0.25rem 0 0",
                 fontSize: "0.82rem",
-                color: "#6b7280",
+                color: "var(--fg-muted)",
               }}
             >
               Loan #{loan.id.slice(0, 8)} &bull; Due{" "}
@@ -508,14 +508,14 @@ export function BorrowerRepayWidget({
                 fontSize: "0.82rem",
                 fontWeight: 700,
                 display: "inline-block",
-                color: effectiveDueAmount > 0 ? (earlyPayoffEnabled && earlyCalc.isEarly ? "#22cf9d" : "#f5a623") : "#22cf9d",
+                color: effectiveDueAmount > 0 ? (earlyPayoffEnabled && earlyCalc.isEarly ? "var(--accent)" : "var(--warning)") : "var(--accent)",
                 background:
                   effectiveDueAmount > 0
-                    ? (earlyPayoffEnabled && earlyCalc.isEarly ? "rgba(34,207,157,0.08)" : "rgba(245,166,35,0.08)")
-                    : "rgba(34,207,157,0.08)",
+                    ? (earlyPayoffEnabled && earlyCalc.isEarly ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "color-mix(in srgb, var(--warning) 8%, transparent)")
+                    : "color-mix(in srgb, var(--accent) 8%, transparent)",
                 padding: "0.3rem 0.75rem",
                 borderRadius: "9999px",
-                border: `1px solid ${effectiveDueAmount > 0 ? (earlyPayoffEnabled && earlyCalc.isEarly ? "rgba(34,207,157,0.25)" : "rgba(245,166,35,0.25)") : "rgba(34,207,157,0.25)"}`,
+                border: `1px solid ${effectiveDueAmount > 0 ? (earlyPayoffEnabled && earlyCalc.isEarly ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--warning) 25%, transparent)") : "color-mix(in srgb, var(--accent) 25%, transparent)"}`,
               }}
             >
               {effectiveDueAmount > 0
@@ -529,7 +529,7 @@ export function BorrowerRepayWidget({
                   display: "block",
                   background: "transparent",
                   border: "none",
-                  color: "#7e2fd0",
+                  color: "var(--primary)",
                   fontSize: "0.75rem",
                   fontWeight: 600,
                   marginTop: "0.4rem",
@@ -549,8 +549,8 @@ export function BorrowerRepayWidget({
           <div
             className="borrower-early-repay-banner"
             style={{
-              background: "linear-gradient(135deg, rgba(126,47,208,0.06), rgba(34,207,157,0.06))",
-              border: "1px solid rgba(126,47,208,0.2)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 6%, transparent), color-mix(in srgb, var(--accent) 6%, transparent))",
+              border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
               borderRadius: "0.75rem",
               padding: "1rem 1.15rem",
               marginBottom: "1.25rem",
@@ -560,11 +560,11 @@ export function BorrowerRepayWidget({
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                   <span style={{ fontSize: "1.1rem" }}>⚡</span>
-                  <strong style={{ fontSize: "0.92rem", color: "#111827" }}>
+                  <strong style={{ fontSize: "0.92rem", color: "var(--fg)" }}>
                     Early Repayment Interest Adjustment
                   </strong>
                 </div>
-                <p style={{ margin: "0.3rem 0 0", fontSize: "0.82rem", color: "#4b5563", lineHeight: 1.4 }}>
+                <p style={{ margin: "0.3rem 0 0", fontSize: "0.82rem", color: "var(--fg)", lineHeight: 1.4 }}>
                   Repaying early calculates interest only for the <strong>{activeElapsedDays} active day{activeElapsedDays > 1 ? "s" : ""}</strong> instead of the full {earlyCalc.totalDays}-day term.
                 </p>
               </div>
@@ -579,9 +579,9 @@ export function BorrowerRepayWidget({
                     fontSize: "0.78rem",
                     fontWeight: 700,
                     cursor: "pointer",
-                    border: earlyPayoffEnabled ? "1px solid #22cf9d" : "1px solid #d1d5db",
-                    background: earlyPayoffEnabled ? "rgba(34,207,157,0.12)" : "#fff",
-                    color: earlyPayoffEnabled ? "#15803d" : "#6b7280",
+                    border: earlyPayoffEnabled ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: earlyPayoffEnabled ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "var(--surface)",
+                    color: earlyPayoffEnabled ? "var(--success-soft-fg)" : "var(--fg-muted)",
                     transition: "all 0.15s ease",
                   }}
                 >
@@ -598,51 +598,51 @@ export function BorrowerRepayWidget({
                 gap: "0.75rem",
                 marginTop: "0.9rem",
                 paddingTop: "0.85rem",
-                borderTop: "1px solid rgba(126,47,208,0.12)",
+                borderTop: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               }}
             >
               <div>
-                <span style={{ fontSize: "0.72rem", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                   Adjusted Interest
                 </span>
-                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "#7e2fd0" }}>
+                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "var(--primary)" }}>
                   {formatCurrency(earlyCalc.adjustedInterest)}
                 </p>
-                <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--fg-subtle)" }}>
                   vs {formatCurrency(earlyCalc.standardInterest)} full term
                 </span>
               </div>
 
               <div>
-                <span style={{ fontSize: "0.72rem", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                   Interest Saved
                 </span>
-                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "#22cf9d" }}>
+                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "var(--accent)" }}>
                   +{formatCurrency(earlyCalc.interestSaved)} ({earlyCalc.interestSavedPct}%)
                 </p>
-                <span style={{ fontSize: "0.7rem", color: "#16a34a" }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--accent)" }}>
                   Instant early discount
                 </span>
               </div>
 
               <div>
-                <span style={{ fontSize: "0.72rem", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                   Early Payoff Amount
                 </span>
-                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "#111827" }}>
+                <p style={{ margin: "0.15rem 0 0", fontWeight: 800, fontSize: "0.95rem", color: "var(--fg)" }}>
                   {formatCurrency(earlyCalc.adjustedRemainingDue)}
                 </p>
-                <span style={{ fontSize: "0.7rem", color: "#9ca3af", textDecoration: "line-through" }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--fg-subtle)", textDecoration: "line-through" }}>
                   {formatCurrency(earlyCalc.standardRemainingDue)} full
                 </span>
               </div>
             </div>
 
             {/* Interactive Day Slider / Simulation */}
-            <div style={{ marginTop: "0.9rem", paddingTop: "0.75rem", borderTop: "1px dashed rgba(126,47,208,0.15)" }}>
+            <div style={{ marginTop: "0.9rem", paddingTop: "0.75rem", borderTop: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#4b5563" }}>
-                  Simulate Early Repayment Day: <span style={{ color: "#7e2fd0" }}>Day {activeElapsedDays} of {earlyCalc.totalDays}</span>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--fg)" }}>
+                  Simulate Early Repayment Day: <span style={{ color: "var(--primary)" }}>Day {activeElapsedDays} of {earlyCalc.totalDays}</span>
                 </label>
                 {customElapsedDays !== null && (
                   <button
@@ -651,7 +651,7 @@ export function BorrowerRepayWidget({
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#7e2fd0",
+                      color: "var(--primary)",
                       fontSize: "0.72rem",
                       fontWeight: 600,
                       cursor: "pointer",
@@ -671,11 +671,11 @@ export function BorrowerRepayWidget({
                 onChange={(e) => setCustomElapsedDays(Number(e.target.value))}
                 style={{
                   width: "100%",
-                  accentColor: "#7e2fd0",
+                  accentColor: "var(--primary)",
                   cursor: "pointer",
                 }}
               />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "var(--fg-subtle)", marginTop: "0.2rem" }}>
                 <span>Day 1 (Max Discount)</span>
                 <span>Day {Math.ceil(earlyCalc.totalDays / 2)} (Mid-term)</span>
                 <span>Day {earlyCalc.totalDays} (Maturity)</span>
@@ -688,13 +688,13 @@ export function BorrowerRepayWidget({
         {showFeeBreakdown && (
           <div
             style={{
-              background: "#f9fafb",
+              background: "var(--surface-2)",
               borderRadius: "0.5rem",
               padding: "1rem",
               marginBottom: "1.5rem",
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--border)",
               fontSize: "0.8rem",
-              color: "#4b5563",
+              color: "var(--fg)",
             }}
           >
             <div
@@ -721,7 +721,7 @@ export function BorrowerRepayWidget({
                   ? `Adjusted Interest (${activeElapsedDays} days @ ${((breakdownData?.aprBps ?? 1200) / 100).toFixed(2)}% APR):`
                   : `Full Term Interest (${earlyCalc.totalDays} days @ ${((breakdownData?.aprBps ?? 1200) / 100).toFixed(2)}% APR):`}
               </span>
-              <span style={{ fontWeight: 600, color: "#f5a623" }}>
+              <span style={{ fontWeight: 600, color: "var(--warning)" }}>
                 +{formatCurrency(earlyPayoffEnabled && earlyCalc.isEarly ? earlyCalc.adjustedInterest : earlyCalc.standardInterest)}
               </span>
             </div>
@@ -731,7 +731,7 @@ export function BorrowerRepayWidget({
                   display: "flex",
                   justifyContent: "space-between",
                   marginBottom: "0.4rem",
-                  color: "#16a34a",
+                  color: "var(--accent)",
                 }}
               >
                 <span>Early Repayment Savings:</span>
@@ -748,19 +748,19 @@ export function BorrowerRepayWidget({
               }}
             >
               <span>Platform Fee (1%):</span>
-              <span style={{ fontWeight: 600, color: "#ef4444" }}>
+              <span style={{ fontWeight: 600, color: "var(--danger)" }}>
                 +{formatCurrency(earlyCalc.platformFee)}
               </span>
             </div>
             <div
               style={{
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid var(--border)",
                 margin: "0.5rem 0",
                 paddingTop: "0.5rem",
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: 700,
-                color: "#111",
+                color: "var(--fg)",
               }}
             >
               <span>Total Required:</span>
@@ -770,7 +770,7 @@ export function BorrowerRepayWidget({
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                color: "#22cf9d",
+                color: "var(--accent)",
               }}
             >
               <span>Already Paid:</span>
@@ -778,13 +778,13 @@ export function BorrowerRepayWidget({
             </div>
             <div
               style={{
-                borderTop: "1px dashed #e5e7eb",
+                borderTop: "1px dashed var(--border)",
                 marginTop: "0.4rem",
                 paddingTop: "0.4rem",
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: 800,
-                color: "#7e2fd0",
+                color: "var(--primary)",
               }}
             >
               <span>Exact Net Amount Owed Today:</span>
@@ -800,13 +800,13 @@ export function BorrowerRepayWidget({
               display: "flex",
               justifyContent: "space-between",
               fontSize: "0.75rem",
-              color: "#9ca3af",
+              color: "var(--fg-subtle)",
               marginBottom: "0.4rem",
             }}
           >
             <span>
               Repaid:{" "}
-              <strong style={{ color: "#22cf9d" }}>
+              <strong style={{ color: "var(--accent)" }}>
                 {formatCurrency(loan.repaid_amount)}
               </strong>
             </span>
@@ -816,7 +816,7 @@ export function BorrowerRepayWidget({
             style={{
               height: "10px",
               borderRadius: "9999px",
-              background: "#eef0f8",
+              background: "var(--surface-2)",
               overflow: "hidden",
             }}
           >
@@ -824,7 +824,7 @@ export function BorrowerRepayWidget({
               style={{
                 height: "100%",
                 width: `${pct}%`,
-                background: "linear-gradient(90deg,#7e2fd0,#22cf9d)",
+                background: "linear-gradient(90deg,var(--primary),var(--accent))",
                 borderRadius: "9999px",
                 transition: "width 0.5s ease",
               }}
@@ -852,9 +852,9 @@ export function BorrowerRepayWidget({
                   minWidth: "160px",
                   padding: "0.75rem 1.25rem",
                   background: isBusy
-                    ? "#a78bfa"
-                    : "linear-gradient(135deg,#7e2fd0,#5a1fad)",
-                  color: "#fff",
+                    ? "var(--primary-muted)"
+                    : "linear-gradient(135deg,var(--primary),var(--primary-hover))",
+                  color: "var(--fg)",
                   border: "none",
                   borderRadius: "0.6rem",
                   fontSize: "0.9rem",
@@ -862,7 +862,7 @@ export function BorrowerRepayWidget({
                   cursor: isBusy ? "not-allowed" : "pointer",
                   boxShadow: isBusy
                     ? "none"
-                    : "0 4px 14px rgba(126,47,208,0.4)",
+                    : "0 4px 14px color-mix(in srgb, var(--primary) 40%, transparent)",
                   transition: "all 0.2s ease",
                   letterSpacing: "0.01em",
                 }}
@@ -886,9 +886,9 @@ export function BorrowerRepayWidget({
                   flex: 1,
                   minWidth: "110px",
                   padding: "0.75rem 1rem",
-                  background: "#fff",
-                  color: "#7e2fd0",
-                  border: "2px solid rgba(126,47,208,0.35)",
+                  background: "var(--surface)",
+                  color: "var(--primary)",
+                  border: "2px solid color-mix(in srgb, var(--primary) 35%, transparent)",
                   borderRadius: "0.6rem",
                   fontSize: "0.875rem",
                   fontWeight: 700,
@@ -918,14 +918,14 @@ export function BorrowerRepayWidget({
                 style={{
                   flex: 1,
                   padding: "0.7rem 0.9rem",
-                  border: "2px solid #e5e7eb",
+                  border: "2px solid var(--border)",
                   borderRadius: "0.6rem",
                   fontSize: "0.875rem",
                   outline: "none",
                   transition: "border-color 0.2s",
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "#7e2fd0")}
-                onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+                onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
+                onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
               />
               <button
                 onClick={() => {
@@ -944,9 +944,9 @@ export function BorrowerRepayWidget({
                   padding: "0.7rem 1.5rem",
                   background:
                     customAmount && !isBusy
-                      ? "linear-gradient(135deg,#7e2fd0,#5a1fad)"
-                      : "#e5e7eb",
-                  color: customAmount && !isBusy ? "#fff" : "#9ca3af",
+                      ? "linear-gradient(135deg,var(--primary),var(--primary-hover))"
+                      : "var(--border)",
+                  color: customAmount && !isBusy ? "var(--surface)" : "var(--fg-subtle)",
                   border: "none",
                   borderRadius: "0.6rem",
                   fontSize: "0.875rem",
@@ -965,7 +965,7 @@ export function BorrowerRepayWidget({
                 style={{
                   marginTop: "0.75rem",
                   fontSize: "0.82rem",
-                  color: "#ef4444",
+                  color: "var(--danger)",
                   fontWeight: 600,
                   display: "flex",
                   alignItems: "center",
@@ -981,7 +981,7 @@ export function BorrowerRepayWidget({
             style={{
               textAlign: "center",
               padding: "1rem 0",
-              color: "#22cf9d",
+              color: "var(--accent)",
               fontWeight: 700,
               fontSize: "1rem",
             }}
@@ -996,14 +996,14 @@ export function BorrowerRepayWidget({
             style={{
               marginTop: "1.5rem",
               paddingTop: "1.25rem",
-              borderTop: "1px solid #f3f4f6",
+              borderTop: "1px solid var(--surface-2)",
             }}
           >
             <h3
               style={{
                 fontSize: "0.82rem",
                 fontWeight: 700,
-                color: "#6b7280",
+                color: "var(--fg-muted)",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 marginBottom: "0.75rem",
@@ -1027,8 +1027,8 @@ export function BorrowerRepayWidget({
                     alignItems: "center",
                     padding: "0.6rem 0.85rem",
                     borderRadius: "0.5rem",
-                    background: "rgba(34,207,157,0.05)",
-                    border: "1px solid rgba(34,207,157,0.15)",
+                    background: "color-mix(in srgb, var(--accent) 5%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)",
                   }}
                 >
                   <div
@@ -1042,7 +1042,7 @@ export function BorrowerRepayWidget({
                       style={{
                         fontSize: "0.82rem",
                         fontWeight: 700,
-                        color: "#22cf9d",
+                        color: "var(--accent)",
                       }}
                     >
                       +{formatCurrency(Number(r.amount))} repaid
@@ -1050,7 +1050,7 @@ export function BorrowerRepayWidget({
                     <span
                       style={{
                         fontSize: "0.72rem",
-                        color: "#9ca3af",
+                        color: "var(--fg-subtle)",
                         fontFamily: "monospace",
                       }}
                     >
@@ -1060,7 +1060,7 @@ export function BorrowerRepayWidget({
                   <span
                     style={{
                       fontSize: "0.75rem",
-                      color: "#9ca3af",
+                      color: "var(--fg-subtle)",
                       whiteSpace: "nowrap",
                     }}
                   >
