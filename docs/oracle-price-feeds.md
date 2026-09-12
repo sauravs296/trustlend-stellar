@@ -51,8 +51,8 @@ supplies the missing off-chain feeder.
 
 ## The 5-second requirement
 
-Vercel Cron's finest granularity is **one minute**, so a cron route alone cannot
-meet the acceptance criterion. The 5-second cadence comes from a long-lived
+A scheduled cron route alone cannot meet the acceptance criterion (Vercel Hobby
+allows one run per day; GitHub Actions bottoms out at five minutes). The 5-second cadence comes from a long-lived
 process, mirroring how `liquidation-keeper` handles its own sub-minute mode:
 
 ```bash
@@ -64,9 +64,10 @@ npm run price:oracle -- --interval=15
 
 Run it under Docker, systemd or PM2 on any always-on host.
 
-`/api/cron/price-oracle` is also scheduled every minute in `vercel.json` as a
-**safety net** — if the long-lived keeper dies, prices still refresh once a
-minute rather than going completely stale. It is not a substitute for the
+`/api/cron/price-oracle` is also triggered every 5 minutes by
+`.github/workflows/keepers.yml` (and once a day by `vercel.json`) as a
+**safety net** — if the long-lived keeper dies, prices still refresh every few
+minutes rather than going completely stale. It is not a substitute for the
 keeper. Note that each cron invocation starts with empty state, so its
 in-memory cache fallback is unavailable and it falls straight through to TWAP.
 

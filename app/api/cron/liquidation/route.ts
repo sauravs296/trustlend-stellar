@@ -5,8 +5,9 @@ import { loadConfig, runLiquidationKeeper } from "@/scripts/liquidation-keeper";
 /**
  * POST/GET /api/cron/liquidation
  *
- * Automated Liquidation Bot (issue #259). Triggered by Vercel Cron every minute
- * (`vercel.json`) or any external scheduler (GitHub Actions, cURL, systemd).
+ * Automated Liquidation Bot (issue #259). Triggered every 5 minutes by
+ * `.github/workflows/keepers.yml`, once a day by Vercel Cron (`vercel.json`,
+ * the Hobby-plan ceiling) or any external scheduler (cURL, systemd).
  * Loads the keeper configuration from env, scans open loans for
  * under-collateralization, and automatically submits `mark_defaulted` for any
  * loan whose LTV has crossed the contract's dynamic liquidation threshold.

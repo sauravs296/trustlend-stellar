@@ -1,0 +1,53 @@
+name: Keepers (liquidation + price oracle)
+
+# Vercel Hobby only allows one cron run per day, which is far too slow for the
+# liquidation keeper and the collateral price oracle. GitHub Actions can fire
+# every 5 minutes, so it pings the same authenticated cron endpoints instead.
+#
+# Required repository secrets:
+#   KEEPER_BASE_URL  e.g. https://trustlend-stellar.vercel.app  (no trailing slash)
+#   CRON_SECRET      must match the CRON_SECRET env var configured on Vercel
+#
+# The workflow is a no-op until both secrets exist, so it is safe on forks.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keepers
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Trigger cron endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KEEPER_BASE_URL: ${{ secrets.KEEPER_BASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Skip when secrets are not configured
+        id: gate
+        run: |
+          if [ -z "$KEEPER_BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "KEEPER_BASE_URL / CRON_SECRET not set — nothing to do."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Liquidation keeper
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST "$KEEPER_BASE_URL/api/cron/liquidation" \
+            -H "Authorization: Bearer $CRON_SECRET"
+
+      - name: Price oracle
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST "$KEEPER_BASE_URL/api/cron/price-oracle" \
+            -H "Authorization: Bearer $CRON_SECRET"

@@ -140,10 +140,11 @@ impl UsdcLendingPool {
             panic!("amount must be > 0");
         }
 
-        // Transfer USDC from depositor → pool contract.
+        // Transfer USDC from depositor → pool contract. `depositor.require_auth()`
+        // above covers the token transfer, so no prior allowance is needed.
         let usdc = Self::usdc_client(&env);
         let contract_addr = env.current_contract_address();
-        usdc.transfer_from(&contract_addr, &depositor, &contract_addr, &amount);
+        usdc.transfer(&depositor, &contract_addr, &amount);
 
         let current_ledger = env.ledger().sequence();
 
@@ -351,7 +352,7 @@ impl UsdcLendingPool {
         // Use u128 intermediary to avoid i128 overflow on large principals.
         let numerator = (principal as u128)
             .saturating_mul(annual_yield_bps as u128)
-            .saturating_mul(ledgers_elapsed);
+            .saturating_mul(ledgers_elapsed as u128);
         let denominator = MAX_BPS.saturating_mul(LEDGERS_PER_YEAR);
         (numerator / denominator as u128) as i128
     }
@@ -367,7 +368,7 @@ impl UsdcLendingPool {
     }
 
     /// Build a typed SEP-41 token client for the USDC contract.
-    fn usdc_client(env: &Env) -> token::TokenClient {
+    fn usdc_client(env: &Env) -> token::TokenClient<'_> {
         let addr: Address = env
             .storage()
             .instance()

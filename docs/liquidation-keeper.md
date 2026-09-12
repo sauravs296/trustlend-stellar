@@ -39,17 +39,22 @@ individually error-handled — one bad loan never aborts the run — matching th
 
 ## Deployment (issue #259)
 
-Two ways to run the keeper as a background worker that monitors every minute:
+Three ways to run the keeper as a background worker:
 
-1. **Vercel Cron (default deployment).** [`vercel.json`](vercel.json) schedules
-   `POST /api/cron/liquidation` every minute (`* * * * *`). The route
-   ([`app/api/cron/liquidation/route.ts`](app/api/cron/liquidation/route.ts))
+1. **GitHub Actions (default deployment).**
+   [`.github/workflows/keepers.yml`](../.github/workflows/keepers.yml) calls
+   `POST /api/cron/liquidation` every 5 minutes. Set the `KEEPER_BASE_URL` and
+   `CRON_SECRET` repository secrets to enable it; without them the workflow is a
+   no-op. The route
+   ([`app/api/cron/liquidation/route.ts`](../app/api/cron/liquidation/route.ts))
    authenticates the caller with `Bearer ${CRON_SECRET}` (same scheme as the
    `payment-due` / `default-management` crons), loads the keeper config from env,
-   runs a full scan, and returns the per-run summary. Every-minute schedules
-   require a Vercel Pro plan; on Hobby, run the self-hosted variant below (or an
-   external cron) instead.
-2. **Self-hosted service.** `npm run liquidation:keeper:service` runs
+   runs a full scan, and returns the per-run summary.
+2. **Vercel Cron (safety net).** [`vercel.json`](../vercel.json) also schedules
+   the route once a day. Vercel Hobby rejects deployments that declare any cron
+   more frequent than daily, which is why the 5-minute cadence lives in GitHub
+   Actions rather than here.
+3. **Self-hosted service.** `npm run liquidation:keeper:service` runs
    `scripts/liquidation-keeper.ts --interval=60` — a long-lived loop that rescans
    prices and liquidates every 60 seconds. Wrap it in Docker/systemd/PM2 on any
    always-on host. One-shot cron invocations (item 1 of [Usage](#usage)) remain
