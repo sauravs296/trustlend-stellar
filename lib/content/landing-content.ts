@@ -207,7 +207,7 @@ export const trustBadges: TrustBadge[] = [
   {
     label: "Formally verified contracts",
     detail: "Core accounting invariants proved with Kani and property tests in CI.",
-    href: `${REPO_URL}/blob/main/FORMAL_VERIFICATION.md`,
+    href: `${REPO_URL}/blob/main/docs/formal-verification.md`,
     icon: "verified",
     external: true,
   },

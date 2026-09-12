@@ -83,7 +83,7 @@ jobs:
               `Run: ${runUrl}`,
               '',
               'The database is running without a fresh off-site backup until this is fixed.',
-              'See DISASTER_RECOVERY.md for the runbook.',
+              'See docs/disaster-recovery.md for the runbook.',
             ].join('\n');
 
             // Reuse an existing open report rather than filing one per night.

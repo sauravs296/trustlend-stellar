@@ -58,7 +58,6 @@ lib/contracts/generated/
 # Per-network deployment state used by `npm run deploy:testnet -- --resume`
 contracts/.deployments/
 
-/docs
 
 # playwright
 playwright-report/

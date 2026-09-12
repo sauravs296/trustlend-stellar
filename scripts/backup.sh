@@ -6,7 +6,7 @@
 # AES-256 before it ever leaves the machine, uploads it to S3, verifies the
 # uploaded object, and prunes backups past the retention window.
 #
-# Restore instructions live in DISASTER_RECOVERY.md. A backup nobody has
+# Restore instructions live in docs/disaster-recovery.md. A backup nobody has
 # restored is a hypothesis, not a backup — please run the quarterly drill.
 #
 # Usage:
@@ -35,7 +35,7 @@ BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 BACKUP_DRY_RUN="${BACKUP_DRY_RUN:-0}"
 # Comma-separated schemas to skip. Empty by default: a backup missing data is
-# worse than one carrying extra. See DISASTER_RECOVERY.md for Supabase notes.
+# worse than one carrying extra. See docs/disaster-recovery.md for Supabase notes.
 BACKUP_EXCLUDE_SCHEMAS="${BACKUP_EXCLUDE_SCHEMAS:-}"
 # Minimum plausible dump size; guards against silently archiving an empty file.
 BACKUP_MIN_BYTES="${BACKUP_MIN_BYTES:-1024}"
@@ -46,7 +46,7 @@ fail() { printf '%s ERROR: %s\n' "[$(date -u +%H:%M:%S)]" "$*" >&2; exit 1; }
 require_env() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
-    fail "$name is not set. See .env.example and DISASTER_RECOVERY.md."
+    fail "$name is not set. See .env.example and docs/disaster-recovery.md."
   fi
 }
 
@@ -168,7 +168,7 @@ log "    Uploaded and verified (${remote_bytes} bytes)."
 
 # ── 6. Retention ──────────────────────────────────────────────────────────────
 # An S3 lifecycle policy on the bucket is the more robust way to do this (it
-# keeps working even if this job stops running) — see DISASTER_RECOVERY.md.
+# keeps working even if this job stops running) — see docs/disaster-recovery.md.
 # This prune is a self-contained backstop for buckets without one.
 log "6/6 Pruning backups older than ${BACKUP_RETENTION_DAYS} days…"
 # No trailing 'Z': S3 reports LastModified as "...T00:00:00+00:00", and this is a

@@ -1,4 +1,4 @@
-import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary"
+import { GlobalErrorBoundary } from "@/components/dashboard/GlobalErrorBoundary"
 import { RpcHealthProvider } from "@/components/RpcHealthProvider"
 import { ReferralCapture } from "@/components/dashboard/ReferralCapture"
 

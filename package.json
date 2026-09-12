@@ -26,7 +26,6 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@albedo-link/intent": "^0.13.0",
     "@creit.tech/stellar-wallets-kit": "^2.5.0",
     "@radix-ui/react-tooltip": "^1.2.16",
     "@stellar/freighter-api": "^6.0.1",
@@ -52,7 +51,6 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@commitlint/types": "^19.8.0",
     "@playwright/test": "^1.62.0",
-    "@subql/types-stellar": "^5.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.6",
@@ -63,7 +61,6 @@
     "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
-    "ethers": "^6.17.0",
     "husky": "^9.1.7",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
