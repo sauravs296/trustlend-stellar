@@ -118,16 +118,25 @@ describe("POST /api/cron/liquidation", () => {
   });
 });
 
-// ── Acceptance criterion: the worker monitors prices every minute ──────────────
-// vercel.json must schedule the liquidation cron on a 1-minute cadence.
+// ── Scheduling ─────────────────────────────────────────────────────────────────
+// Vercel Hobby rejects any cron that runs more than once a day, so vercel.json
+// keeps a daily safety-net schedule and the 5-minute cadence lives in
+// .github/workflows/keepers.yml. Both must keep pointing at this route.
 
-describe("vercel.json liquidation schedule", () => {
-  it("schedules /api/cron/liquidation every minute (* * * * *)", () => {
+describe("liquidation cron scheduling", () => {
+  it("vercel.json schedules /api/cron/liquidation once a day (Hobby-compatible)", () => {
     const raw = fs.readFileSync(path.resolve(process.cwd(), "vercel.json"), "utf8");
     const crons = (JSON.parse(raw) as { crons: Array<{ path: string; schedule: string }> }).crons;
 
     const liquidationCron = crons.find((c) => c.path === "/api/cron/liquidation");
     expect(liquidationCron).toBeDefined();
-    expect(liquidationCron?.schedule).toBe("* * * * *");
+    // "m h * * *" — exactly one run per day
+    expect(liquidationCron?.schedule).toMatch(/^\d{1,2} \d{1,2} \* \* \*$/);
+  });
+
+  it("the GitHub Actions keeper workflow triggers the route every 5 minutes", () => {
+    const raw = fs.readFileSync(path.resolve(process.cwd(), ".github/workflows/keepers.yml"), "utf8");
+    expect(raw).toContain(`cron: "*/5 * * * *"`);
+    expect(raw).toContain("/api/cron/liquidation");
   });
 });

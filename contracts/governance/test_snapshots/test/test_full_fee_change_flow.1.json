@@ -1055,18 +1055,18 @@
                     },
                     {
                       "key": {
-                        "symbol": "freeze_reason"
+                        "symbol": "flags"
                       },
                       "val": {
-                        "string": ""
+                        "u32": 2
                       }
                     },
                     {
                       "key": {
-                        "symbol": "is_frozen"
+                        "symbol": "freeze_reason"
                       },
                       "val": {
-                        "bool": false
+                        "string": ""
                       }
                     },
                     {
@@ -1194,18 +1194,18 @@
                     },
                     {
                       "key": {
-                        "symbol": "freeze_reason"
+                        "symbol": "flags"
                       },
                       "val": {
-                        "string": ""
+                        "u32": 2
                       }
                     },
                     {
                       "key": {
-                        "symbol": "is_frozen"
+                        "symbol": "freeze_reason"
                       },
                       "val": {
-                        "bool": false
+                        "string": ""
                       }
                     },
                     {

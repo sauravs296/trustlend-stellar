@@ -12,7 +12,7 @@ use soroban_sdk::{
 // ─── Test helpers ─────────────────────────────────────────────────────────────
 
 /// Deploy a native Stellar asset (acts as USDC in tests) and return its address.
-fn create_token(env: &Env, admin: &Address) -> (Address, StellarAssetClient, TokenClient) {
+fn create_token<'a>(env: &'a Env, admin: &Address) -> (Address, StellarAssetClient<'a>, TokenClient<'a>) {
     let token_id = env.register_stellar_asset_contract_v2(admin.clone());
     let addr = token_id.address();
     let asset_client = StellarAssetClient::new(env, &addr);
@@ -25,6 +25,13 @@ fn create_token(env: &Env, admin: &Address) -> (Address, StellarAssetClient, Tok
 fn setup() -> (Env, Address, Address, Address, Address) {
     let env = Env::default();
     env.mock_all_auths();
+    // Yield tests fast-forward the ledger by up to a full year (6.3M ledgers).
+    // Raise the entry TTLs so contract storage is not archived along the way.
+    env.ledger().with_mut(|li| {
+        li.min_temp_entry_ttl = 100_000_000;
+        li.min_persistent_entry_ttl = 100_000_000;
+        li.max_entry_ttl = 100_000_000;
+    });
 
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
@@ -319,10 +326,9 @@ fn test_pause_prevents_deposit() {
     client.pause(&admin);
     assert!(client.is_paused());
 
-    // deposit should panic
-    let result = std::panic::catch_unwind(|| {
-        client.deposit(&user, &100_000_000_i128);
-    });
+    // deposit must fail while paused (try_ variant surfaces the panic as Err
+    // without needing catch_unwind, which the Env handle does not support)
+    let result = client.try_deposit(&user, &100_000_000_i128);
     assert!(result.is_err(), "deposit should be blocked when paused");
 }
 
