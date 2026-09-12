@@ -1,4 +1,5 @@
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { notifications } from "@/lib/db/schema";
 
 export async function createNotification({
   userId,
@@ -11,19 +12,11 @@ export async function createNotification({
   message: string;
   type: string;
 }) {
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) return null;
+  const db = getDb();
+  if (!db) return null;
 
   try {
-    const { error } = await supabase.from("notifications").insert({
-      user_id: userId,
-      title,
-      message,
-      type,
-    });
-    if (error) {
-      console.error("Failed to create notification:", error);
-    }
+    await db.insert(notifications).values({ userId, title, message, type });
   } catch (err) {
     console.error("Error creating notification", err);
   }

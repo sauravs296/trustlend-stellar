@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { profiles, reputationSnapshots } from "@/lib/db/schema";
 import {
   verifyWebhookSignature,
   mapProviderStatus,
@@ -63,60 +65,61 @@ export async function POST(request: NextRequest) {
   const rejectionReason = extractRejectionReason(payload);
   const isVerified = newKycStatus === "verified";
 
-  // ── 5. Update profile in database (service role bypasses RLS) ─────────────
-  const supabase = getServiceRoleClient();
-  if (!supabase) {
+  // ── 5. Update profile in database ────────────────────────────────────────
+  const db = getDb();
+  if (!db) {
     // Don't fail the webhook — log and return 200 so SumSub doesn't retry endlessly
-    console.error("[KYC Webhook] Supabase service client unavailable");
+    console.error("[KYC Webhook] Database unavailable");
     return NextResponse.json({ received: true }, { status: 200 });
   }
 
-  const updatePayload: Record<string, unknown> = {
-    kyc_status: newKycStatus,
-    kyc_provider_id: applicantId,
-    kyc_provider_status: type,
-    regulated_pool_access: isVerified,
+  const updatePayload: Partial<typeof profiles.$inferInsert> = {
+    kycStatus: newKycStatus,
+    kycProviderId: applicantId,
+    kycProviderStatus: type,
+    regulatedPoolAccess: isVerified,
   };
 
   if (isVerified) {
-    updatePayload.kyc_verified_at = new Date().toISOString();
-    updatePayload.kyc_rejection_reason = null;
+    updatePayload.kycVerifiedAt = new Date();
+    updatePayload.kycRejectionReason = null;
   } else if (newKycStatus === "rejected" && rejectionReason) {
-    updatePayload.kyc_rejection_reason = rejectionReason;
+    updatePayload.kycRejectionReason = rejectionReason;
   } else if (newKycStatus === "submitted") {
-    updatePayload.kyc_submitted_at = new Date().toISOString();
+    updatePayload.kycSubmittedAt = new Date();
   }
 
   // Try lookup by our user UUID first (reliable), fallback to provider ID
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update(updatePayload)
-    .eq("id", externalUserId);
+  try {
+    const updated = await db
+      .update(profiles)
+      .set(updatePayload)
+      .where(eq(profiles.id, externalUserId))
+      .returning({ id: profiles.id });
 
-  if (updateError) {
-    // Fallback: look up by kyc_provider_id (handles re-used applicants)
-    const { error: fallbackError } = await supabase
-      .from("profiles")
-      .update(updatePayload)
-      .eq("kyc_provider_id", applicantId);
-
-    if (fallbackError) {
-      console.error("[KYC Webhook] Failed to update profile:", fallbackError.message);
-      // Still return 200 — log error but don't trigger SumSub retries for DB issues
+    if (updated.length === 0) {
+      // Fallback: look up by kyc_provider_id (handles re-used applicants)
+      await db.update(profiles).set(updatePayload).where(eq(profiles.kycProviderId, applicantId));
     }
+  } catch (err) {
+    console.error("[KYC Webhook] Failed to update profile:", err instanceof Error ? err.message : err);
+    // Still return 200 — log error but don't trigger SumSub retries for DB issues
   }
 
   if (isVerified) {
     // Seed initial reputation snapshot on first verification
-    await supabase.rpc("seed_reputation_snapshot", {
-      p_user_id: externalUserId,
-      p_initial_score: 100,
-    }).then(({ error }) => {
-      if (error) {
-        // Non-fatal — reputation will be seeded on next profile interaction
-        console.warn("[KYC Webhook] Could not seed reputation:", error.message);
-      }
-    });
+    try {
+      await db
+        .insert(reputationSnapshots)
+        .values({ userId: externalUserId, scoreTotal: 100 })
+        .onConflictDoUpdate({
+          target: reputationSnapshots.userId,
+          set: { scoreTotal: 100, updatedAt: sql`now()` },
+        });
+    } catch (err) {
+      // Non-fatal — reputation will be seeded on next profile interaction
+      console.warn("[KYC Webhook] Could not seed reputation:", err instanceof Error ? err.message : err);
+    }
   }
 
   console.log(

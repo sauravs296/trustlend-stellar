@@ -2,7 +2,7 @@ import { WorkspaceFrame } from "@/components/dashboard/WorkspaceFrame";
 import { adminNavLinks } from "@/lib/dashboard/admin-links";
 import { requireTradeVaultAdmin } from "@/lib/auth/session";
 import { getAdminDashboardMetrics, presentAdminMetrics } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
 import { fetchAdminDashboardPools } from "@/lib/db/pools";
 import AdminPoolsClient from "./pools-client";
 
@@ -18,16 +18,14 @@ import AdminPoolsClient from "./pools-client";
 export default async function AdminPoolsPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const admin = getServiceRoleClient();
+  const db = getDb();
 
-  if (!admin) {
+  if (!db) {
     throw new Error("Database service unavailable");
   }
 
-  // Fetch pools and pending loans using optimized function
-  // Queries execute in parallel for better performance
-  const { pools: rawPools, pendingLoans: rawLoans } =
-    await fetchAdminDashboardPools(admin);
+  // Pools and pending loans are fetched in parallel.
+  const { pools: rawPools, pendingLoans: rawLoans } = await fetchAdminDashboardPools(db);
 
   // Transform to component-friendly format
   const pools = rawPools.map((p) => ({
@@ -59,7 +57,7 @@ export default async function AdminPoolsPage() {
       heading="Pool Management"
       description="Create lending pools, approve borrower loans, and run auto-matching to deploy capital efficiently."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[
         ...adminNavLinks,

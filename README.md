@@ -10,7 +10,7 @@
    <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js" />
    <img src="https://img.shields.io/badge/React-19-20232A?logo=react" alt="React" />
    <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-   <img src="https://img.shields.io/badge/Supabase-Backend-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+   <img src="https://img.shields.io/badge/Neon-Postgres-00E599?logo=postgresql&logoColor=white" alt="Neon Postgres" />
    <img src="https://img.shields.io/badge/Stellar-Testnet-08B5E5" alt="Stellar" />
    <img src="https://img.shields.io/badge/Soroban-Smart%20Contracts-111827" alt="Soroban" />
    <img src="https://img.shields.io/badge/Stellar%20Wave-Issues%20in%20the%20stellar%20wave%20Program-6366f1" alt="Stellar Wave" />
@@ -61,7 +61,7 @@ TrustLend is designed as a foundational layer for decentralized, inclusive credi
 
 ## 🏗️ Architecture & Workflow
 
-TrustLend uses a practical hybrid architecture: **fast UX off-chain** (Supabase/Next.js) combined with **trust-critical logic on-chain** (Soroban/Stellar). The diagram below maps every component and data flow across all six layers of the platform.
+TrustLend uses a practical hybrid architecture: **fast UX off-chain** (Next.js + Neon Postgres) combined with **trust-critical logic on-chain** (Soroban/Stellar). The diagram below maps every component and data flow across all six layers of the platform.
 
 ```mermaid
 flowchart TB
@@ -84,7 +84,7 @@ flowchart TB
     subgraph Backend["⚙️ Backend Layer (Next.js)"]
         direction TB
         SA[("📡 Server Actions & API Routes<br/>app/actions + app/api")]
-        SB[("🗄️ Supabase<br/>PostgreSQL · Auth · RLS · Storage")]
+        SB[("🗄️ Neon Postgres<br/>Drizzle ORM · sessions · Vercel Blob")]
         RM[("🔌 Soroban Client<br/>lib/stellar/soroban.ts")]
         SC[("🔐 Server-side Contract Invoker<br/>lib/stellar/server-contract.ts")]
         RC[("⚡ Redis Cache<br/>Simulation result cache")]
@@ -210,7 +210,7 @@ flowchart LR
     style S fill:#3b82f6,color:#fff
 ```
 
-1. **Onboarding:** User signs up via Supabase Auth, connects a Stellar wallet (Freighter / xBull / Albedo on desktop, or any WalletConnect v2 mobile wallet such as LOBSTR by scanning a QR code), completes KYC verification, and their on-chain reputation profile is initialized.
+1. **Onboarding:** User signs in with their Stellar wallet (SEP-10 challenge signature; no passwords) (Freighter / xBull / Albedo on desktop, or any WalletConnect v2 mobile wallet such as LOBSTR by scanning a QR code), completes KYC verification, and their on-chain reputation profile is initialized.
 2. **Borrowing:** Borrower submits a loan request. The Next.js backend calls `ReputationContract.calculate_max_loan` and `calculate_interest_rate` to determine eligibility and terms.
 3. **Lending:** Lender reviews the request in the marketplace, approves it, and the `LendingContract.approve_loan` is called. Funds are locked via `EscrowContract.create_escrow_hold`.
 4. **Disbursement:** After the 1-hour revocation window expires, the admin confirms disbursement. `EscrowContract.confirm_disbursement` releases funds to the borrower, and `LendingContract.activate_loan` marks the loan as active.
@@ -221,7 +221,7 @@ flowchart LR
 
 | Automation | Trigger | Action |
 |---|---|---|
-| **Payment-Due Scheduler** | Vercel Cron (hourly) | Queries Supabase for loans due within 48h → Sends webhook & email |
+| **Payment-Due Scheduler** | Vercel Cron (daily) | Queries the database for loans due within 48h → Sends webhook & email |
 | **Default Management** | Vercel Cron (daily) | Checks overdue loans against ledger time → Marks defaulted on-chain → Proposes insurance payout via MultiSigAdmin (requires N-of-M human approval) |
 | **Liquidation Keeper** | Manual / cron | Monitors LTV ratios against dynamic thresholds → Liquidates under-collateralized positions → Posts Slack/Discord alerts |
 | **Oracle Credit Score** | Manual / cron | Posts verified off-chain credit scores to the Reputation contract |
@@ -233,7 +233,7 @@ flowchart LR
 | Layer | Technology |
 |---|---|
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Framer Motion |
-| **Backend & DB** | Supabase (Auth, Postgres RLS, Storage) |
+| **Backend & DB** | Neon Postgres + Drizzle ORM, SEP-10 wallet sessions (`jose`), Vercel Blob for KYC files |
 | **Blockchain** | Stellar Testnet, Soroban RPC, Horizon API |
 | **Wallet** | Freighter Wallet, xBull, Albedo, WalletConnect v2 for mobile wallets (`@creit.tech/stellar-wallets-kit`) |
 | **Smart Contracts** | Rust (Soroban, `wasm32v1-none`)  — 8 contracts deployed |
@@ -293,7 +293,7 @@ npm run deploy:testnet:dry
 ### What it writes
 
 Contract IDs land directly in `.env.local`. Keys already present are updated **in
-place** — your Supabase keys, API secrets and comments are left untouched, and a
+place** — your database URL, API secrets and comments are left untouched, and a
 `.env.local.bak` is taken first. A reference copy also goes to `.env.contracts`.
 
 | Contract | Env key |
@@ -368,8 +368,8 @@ TrustLend includes an automated scheduler that checks for loans with payment dea
 
 ### How It Works
 
-1. An external scheduler (Vercel Cron or any HTTP trigger) calls `POST /api/cron/payment-due` hourly.
-2. The route queries Supabase for `active` or `funded` loans with `due_at` between now and +48 hours.
+1. An external scheduler (Vercel Cron or any HTTP trigger) calls `POST /api/cron/payment-due` daily.
+2. The route queries the database for `active` or `funded` loans with `due_at` between now and +48 hours.
 3. A POST webhook is sent to `WEBHOOK_NOTIFICATION_URL` for each qualifying loan.
 4. The loan's `metadata.payment_due_notified_at` is set to prevent duplicate notifications.
 5. Per-loan errors are logged without stopping the rest of the batch.
@@ -380,7 +380,7 @@ TrustLend includes an automated scheduler that checks for loans with payment dea
 |---|---|
 | `WEBHOOK_NOTIFICATION_URL` | URL of the notification service that receives payment-due webhook POSTs |
 | `CRON_SECRET` | Secret token used to authenticate scheduler requests (`Authorization: Bearer <value>`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key (required for RLS-bypassing loan queries) |
+| `DATABASE_URL` | Neon Postgres connection string |
 | `RESEND_API_KEY` | Optional Resend API key for borrower email notifications |
 | `RESEND_FROM_EMAIL` | Verified sender address used for TrustLend emails |
 | `RESEND_REPLY_TO_EMAIL` | Optional reply-to address for support responses |

@@ -96,7 +96,7 @@ export interface RawP2pTransaction {
   amount?: number | string | null;
   ref_id?: string | null;
   created_at?: string | null;
-  metadata?: string | null;
+  metadata?: string | Record<string, unknown> | null;
 }
 
 export interface CalculateYieldOptions {

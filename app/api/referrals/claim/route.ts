@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
 import { normalizeReferralCode } from "@/lib/referrals/codes";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
@@ -12,7 +13,8 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
  * Called once, right after a user signs up through an invite link.
  *
  * Attribution is deliberately server-side and idempotent:
- *   • record_referral() is security definer, so the referee cannot forge a row
+ *   • record_referral() runs in SQL with the caller id taken from the session,
+ *     so the referee cannot forge a row
  *   • the unique constraint on referee_id makes a double submit a no-op
  *   • self-referral is rejected in SQL as well as here
  *
@@ -26,8 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = await requireAuthenticatedUser();
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
@@ -41,13 +43,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc("record_referral", {
-      p_referee_id: user.id,
-      p_referral_code: code,
-    });
-
-    if (error) {
-      const message = error.message ?? "";
+    let row: { referral_id?: string; status?: string } | undefined;
+    try {
+      const result = await db.execute(
+        sql`select referral_id, referrer_id, status from public.record_referral(${user.id}::uuid, ${code}::text)`,
+      );
+      row = result.rows[0] as typeof row;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
       // Map the SQL guards onto meaningful status codes rather than a blanket
       // 500 — an unknown code is a client mistake, not a server fault.
       if (message.includes("Unknown referral code")) {
@@ -68,8 +71,6 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-
-    const row = Array.isArray(data) ? data[0] : data;
 
     return NextResponse.json(
       {

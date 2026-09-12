@@ -11,7 +11,7 @@ vi.mock("@stellar/stellar-sdk", () => ({
   Keypair: {
     fromPublicKey: (key: string) => ({
       verify: (data: Buffer, sig: Buffer) => {
-        return sig.toString("base64") === "mockSignatureBase64";
+        return sig.toString("utf8") === "mock-signature";
       },
     }),
   },
@@ -245,7 +245,7 @@ describe("Stellar SEP-31 Client", () => {
     it("correctly identifies valid signatures using Ed25519", async () => {
       const isValid = await verifyAnchorSignature(
         '{"status":"completed"}',
-        "mockSignatureBase64",
+        Buffer.from("mock-signature").toString("base64"),
         "GCSW6Y6W7QA2SV6OQNK2STU2QL2IWOJM4XNKV56A476I2V4JSU46A6N2"
       );
 

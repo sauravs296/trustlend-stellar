@@ -776,7 +776,7 @@ function writeEnvFiles(
   }
 
   // Back up before rewriting a file that already had content, so a bad merge
-  // can never cost someone their Supabase keys.
+  // can never cost someone their database credentials.
   if (existed && current.trim() !== "") {
     fs.writeFileSync(`${envFilePath}.bak`, current);
   }

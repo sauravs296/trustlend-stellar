@@ -100,7 +100,7 @@ git remote add upstream https://github.com/thisisouvik/trustlend-stellar.git
 npm install
 ```
 
-This installs all frontend dependencies listed in `package.json` (React 19, Next.js 16, Tailwind CSS 4, Supabase SDK, Stellar SDK, etc.). The install also triggers Husky's `prepare` script which activates the commit-msg hook for conventional commit enforcement.
+This installs all frontend dependencies listed in `package.json` (React 19, Next.js 16, Tailwind CSS 4, Drizzle ORM, Stellar SDK, etc.). The install also triggers Husky's `prepare` script which activates the commit-msg hook for conventional commit enforcement.
 
 ### 3.2 Configure Environment Variables
 
@@ -110,11 +110,12 @@ Copy the example environment file:
 cp .env.example .env.local
 ```
 
-Open `.env.local` and set the required values. For **local development with an offline Supabase project**, at minimum configure:
+Open `.env.local` and set the required values. At minimum configure:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+DATABASE_URL=postgres://...            # Neon pooled connection string
+SESSION_SECRET=<openssl rand -base64 48>
+SIWS_SERVER_SECRET=<stellar keys generate ...>
 NEXT_PUBLIC_STELLAR_NETWORK=testnet
 NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
 NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
@@ -122,21 +123,36 @@ NEXT_PUBLIC_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
 
 > Refer to `.env.example` for the full list of supported variables and their descriptions.
 
-### 3.3 Set Up Supabase (Database)
+### 3.3 Set Up the Database (Neon Postgres)
 
-The project uses Supabase for auth, Postgres, and storage. Run the SQL migration files in your Supabase SQL editor **in order**:
+TrustLend stores off-chain state in Postgres on [Neon](https://neon.tech) and
+talks to it through [Drizzle ORM](https://orm.drizzle.team). The schema lives in
+`lib/db/schema.ts`; SQL migrations are generated from it into `drizzle/`.
 
-| Order | File | Purpose |
-|---|---|---|
-| 1 | `sql/01_core_schema.sql` | Core tables: users, loans, pools, etc. |
-| 2 | `sql/02_security_rls.sql` | Row-level security policies |
-| 3 | `sql/03_functions_rpcs.sql` | PostgreSQL functions & RPCs |
-| 4 | `sql/04_pool_performance_rpc.sql` | Optimized pool-query RPCs |
-| 5 | `sql/05_interest_rate_model.sql` | Interest rate model logic |
-| 6 | `sql/05_horizon_sync_schema.sql` | Horizon sync tables |
-| 7 | `sql/06_kyc_provider.sql` | KYC provider schema |
+1. Create a Neon project and copy the **pooled** connection string into
+   `DATABASE_URL` in `.env.local`.
+2. Apply the migrations:
 
-Also create a private storage bucket named **`kyc-documents`** in the Supabase dashboard for user document uploads.
+   ```bash
+   npm run db:migrate
+   ```
+
+   This creates every table, trigger and SQL function the app needs (the
+   `drizzle/0001_functions_and_triggers.sql` migration holds the row-locked
+   loan-funding and referral functions).
+3. Optional: `npm run db:studio` opens a browser UI over the database.
+
+When you change `lib/db/schema.ts`, run `npm run db:generate` to produce the
+next migration and commit it alongside the schema change.
+
+**Authentication** is Sign-In with Stellar (SEP-10): there are no passwords and
+no third-party auth service. A successful wallet signature creates a row in
+`users` + `profiles` and sets a signed HttpOnly session cookie
+(`SESSION_SECRET`). See [auth-siws.md](auth-siws.md).
+
+**KYC documents** are stored as private files in
+[Vercel Blob](https://vercel.com/docs/storage/vercel-blob); set
+`BLOB_READ_WRITE_TOKEN` to enable uploads locally.
 
 ### 3.4 Start the Development Server
 
@@ -408,11 +424,14 @@ rustup target add wasm32-unknown-unknown
   ```
 - Ensure your Node.js version is >= 20.
 
-### Supabase queries return empty / auth doesn't work
+### Dashboards are empty / sign-in fails
 
-- Verify your `.env.local` has the correct `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-- Ensure all SQL migration files have been run in your Supabase project.
-- Check that Row-Level Security (RLS) policies are applied.
+- Verify `DATABASE_URL` in `.env.local` points at your Neon project and that
+  `npm run db:migrate` has been run against it.
+- `SESSION_SECRET` must be at least 32 characters; `SIWS_SERVER_SECRET` must
+  be a valid Stellar secret key.
+- The dev server logs `Database is not configured` when `DATABASE_URL` is
+  missing — pages then render their empty states rather than crashing.
 
 ### Tests are slow
 

@@ -1,7 +1,12 @@
 import { WorkspaceFrame } from "@/components/dashboard/WorkspaceFrame";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getLenderDashboardMetrics, presentLenderMetrics } from "@/lib/dashboard/metrics";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { and, desc, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { readMetadata } from "@/lib/db/metadata";
+import { getProfile } from "@/lib/db/queries";
+import { ledgerToRow, poolToRow, positionToRow } from "@/lib/db/rows";
+import { ledgerTransactions, lendingPools, poolPositions } from "@/lib/db/schema";
 import { lenderNavLinks } from "@/lib/dashboard/lender-links";
 import { formatCurrency, formatXlmPrecise } from "@/lib/utils/formatting";
 import { TaxReportExportButton } from "@/components/dashboard/TaxReportExportButton";
@@ -13,62 +18,42 @@ export default async function LenderPortfolioPage() {
   const { user } = await requireAuthenticatedUser("lender");
   const metrics = await getLenderDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const srClient = getServiceRoleClient();
+  const db = getDb();
 
-  // 1. Fetch Pool Positions, Profiles, and Lending Pools
-  const [positionsRes, profileRes, poolsRes] = supabase
+  // 1. Pool positions, profile, lending pools, and both sides of the P2P ledger
+  const [positionRows, profile, poolRows, p2pFundRows, p2pRepayRows] = db
     ? await Promise.all([
-        supabase
-          .from("pool_positions")
-          .select("id, pool_id, status, principal_amount, earned_interest, opened_at, closed_at")
-          .eq("lender_id", user.id)
-          .order("opened_at", { ascending: false })
+        db
+          .select()
+          .from(poolPositions)
+          .where(eq(poolPositions.lenderId, user.id))
+          .orderBy(desc(poolPositions.openedAt))
           .limit(20),
-        supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("lending_pools")
-          .select("id, name, status, apr_bps, total_liquidity, available_liquidity"),
+        getProfile(db, user.id),
+        db.select().from(lendingPools),
+        db
+          .select()
+          .from(ledgerTransactions)
+          .where(and(eq(ledgerTransactions.userId, user.id), eq(ledgerTransactions.refType, "loan_fund"))),
+        db.select().from(ledgerTransactions).where(eq(ledgerTransactions.refType, "loan_repay")),
       ])
-    : [{ data: [] }, { data: null }, { data: [] }];
+    : [[], null, [], [], []];
 
-  const positions = positionsRes.data ?? [];
-  const profile = profileRes.data;
-  const pools = poolsRes.data ?? [];
+  const positions = positionRows.map(positionToRow);
+  const pools = poolRows.map(poolToRow);
+  const p2pFunds = p2pFundRows.map(ledgerToRow);
 
-  // 2. Fetch Direct Marketplace Loans for Profit
-  // P2P Funds
-  const { data: p2pFunds } = supabase
-    ? await supabase
-        .from("ledger_transactions")
-        .select("amount, ref_id, created_at")
-        .eq("user_id", user.id)
-        .eq("ref_type", "loan_fund")
-    : { data: [] };
-
-  const { data: p2pRepays } = srClient
-    ? await srClient
-        .from("ledger_transactions")
-        .select("amount, metadata, ref_id, created_at")
-        .eq("ref_type", "loan_repay")
-    : { data: [] };
-
-  const lenderRepays = (p2pRepays ?? []).filter(tx => {
-    try {
-      const meta = JSON.parse(String(tx.metadata || "{}"));
-      return String(meta.lenderUserId) === String(user.id) || String(meta.lenderAddress) === String(user.id);
-    } catch { return false; }
+  // Repayment rows are written by the borrower; the lender is identified from metadata.
+  const lenderRepays = p2pRepayRows.map(ledgerToRow).filter((tx) => {
+    const meta = readMetadata(tx.metadata);
+    return String(meta.lenderUserId) === user.id || String(meta.lenderAddress) === user.walletAddress;
   });
 
   // Calculate comprehensive yield analytics & pool breakdown (Issue #256)
   const yieldAnalytics = calculateLenderYieldAnalytics({
     positions,
     pools,
-    p2pFunds: p2pFunds ?? [],
+    p2pFunds,
     p2pRepays: lenderRepays,
   });
 
@@ -94,7 +79,7 @@ export default async function LenderPortfolioPage() {
       heading="Portfolio & Yield Analytics"
       description="Track historical APY yield, projected future returns, and earnings breakdown across lending pools."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentLenderMetrics(metrics)}
       currentPath="/dashboard/lender/portfolio"
       links={lenderNavLinks}

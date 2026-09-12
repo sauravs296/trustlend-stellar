@@ -10,7 +10,7 @@ loans and liquidates them on-chain before they become bad debt.
 
 ## Flow
 
-1. **Fetch open loans** — either `--source=db` (Supabase `loans` table, resolving the
+1. **Fetch open loans** — either `--source=db` (the `loans` table, resolving the
    on-chain loan id from the funding ledger entry) or `--source=chain` (iterates the
    LendingContract directly via `get_loan_count`/`get_loan`).
 2. **Read authoritative on-chain state** — collateral + remaining debt from

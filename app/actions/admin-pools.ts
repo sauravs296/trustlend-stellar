@@ -1,37 +1,24 @@
-/**
- * Admin Pools Server Actions
- * 
- * OPTIMIZATION (Issue #39):
- * - Uses optimized fetchActivePoolsWithLiquidity function
- * - Reduced sequential queries in runAutoMatch
- * - Single lookups for pool and loan validation
- */
-
 "use server";
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
-import {
-  fetchPoolById,
-  fetchActivePoolsWithLiquidity,
-} from "@/lib/db/pools";
+/**
+ * Admin Pools Server Actions
+ *
+ * Creating pools, approving loans against pool liquidity, and the auto-match
+ * pass that funds pending loans from whichever active pool can cover them.
+ */
+
+import { asc, eq, sql } from "drizzle-orm";
+import { requireApiAdmin } from "@/lib/auth/session";
+import { getDb, type Db } from "@/lib/db/client";
+import { fetchActivePoolsWithLiquidity, fetchPoolById } from "@/lib/db/pools";
+import { lendingPools, loans } from "@/lib/db/schema";
 import { sendLoanApprovedEmail } from "@/lib/email/resend";
 
-async function requireAdmin() {
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) throw new Error("Database unavailable");
-
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profile?.role !== "admin") throw new Error("Unauthorized: Admin only");
-
-  return { user, supabase };
+async function requireAdmin(): Promise<{ db: Db }> {
+  await requireApiAdmin();
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+  return { db };
 }
 
 // ── Create a new lending pool ──────────────────────────────────────────────────
@@ -39,41 +26,35 @@ export async function createLendingPool(
   formData: FormData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase } = await requireAdmin();
+    const { db } = await requireAdmin();
 
     const name = String(formData.get("name") ?? "").trim();
     const aprBps = parseInt(String(formData.get("apr_bps") ?? "0"), 10);
     const description = String(formData.get("description") ?? "").trim();
     const borrowCapRaw = formData.get("borrow_cap");
-    const borrowCap = borrowCapRaw !== null && borrowCapRaw !== "" 
-      ? parseFloat(String(borrowCapRaw))
-      : null;
+    const borrowCap =
+      borrowCapRaw !== null && borrowCapRaw !== "" ? parseFloat(String(borrowCapRaw)) : null;
 
     if (borrowCap !== null && (borrowCap <= 0 || !Number.isFinite(borrowCap))) {
       return { success: false, error: "Borrow cap must be a positive number" };
     }
-
     if (!name) return { success: false, error: "Pool name is required" };
     if (!aprBps || aprBps <= 0 || aprBps > 10000)
       return { success: false, error: "APR must be between 0.01% and 100%" };
 
-    const { error } = await supabase.from("lending_pools").insert({
+    await db.insert(lendingPools).values({
       name,
       description: description || null,
       status: "active",
-      apr_bps: aprBps,
-      total_liquidity: 0,
-      available_liquidity: 0,
-      borrow_cap: borrowCap ?? null,
+      aprBps,
+      totalLiquidity: "0",
+      availableLiquidity: "0",
+      borrowCap: borrowCap === null ? null : String(borrowCap),
     });
 
-    if (error) return { success: false, error: error.message };
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Failed" };
   }
 }
 
@@ -83,58 +64,43 @@ export async function togglePoolStatus(
   newStatus: "active" | "paused"
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase } = await requireAdmin();
-
-    const { error } = await supabase
-      .from("lending_pools")
-      .update({ status: newStatus })
-      .eq("id", poolId);
-
-    if (error) return { success: false, error: error.message };
+    const { db } = await requireAdmin();
+    await db.update(lendingPools).set({ status: newStatus }).where(eq(lendingPools.id, poolId));
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Failed" };
   }
 }
 
-/**
- * Approve a pending loan and link to pool.
- * 
- * OPTIMIZATION:
- * - Single pool lookup via optimized fetchPoolById
- * - No redundant pool queries
- * - Atomic update pattern
- */
+/** Approve a pending loan and reserve its principal from the pool. */
 export async function approveLoan(
   loanId: string,
   poolId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase } = await requireAdmin();
+    const { db } = await requireAdmin();
 
-    // Fetch loan to validate
-    const { data: loan, error: fetchErr } = await supabase
-      .from("loans")
-      .select("id, borrower_id, status, principal_amount, pool_id")
-      .eq("id", loanId)
-      .maybeSingle();
+    const [loan] = await db
+      .select({
+        id: loans.id,
+        borrowerId: loans.borrowerId,
+        status: loans.status,
+        principalAmount: loans.principalAmount,
+      })
+      .from(loans)
+      .where(eq(loans.id, loanId))
+      .limit(1);
 
-    if (fetchErr || !loan) return { success: false, error: "Loan not found" };
+    if (!loan) return { success: false, error: "Loan not found" };
     if (loan.status !== "requested")
       return { success: false, error: `Loan is already ${loan.status}` };
 
-    // Fetch pool to check liquidity using optimized function
-    const pool = await fetchPoolById(supabase, poolId);
-
+    const pool = await fetchPoolById(db, poolId);
     if (!pool) return { success: false, error: "Pool not found" };
-    if (pool.status !== "active")
-      return { success: false, error: "Pool is not active" };
+    if (pool.status !== "active") return { success: false, error: "Pool is not active" };
 
-    const loanAmount = Number(loan.principal_amount ?? 0);
-    const available = Number(pool.available_liquidity ?? 0);
+    const loanAmount = Number(loan.principalAmount ?? 0);
+    const available = pool.available_liquidity;
 
     if (loanAmount > available) {
       return {
@@ -144,66 +110,32 @@ export async function approveLoan(
     }
 
     // Borrow cap enforcement (#153)
-    if (pool.borrow_cap !== null && pool.borrow_cap !== undefined) {
-      const currentBorrowed = Number(pool.total_borrowed ?? 0);
-      if (currentBorrowed + loanAmount > pool.borrow_cap) {
-        return {
-          success: false,
-          error: `Pool borrow cap exceeded: pool has borrowed ${currentBorrowed} XLM, cap is ${pool.borrow_cap} XLM, loan needs ${loanAmount} XLM`,
-        };
-      }
+    if (pool.borrow_cap !== null && pool.total_borrowed + loanAmount > pool.borrow_cap) {
+      return {
+        success: false,
+        error: `Pool borrow cap exceeded: pool has borrowed ${pool.total_borrowed} XLM, cap is ${pool.borrow_cap} XLM, loan needs ${loanAmount} XLM`,
+      };
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
+    await db
+      .update(loans)
+      .set({ status: "approved", poolId, approvedAt: now })
+      .where(eq(loans.id, loanId));
+    await db
+      .update(lendingPools)
+      .set({ availableLiquidity: sql`${lendingPools.availableLiquidity} - ${loanAmount}` })
+      .where(eq(lendingPools.id, poolId));
 
-    // 1. Approve loan
-    const { error: loanErr } = await supabase
-      .from("loans")
-      .update({
-        status: "approved",
-        pool_id: poolId,
-        approved_at: now,
-      })
-      .eq("id", loanId);
-
-    if (loanErr) return { success: false, error: loanErr.message };
-
-    // 2. Deduct available liquidity from pool
-    const { error: poolErr } = await supabase
-      .from("lending_pools")
-      .update({ available_liquidity: available - loanAmount })
-      .eq("id", poolId);
-
-    if (poolErr) return { success: false, error: poolErr.message };
-
-    await sendLoanApprovedEmail({
-      userId: String(loan.borrower_id),
-      amount: loanAmount,
-      loanId,
-    });
+    await sendLoanApprovedEmail({ userId: loan.borrowerId, amount: loanAmount, loanId });
 
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Failed" };
   }
 }
 
-/**
- * Run auto-matching: fund all pending loans that pools can cover.
- * 
- * OPTIMIZATION (Issue #39):
- * - Fetch active pools in single query using optimized function
- * - Replaced sequential pool fetches with batch query
- * - Reduced from ~4 queries to 2-3 queries total
- * 
- * PERFORMANCE:
- * - Active pools query: O(1) with index on (status, available_liquidity)
- * - Pending loans query: O(1) with index on (status)
- * - Matching loop: O(n*m) but with filtered, pre-sorted data
- */
+/** Run auto-matching: approve every pending loan an active pool can cover. */
 export async function runAutoMatch(): Promise<{
   success: boolean;
   matched: number;
@@ -211,57 +143,49 @@ export async function runAutoMatch(): Promise<{
   error?: string;
 }> {
   try {
-    const { supabase } = await requireAdmin();
+    const { db } = await requireAdmin();
 
-    // Get all pending loans ordered by creation (oldest first)
-    const { data: pendingLoans } = await supabase
-      .from("loans")
-      .select("id, borrower_id, principal_amount, pool_id")
-      .eq("status", "requested")
-      .order("requested_at", { ascending: true });
+    const pendingLoans = await db
+      .select({
+        id: loans.id,
+        borrowerId: loans.borrowerId,
+        principalAmount: loans.principalAmount,
+        poolId: loans.poolId,
+      })
+      .from(loans)
+      .where(eq(loans.status, "requested"))
+      .orderBy(asc(loans.requestedAt));
 
-    if (!pendingLoans || pendingLoans.length === 0) {
+    if (pendingLoans.length === 0) {
       return { success: true, matched: 0, skipped: 0 };
     }
 
-    // OPTIMIZED: Fetch all active pools with sufficient liquidity in ONE query
-    // using optimized fetchActivePoolsWithLiquidity
-    const activePools = await fetchActivePoolsWithLiquidity(supabase, 0);
-
+    const activePools = await fetchActivePoolsWithLiquidity(db, 0);
     if (activePools.length === 0) {
-      return {
-        success: true,
-        matched: 0,
-        skipped: pendingLoans.length,
-      };
+      return { success: true, matched: 0, skipped: pendingLoans.length };
     }
 
-    // Mutable pool liquidity map for local state tracking
+    // Mutable liquidity map so several loans can draw on one pool in a pass.
     const poolLiquidity = new Map<string, number>(
-      activePools.map((p) => [String(p.id), Number(p.available_liquidity ?? 0)])
+      activePools.map((p) => [p.id, p.available_liquidity])
     );
 
     let matched = 0;
     let skipped = 0;
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    // Process each pending loan
     for (const loan of pendingLoans) {
-      const amount = Number(loan.principal_amount ?? 0);
+      const amount = Number(loan.principalAmount ?? 0);
 
-      // Find a pool with enough liquidity (prefer the assigned pool if any)
       let targetPoolId: string | null = null;
-      const assignedPool = loan.pool_id ? String(loan.pool_id) : null;
-
+      const assignedPool = loan.poolId ?? null;
       if (assignedPool && (poolLiquidity.get(assignedPool) ?? 0) >= amount) {
         targetPoolId = assignedPool;
       } else {
-        // Pick the pool with most liquidity that covers the loan
-        // Pools are already sorted by available_liquidity DESC from fetch
+        // Pools are already sorted by available liquidity (desc).
         for (const pool of activePools) {
-          const currentLiquidity = poolLiquidity.get(String(pool.id)) ?? 0;
-          if (currentLiquidity >= amount) {
-            targetPoolId = String(pool.id);
+          if ((poolLiquidity.get(pool.id) ?? 0) >= amount) {
+            targetPoolId = pool.id;
             break;
           }
         }
@@ -273,44 +197,29 @@ export async function runAutoMatch(): Promise<{
       }
 
       // Borrow cap enforcement (#153)
-      const targetPool = activePools.find((p) => String(p.id) === targetPoolId);
-      if (targetPool && targetPool.borrow_cap !== null && targetPool.borrow_cap !== undefined) {
-        const currentBorrowed = Number(targetPool.total_borrowed ?? 0);
-        if (currentBorrowed + amount > targetPool.borrow_cap) {
-          skipped++;
-          continue;
-        }
-      }
-
-      // Approve and deduct
-      const [loanResult, poolResult] = await Promise.all([
-        supabase
-          .from("loans")
-          .update({ status: "approved", pool_id: targetPoolId, approved_at: now })
-          .eq("id", loan.id),
-        supabase
-          .from("lending_pools")
-          .update({
-            available_liquidity:
-              (poolLiquidity.get(targetPoolId) ?? 0) - amount,
-          })
-          .eq("id", targetPoolId),
-      ]);
-
-      if (loanResult.error || poolResult.error) {
+      const targetPool = activePools.find((p) => p.id === targetPoolId);
+      if (targetPool && targetPool.borrow_cap !== null && targetPool.total_borrowed + amount > targetPool.borrow_cap) {
         skipped++;
-      } else {
-        poolLiquidity.set(
-          targetPoolId,
-          (poolLiquidity.get(targetPoolId) ?? 0) - amount
-        );
-        await sendLoanApprovedEmail({
-          userId: String(loan.borrower_id),
-          amount,
-          loanId: String(loan.id),
-        });
-        matched++;
+        continue;
       }
+
+      try {
+        await db
+          .update(loans)
+          .set({ status: "approved", poolId: targetPoolId, approvedAt: now })
+          .where(eq(loans.id, loan.id));
+        await db
+          .update(lendingPools)
+          .set({ availableLiquidity: sql`${lendingPools.availableLiquidity} - ${amount}` })
+          .where(eq(lendingPools.id, targetPoolId));
+      } catch {
+        skipped++;
+        continue;
+      }
+
+      poolLiquidity.set(targetPoolId, (poolLiquidity.get(targetPoolId) ?? 0) - amount);
+      await sendLoanApprovedEmail({ userId: loan.borrowerId, amount, loanId: loan.id });
+      matched++;
     }
 
     return { success: true, matched, skipped };
@@ -325,32 +234,25 @@ export async function runAutoMatch(): Promise<{
 }
 
 // ── Set pool borrow cap ──────────────────────────────────────────────────────
-/**
- * Set or clear the borrow cap for a lending pool.
- * Pass null to remove the cap (unlimited borrowing).
- */
+/** Set or clear the borrow cap for a lending pool (null = unlimited). */
 export async function setPoolBorrowCap(
   poolId: string,
   borrowCap: number | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase } = await requireAdmin();
+    const { db } = await requireAdmin();
 
     if (borrowCap !== null && (borrowCap <= 0 || !Number.isFinite(borrowCap))) {
       return { success: false, error: "Borrow cap must be a positive number or null" };
     }
 
-    const { error } = await supabase
-      .from("lending_pools")
-      .update({ borrow_cap: borrowCap })
-      .eq("id", poolId);
+    await db
+      .update(lendingPools)
+      .set({ borrowCap: borrowCap === null ? null : String(borrowCap) })
+      .where(eq(lendingPools.id, poolId));
 
-    if (error) return { success: false, error: error.message };
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Failed",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Failed" };
   }
 }

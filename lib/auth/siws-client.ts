@@ -4,11 +4,10 @@
  * lib/auth/siws-client.ts
  *
  * Browser side of Sign-In with Stellar (SEP-0010):
- *   connect wallet → fetch challenge → sign with Freighter/Albedo →
- *   verify on the backend → adopt the returned Supabase session.
+ *   connect wallet → fetch challenge → sign with the wallet →
+ *   verify on the backend (which sets the HttpOnly session cookie).
  */
 
-import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   getConnectedWallet,
   signTransactionWithWallet,
@@ -45,11 +44,6 @@ export async function signInWithStellar(
   preferredProvider?: StellarWalletProvider,
   role?: UserRole
 ): Promise<SiwsResult> {
-  const supabase = getBrowserSupabaseClient();
-  if (!supabase) {
-    throw new Error("Supabase is not configured in this environment.");
-  }
-
   // 1. Connect the wallet (Freighter by default).
   const wallet = await getConnectedWallet(preferredProvider);
   const address = wallet.address;
@@ -73,7 +67,7 @@ export async function signInWithStellar(
     provider: wallet.provider,
   });
 
-  // 4. Verify + obtain a Supabase session.
+  // 4. Verify — on success the server sets the session cookie.
   const verify = await postJson("/api/auth/siws/verify", {
     address,
     signedTxXdr: signed.signedTxXdr,
@@ -82,22 +76,17 @@ export async function signInWithStellar(
   if (!verify.res.ok) {
     throw new Error(mapVerifyError(verify.payload));
   }
-  const accessToken = verify.payload.access_token as string;
-  const refreshToken = verify.payload.refresh_token as string;
-  if (!accessToken || !refreshToken) {
-    throw new Error("Sign-in succeeded but no session was returned.");
-  }
 
-  // 5. Adopt the session (persists cookies for SSR + client).
-  const { data, error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-  if (error) {
-    throw new Error(`Could not establish session: ${error.message}`);
-  }
-  const normalizedRole = normalizeUserRole(data.user?.user_metadata?.account_type);
-  return { address, role: normalizedRole, isNewUser: Boolean(verify.payload.isNewUser) };
+  return {
+    address,
+    role: normalizeUserRole(verify.payload.role),
+    isNewUser: Boolean(verify.payload.isNewUser),
+  };
+}
+
+/** Clear the session cookie. */
+export async function signOut(): Promise<void> {
+  await fetch("/api/auth/signout", { method: "POST" });
 }
 
 /** Map backend SIWS error codes to friendly, actionable messages. */
@@ -117,7 +106,7 @@ function mapVerifyError(payload: Record<string, unknown>): string {
       return "The sign-in challenge was invalid. Please retry.";
     case "not_configured":
     case "session_failed":
-      return "Stellar sign-in is temporarily unavailable. Please try another method.";
+      return "Stellar sign-in is temporarily unavailable. Please try again later.";
     default:
       return fallback;
   }

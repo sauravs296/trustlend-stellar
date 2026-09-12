@@ -1,4 +1,6 @@
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { users } from "@/lib/db/schema";
 import {
   loanApprovedTemplate,
   loanFundedTemplate,
@@ -32,17 +34,17 @@ function appUrl(path: string) {
 }
 
 async function getUserEmail(userId: string): Promise<string | null> {
-  const supabase = getServiceRoleClient();
-  const admin = supabase?.auth?.admin;
-  if (!admin) return null;
+  const db = getDb();
+  if (!db) return null;
 
-  const { data, error } = await admin.getUserById(userId);
-  if (error) {
-    console.warn(`[email] Could not resolve email for user ${userId}: ${error.message}`);
+  try {
+    const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+    return row?.email ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[email] Could not resolve email for user ${userId}: ${message}`);
     return null;
   }
-
-  return data.user?.email ?? null;
 }
 
 async function sendEmail(payload: EmailPayload): Promise<void> {

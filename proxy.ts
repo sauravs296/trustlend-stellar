@@ -1,6 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getDashboardPath, normalizeUserRole } from "@/lib/auth/roles";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session-token";
 import { recordRequestMetrics } from "@/lib/monitoring/metrics";
 import { enforceGlobalApiRateLimit } from "@/lib/rate-limit";
 
@@ -42,51 +42,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // ── ③ Supabase cookie-based session check (NO NETWORK CALL) ─────────────────
-  // We use getSession() here because it reads the JWT from the cookie locally.
-  // getUser() makes a live Supabase network call on every request and is the
-  // cause of the 10 s connect-timeout errors. Full JWT verification happens
-  // inside requireAuthenticatedUser() in each protected page/API route.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    return NextResponse.next({ request });
-  }
-
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
-
-  // Securely get user via Supabase Auth server to prevent session spoofing warnings
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const effectiveUser = bypassActive
-    ? {
-        id: bypassUserId,
-        user_metadata: { account_type: normalizeUserRole(bypassRoleRaw) },
-      }
-    : user ?? null;
+  // ── ③ Session cookie check (NO NETWORK CALL) ────────────────────────────────
+  // The cookie is a signed JWT, so the edge can verify it locally. Whether the
+  // user still exists is checked by requireAuthenticatedUser() in each
+  // protected page / API route.
+  const claims = bypassActive
+    ? { sub: bypassUserId, role: normalizeUserRole(bypassRoleRaw) }
+    : await verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
 
   const isDashboardPath = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
   const isAuthEntryPath = pathname === "/auth";
 
-  if (isDashboardPath && !effectiveUser) {
+  if (isDashboardPath && !claims) {
     const duration = (performance.now() - start) / 1000;
     recordRequestMetrics(method, pathname, 302, duration);
     const redirectUrl = request.nextUrl.clone();
@@ -95,17 +62,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isAuthEntryPath && effectiveUser) {
+  if (isAuthEntryPath && claims) {
     const duration = (performance.now() - start) / 1000;
     recordRequestMetrics(method, pathname, 302, duration);
     const redirectUrl = request.nextUrl.clone();
-    const role = normalizeUserRole(effectiveUser.user_metadata?.account_type);
-    redirectUrl.pathname = getDashboardPath(role);
+    redirectUrl.pathname = getDashboardPath(normalizeUserRole(claims.role));
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }
 
-  return supabaseResponse;
+  return NextResponse.next({ request });
 }
 
 export const config = {

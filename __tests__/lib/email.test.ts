@@ -1,17 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// ── Mock Supabase service role client ─────────────────────────────────────────
-const mockGetUserById = vi.fn();
+import { createFakeDb } from "../helpers/fake-db";
 
-vi.mock("@/lib/supabase/server", () => ({
-  getServiceRoleClient: () => ({
-    auth: {
-      admin: {
-        getUserById: mockGetUserById,
-      },
-    },
-  }),
+// ── Mock the database: getUserEmail() runs one select on users ───────────────
+const fakeDb = createFakeDb();
+
+vi.mock("@/lib/db/client", () => ({
+  getDb: () => fakeDb,
 }));
+
+/** Queue the users row the next e-mail lookup will read. */
+function primeUserEmail(email: string | null) {
+  fakeDb.reset();
+  fakeDb.queue(email === null ? [] : [{ email }]);
+}
 
 import {
   isResendConfigured,
@@ -102,10 +104,7 @@ describe("Resend Email Delivery", () => {
   });
 
   it("sends loan funded email immediately to the borrower", async () => {
-    mockGetUserById.mockResolvedValue({
-      data: { user: { email: "borrower@example.com" } },
-      error: null,
-    });
+    primeUserEmail("borrower@example.com");
 
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
@@ -116,7 +115,7 @@ describe("Resend Email Delivery", () => {
       loanId: "loan-abc",
     });
 
-    expect(mockGetUserById).toHaveBeenCalledWith("user-123");
+    expect(fakeDb.calls.some((c) => c.method === "select")).toBe(true);
     expect(fetchMock).toHaveBeenCalledOnce();
 
     const [url, options] = fetchMock.mock.calls[0];
@@ -132,10 +131,7 @@ describe("Resend Email Delivery", () => {
   });
 
   it("sends loan approved email to borrower", async () => {
-    mockGetUserById.mockResolvedValue({
-      data: { user: { email: "borrower@example.com" } },
-      error: null,
-    });
+    primeUserEmail("borrower@example.com");
 
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
@@ -154,10 +150,7 @@ describe("Resend Email Delivery", () => {
   });
 
   it("handles missing user email gracefully without throwing", async () => {
-    mockGetUserById.mockResolvedValue({
-      data: { user: null },
-      error: { message: "User not found" },
-    });
+    primeUserEmail(null);
 
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -174,10 +167,7 @@ describe("Resend Email Delivery", () => {
   });
 
   it("catches and logs API failures without unhandled rejections", async () => {
-    mockGetUserById.mockResolvedValue({
-      data: { user: { email: "borrower@example.com" } },
-      error: null,
-    });
+    primeUserEmail("borrower@example.com");
 
     vi.stubGlobal(
       "fetch",

@@ -8,7 +8,8 @@ import {
   getBorrowerDashboardMetrics,
   presentBorrowerMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { getBorrowerLoans, getLedgerByRef, getProfile } from "@/lib/db/queries";
 import { buildStellarTxVerificationUrl, extractPossibleTxHash, isLikelyTxHash } from "@/lib/stellar/explorer";
 import { BorrowerRepayWidget } from "@/components/dashboard/BorrowerRepayWidget";
 import { WithdrawToFiatButton } from "@/components/dashboard/WithdrawToFiatButton";
@@ -43,48 +44,21 @@ function EmptyLoansIllustration() {
 
 export default async function BorrowerDashboardPage() {
   const { user } = await requireAuthenticatedUser("borrower");
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const metrics = await getBorrowerDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const srClient = getServiceRoleClient();
-
-  const [profileRes, loansRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, phone, date_of_birth, country_code, kyc_status, risk_status, government_id_url, kyc_submitted_at")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, funded_amount, repaid_amount, apr_bps, duration_days, due_at, created_at, metadata")
-          .eq("borrower_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20),
-      ])
-    : [{ data: null }, { data: [] }];
-
-  const profile = profileRes.data;
-  const dbLoans = loansRes.data ?? [];
-  const loans = dbLoans;
+  const db = getDb();
+  const [profile, loans] = await Promise.all([getProfile(db, user.id), getBorrowerLoans(db, user.id, 20)]);
 
   // Stellar TX lookups
-  const loanIds = loans.map((l) => String(l.id));
-  const ledgerRes = srClient && loanIds.length > 0
-    ? await srClient
-        .from("ledger_transactions")
-        .select("ref_id, metadata")
-        .eq("ref_type", "loan_fund")
-        .in("ref_id", loanIds)
-    : { data: [] };
+  const loanIds = loans.map((l) => l.id);
+  const fundLedger = await getLedgerByRef(db, "loan_fund", loanIds);
   const loanTxMap: Record<string, string> = {};
-  for (const entry of ledgerRes.data ?? []) {
-    if (String(entry.ref_id)) {
-      const extracted = extractPossibleTxHash(entry.metadata);
-      if (extracted) {
-        loanTxMap[String(entry.ref_id)] = extracted;
-      }
+  for (const entry of fundLedger) {
+    if (!entry.ref_id) continue;
+    const extracted = extractPossibleTxHash(entry.metadata);
+    if (extracted) {
+      loanTxMap[entry.ref_id] = extracted;
     }
   }
 
@@ -110,7 +84,7 @@ export default async function BorrowerDashboardPage() {
   const hasGovIdSubmission = Boolean(profile?.government_id_url || profile?.kyc_submitted_at || kycStatus === "submitted" || isKycVerified);
 
   const verificationItems = [
-    { label: "Email Verified",      done: Boolean(user.email_confirmed_at) },
+    { label: "Wallet Verified",      done: Boolean(user.walletAddress) },
     { label: "Legal Name Set",      done: Boolean(profile?.full_name) },
     { label: "Phone Number",        done: Boolean(profile?.phone) },
     { label: "Date of Birth",       done: Boolean(profile?.date_of_birth) },
@@ -160,7 +134,7 @@ export default async function BorrowerDashboardPage() {
       heading="My Dashboard"
       description="Your active loans, verification status, and quick actions — all in one place."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentBorrowerMetrics(metrics)}
       headerWidget={
         <WalletCard

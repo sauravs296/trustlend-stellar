@@ -1,7 +1,9 @@
 import { WorkspaceFrame } from "@/components/dashboard/WorkspaceFrame";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getBorrowerDashboardMetrics, presentBorrowerMetrics } from "@/lib/dashboard/metrics";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { metaString } from "@/lib/db/metadata";
+import { getBorrowerLoans, getLedgerByRef, getProfile, getRepaymentsForLoans } from "@/lib/db/queries";
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
 import { ExportCsvButton } from "@/components/dashboard/ExportCsvButton";
 import { formatCurrency } from "@/lib/utils/formatting";
@@ -11,74 +13,41 @@ export default async function BorrowerHistoryPage() {
   const { user } = await requireAuthenticatedUser("borrower");
   const metrics = await getBorrowerDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
+  const db = getDb();
 
   // Fetch initial data for summary stats and first page
-  const [profileRes, loansRes] = supabase
-    ? await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, repaid_amount, apr_bps, duration_days, due_at, created_at")
-          .eq("borrower_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20),
-      ])
-    : [{ data: null }, { data: [] }];
+  const [profile, loans] = await Promise.all([getProfile(db, user.id), getBorrowerLoans(db, user.id, 20)]);
+  const loanIds = loans.map((l) => l.id);
 
-  const loans = loansRes.data ?? [];
-  const loanIds = loans.map((l) => String(l.id));
-
-  // Fetch Stellar TX hashes for funded loans
-  const ledgerRes = supabase && loanIds.length > 0
-    ? await supabase
-        .from("ledger_transactions")
-        .select("ref_id, metadata, created_at, amount")
-        .eq("ref_type", "loan_fund")
-        .in("ref_id", loanIds)
-    : { data: [] };
-
-  // Fetch request-stage ledger events
-  const requestLedgerRes = supabase && loanIds.length > 0
-    ? await supabase
-        .from("ledger_transactions")
-        .select("ref_id, metadata, created_at, amount")
-        .eq("ref_type", "loan_request")
-        .in("ref_id", loanIds)
-    : { data: [] };
+  // Ledger events (funding + request stage) and repayments for these loans
+  const [fundLedger, requestLedger, repayments] = await Promise.all([
+    getLedgerByRef(db, "loan_fund", loanIds),
+    getLedgerByRef(db, "loan_request", loanIds),
+    getRepaymentsForLoans(db, loanIds, 100),
+  ]);
 
   const loanTxMap: Record<string, { hash: string; amount: number; date: string }> = {};
-  for (const entry of ledgerRes.data ?? []) {
-    try {
-      const meta = JSON.parse(String(entry.metadata ?? "{}"));
-      if (String(entry.ref_id)) {
-        loanTxMap[String(entry.ref_id)] = {
-          hash: String(meta.txHash ?? ""),
-          amount: Number(entry.amount ?? 0),
-          date: String(entry.created_at ?? ""),
-        };
-      }
-    } catch { /* ignore */ }
-  }
-
-  const requestTxMap: Record<string, { date: string; amount: number }> = {};
-  for (const entry of requestLedgerRes.data ?? []) {
+  for (const entry of fundLedger) {
     if (!entry.ref_id) continue;
-    requestTxMap[String(entry.ref_id)] = {
-      date: String(entry.created_at ?? ""),
+    loanTxMap[entry.ref_id] = {
+      hash: metaString(entry.metadata, "txHash"),
       amount: Number(entry.amount ?? 0),
+      date: entry.created_at,
     };
   }
 
-  // Fetch repayments
-  const repaymentsRes = supabase && loanIds.length > 0
-    ? await supabase
-        .from("loan_repayments")
-        .select("id, loan_id, amount, created_at")
-        .in("loan_id", loanIds)
-        .order("created_at", { ascending: false })
-        .limit(100)
-    : { data: [] };
+  const requestTxMap: Record<string, { date: string; amount: number }> = {};
+  for (const entry of requestLedger) {
+    if (!entry.ref_id) continue;
+    requestTxMap[entry.ref_id] = { date: entry.created_at, amount: Number(entry.amount ?? 0) };
+  }
+
+  // Repayment ledger rows carry the tx hash (one query instead of one per repayment).
+  const repayLedger = await getLedgerByRef(db, "loan_repay", repayments.map((r) => r.id));
+  const repayHashById: Record<string, string> = {};
+  for (const entry of repayLedger) {
+    if (entry.ref_id) repayHashById[entry.ref_id] = metaString(entry.metadata, "txHash");
+  }
 
   // Build initial transaction feed
   const initialTransactions: Array<{
@@ -127,25 +96,11 @@ export default async function BorrowerHistoryPage() {
   }
 
   // Repayment events
-  for (const r of repaymentsRes.data ?? []) {
-    const loan = loans.find((l) => String(l.id) === String(r.loan_id));
+  for (const r of repayments) {
+    const loan = loans.find((l) => l.id === r.loan_id);
     if (!loan) continue;
 
-    let txHash = "";
-    try {
-      if (!supabase) continue;
-      const { data: repayTx } = await supabase
-        .from("ledger_transactions")
-        .select("metadata")
-        .eq("ref_type", "loan_repay")
-        .eq("ref_id", String(r.id))
-        .maybeSingle();
-
-      if (repayTx) {
-        const meta = JSON.parse(String(repayTx.metadata ?? "{}"));
-        txHash = String(meta.txHash ?? "");
-      }
-    } catch { /* ignore */ }
+    const txHash = repayHashById[r.id] ?? "";
 
     initialTransactions.push({
       id: `repay-${r.id}`,
@@ -200,7 +155,7 @@ export default async function BorrowerHistoryPage() {
       description="Every funding received and repayment made — with on-chain verification links."
       email={user.email ?? null}
       userName={String(
-        user.user_metadata?.full_name ?? profileRes.data?.full_name ?? ""
+        user.fullName ?? profile?.full_name ?? ""
       )}
       metrics={presentBorrowerMetrics(metrics)}
       currentPath="/dashboard/borrower/history"

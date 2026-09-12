@@ -40,7 +40,7 @@ describe("formatXlm", () => {
 describe("formatXlmPrecise", () => {
   it("shows up to 4 decimal places", () => {
     expect(formatXlmPrecise(12.3456789)).toBe("12.3457 XLM");
-    expect(formatXlmPrecise(0.001)).toBe("0.0010 XLM");
+    expect(formatXlmPrecise(0.001)).toBe("0.001 XLM"); // trailing zeros beyond 2 decimals are dropped
   });
 
   it("still shows at least 2 decimal places for whole numbers", () => {

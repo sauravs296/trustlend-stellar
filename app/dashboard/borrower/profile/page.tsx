@@ -8,7 +8,11 @@ import {
   presentBorrowerMetrics,
 } from "@/lib/dashboard/metrics";
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { getProfile, getReputationSnapshot } from "@/lib/db/queries";
+import { loanToRow, repaymentToRow } from "@/lib/db/rows";
+import { loanRepayments, loans as loansTable } from "@/lib/db/schema";
 import { computeBorrowerReputationScore, BorrowerRepaymentStats } from "@/lib/reputation/scoring";
 
 
@@ -75,33 +79,16 @@ export default async function BorrowerProfilePage() {
   const { user } = await requireAuthenticatedUser("borrower");
   const metrics = await getBorrowerDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const [profileRes, loansRes, repaymentsRes, snapshotRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, phone, date_of_birth, role, country_code, kyc_status, risk_status, government_id_url, kyc_submitted_at, kyc_provider_id, created_at")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, repaid_amount, due_at, created_at, metadata")
-          .eq("borrower_id", user.id),
-        supabase
-          .from("loan_repayments")
-          .select("id, amount, paid_at, loan_id")
-          .eq("payer_id", user.id),
-        supabase
-          .from("reputation_snapshots")
-          .select("score_total, updated_at")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ])
-    : [{ data: null }, { data: [] }, { data: [] }, { data: null }];
+  const db = getDb();
+  const [profile, loanRows, repaymentRows, snapshot] = await Promise.all([
+    getProfile(db, user.id),
+    db ? db.select().from(loansTable).where(eq(loansTable.borrowerId, user.id)) : Promise.resolve([]),
+    db ? db.select().from(loanRepayments).where(eq(loanRepayments.payerId, user.id)) : Promise.resolve([]),
+    getReputationSnapshot(db, user.id),
+  ]);
 
-  const profile = profileRes.data;
-  const userLoans = loansRes.data ?? [];
-  const userRepayments = repaymentsRes.data ?? [];
+  const userLoans = loanRows.map(loanToRow);
+  const userRepayments = repaymentRows.map(repaymentToRow);
 
   // Compute on-chain repayment history stats
   const completedLoans = userLoans.filter((l) => l.status === "repaid").length;
@@ -148,7 +135,7 @@ export default async function BorrowerProfilePage() {
     totalBorrowedXlm: totalBorrowed,
     totalRepaidXlm: totalRepaid,
     kycVerified: profile?.kyc_status === "verified",
-    emailVerified: Boolean(user.email_confirmed_at),
+    emailVerified: Boolean(user.walletAddress),
     accountAgeDays,
   };
 
@@ -156,7 +143,7 @@ export default async function BorrowerProfilePage() {
 
   // Compute real profile completion based on actual data
   const checks = [
-    { label: "Email confirmed",    done: Boolean(user.email_confirmed_at) },
+    { label: "Wallet verified",    done: Boolean(user.walletAddress) },
     { label: "Full name",          done: Boolean(profile?.full_name && String(profile.full_name).trim().length > 1) },
     { label: "Phone number",       done: Boolean(profile?.phone && String(profile.phone).trim().length > 4) },
     { label: "Date of birth",      done: Boolean(profile?.date_of_birth) },
@@ -181,7 +168,7 @@ export default async function BorrowerProfilePage() {
       heading="Profile Settings & Verification"
       description="Update your personal details and complete KYC milestones to unlock full platform features."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentBorrowerMetrics(metrics)}
       currentPath="/dashboard/borrower/profile"
       profilePath="/dashboard/borrower/profile"
@@ -200,7 +187,7 @@ export default async function BorrowerProfilePage() {
         {/* ── TOP: Borrower Reputation & Credit Score Card ── */}
         <BorrowerReputationCard
           reputation={reputationResult}
-          updatedAt={snapshotRes?.data?.updated_at}
+          updatedAt={snapshot?.updated_at}
         />
 
         <div className="workspace-grid workspace-grid--two">
@@ -476,14 +463,14 @@ export default async function BorrowerProfilePage() {
                 </span>
               </li>
               <li>
-                <span>Email Verified</span>
+                <span>Wallet Verified</span>
                 <span
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "0.4rem",
                     fontSize: "0.8rem",
-                    color: user.email_confirmed_at ? "#16a07a" : "#d97706",
+                    color: user.walletAddress ? "#16a07a" : "#d97706",
                     fontWeight: 600,
                   }}
                 >
@@ -492,18 +479,18 @@ export default async function BorrowerProfilePage() {
                       width: "7px",
                       height: "7px",
                       borderRadius: "50%",
-                      background: user.email_confirmed_at ? "#22cf9d" : "#f59e0b",
+                      background: user.walletAddress ? "#22cf9d" : "#f59e0b",
                       display: "inline-block",
                     }}
                   />
-                  {user.email_confirmed_at ? "Verified" : "Not verified"}
+                  {user.walletAddress ? "Verified" : "Not verified"}
                 </span>
               </li>
               <li>
                 <span>Member Since</span>
                 <strong style={{ fontSize: "0.82rem" }}>
-                  {user.created_at
-                    ? new Date(user.created_at).toLocaleDateString("en-US", {
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString("en-US", {
                         month: "long",
                         year: "numeric",
                       })

@@ -5,7 +5,7 @@ import { WorkspaceFrame } from "@/components/dashboard/WorkspaceFrame";
 /**
  * Next.js automatically renders this file (via React Suspense) while
  * `LenderPoolsPage` is waiting for its async server-side data fetches
- * (Supabase queries + Stellar Horizon balance).
+ * (database queries + Stellar Horizon balance).
  *
  * The result: users see a polished skeleton layout instantly on navigation
  * instead of a blank/delayed screen.

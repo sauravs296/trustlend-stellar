@@ -3,7 +3,8 @@ import { BorrowerRepayWidget } from "@/components/dashboard/BorrowerRepayWidget"
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getBorrowerDashboardMetrics, presentBorrowerMetrics } from "@/lib/dashboard/metrics";
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { getBorrowerLoans, getProfile } from "@/lib/db/queries";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatting";
 import { getFundingProgress } from "@/lib/loans/funding";
@@ -19,25 +20,8 @@ export default async function BorrowerRepayPage({
   const { user } = await requireAuthenticatedUser("borrower");
   const metrics  = await getBorrowerDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const [loansRes, profileRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, funded_amount, repaid_amount, apr_bps, duration_days, due_at, created_at")
-          .eq("borrower_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ])
-    : [{ data: [] }, { data: null }];
-
-  const loans   = loansRes.data ?? [];
-  const profile = profileRes.data;
+  const db = getDb();
+  const [loans, profile] = await Promise.all([getBorrowerLoans(db, user.id, 20), getProfile(db, user.id)]);
 
   // A loan is only repayable once lenders have covered the full principal —
   // a partially filled request is not yet active (Issue #269).
@@ -68,7 +52,7 @@ export default async function BorrowerRepayPage({
       heading="Repay Loan"
       description="Make an early repayment on your active loan to save on interest and boost your Trust Score."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentBorrowerMetrics(metrics)}
       currentPath="/dashboard/borrower/repay"
       links={borrowerNavLinks}

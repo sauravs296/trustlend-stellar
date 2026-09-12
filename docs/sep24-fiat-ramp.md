@@ -98,6 +98,6 @@ serving the borrower's region (bank / mobile-money rails) and set the appropriat
 
 - Surface a matching **"Add Funds from Fiat"** (deposit / on-ramp) button using the
   already-implemented `startInteractiveDeposit`.
-- Persist SEP-24 transaction ids to Supabase so withdrawals show in **History**.
+- Persist SEP-24 transaction ids to the database so withdrawals show in **History**.
 - Multi-anchor selection by borrower region/currency.
 - SEP-6 (programmatic, non-interactive) rails for power users.

@@ -6,24 +6,21 @@ import {
   getAdminDashboardMetrics,
   presentAdminMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { profileToRow } from "@/lib/db/rows";
+import { profiles } from "@/lib/db/schema";
 
 export default async function AdminUsersPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
 
-  const srClient = getServiceRoleClient();
-  const { data: users } = srClient
-    ? await srClient
-        .from("profiles")
-        .select("id, full_name, role, kyc_status, risk_status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(80)
-    : { data: [] as Array<Record<string, unknown>> };
-
-  const allUsers = users ?? [];
+  const db = getDb();
+  const allUsers = db
+    ? (await db.select().from(profiles).orderBy(desc(profiles.createdAt)).limit(80)).map(profileToRow)
+    : [];
   const borrowers = allUsers.filter((profile) => String(profile.role) === "borrower").length;
   const lenders = allUsers.filter((profile) => String(profile.role) === "lender").length;
   const flagged = allUsers.filter((profile) => ["high", "blocked"].includes(String(profile.risk_status))).length;
@@ -35,7 +32,7 @@ export default async function AdminUsersPage() {
       heading="User Governance"
       description="Review user role distribution, KYC state, and high-risk identities."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin/users"

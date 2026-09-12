@@ -3,8 +3,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
 import { rpc, xdr, scValToNative } from "@stellar/stellar-sdk";
+import { getDb } from "@/lib/db/client";
+import { webhookEndpoints } from "@/lib/db/schema";
 
 // ─── .env loader ─────────────────────────────────────────────────────────────
 function loadEnv(filePath: string): void {
@@ -25,20 +27,15 @@ loadEnv(path.resolve(process.cwd(), ".env.local"));
 loadEnv(path.resolve(process.cwd(), ".env.contracts"));
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 const LENDING_CONTRACT_ID = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ID;
 
 const LARGE_LOAN_THRESHOLD_XLM = parseInt(process.env.LARGE_LOAN_THRESHOLD_XLM || "10000", 10);
 const POLL_INTERVAL_MS = 5000;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  throw new Error("Supabase credentials not configured.");
+const db = getDb();
+if (!db) {
+  throw new Error("DATABASE_URL is not configured.");
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
 
 const server = new rpc.Server(RPC_URL, { allowHttp: RPC_URL.startsWith("http://") });
 
@@ -100,16 +97,14 @@ function formatTelegramPayload(topic: string, eventData: Record<string, unknown>
 
 /** Broadcasts message to all active webhooks subscribed to the topic */
 async function dispatchWebhooks(topic: string, eventData: Record<string, unknown>) {
-  const { data: webhooks, error } = await supabase
-    .from("webhook_endpoints")
-    .select("*")
-    .eq("is_active", true);
-
-  if (error || !webhooks) {
-    console.error("[webhooks-listener] Failed to fetch webhooks", error?.message);
+  let webhooks: Array<{ name: string; topic: string; platform: string; url: string }>;
+  try {
+    webhooks = await db!.select().from(webhookEndpoints).where(eq(webhookEndpoints.isActive, true));
+  } catch (err) {
+    console.error("[webhooks-listener] Failed to fetch webhooks", err instanceof Error ? err.message : err);
     return;
   }
-  
+
   if (webhooks.length === 0) return;
 
   const discordPayload = formatDiscordPayload(topic, eventData);

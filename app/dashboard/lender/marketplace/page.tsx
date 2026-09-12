@@ -11,10 +11,12 @@ import {
   buildStellarTxVerificationUrl,
   isLikelyTxHash,
 } from "@/lib/stellar/explorer";
-import {
-  getServerSupabaseClient,
-  getServiceRoleClient,
-} from "@/lib/supabase/server";
+import { and, desc, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { getMarketplaceLoans, getProfile } from "@/lib/db/queries";
+import { metaString } from "@/lib/db/metadata";
+import { ledgerToRow } from "@/lib/db/rows";
+import { ledgerTransactions } from "@/lib/db/schema";
 import {
   DEFAULT_SORT,
   DURATION_FILTER_OPTIONS,
@@ -25,21 +27,6 @@ import {
 } from "@/lib/dashboard/marketplace";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-type MarketplaceLoanRow = {
-  id: string;
-  principal_amount: number;
-  /** Total contributed by all lenders so far (Issue #269). */
-  funded_amount?: number;
-  /** Lenders who already hold a slice of this loan. */
-  lender_count?: number;
-  apr_bps: number;
-  duration_days: number;
-  borrower_id: string;
-  borrower_name: string;
-  borrower_wallet: string;
-  trust_score: number;
-};
 
 function readSearchParam(
   params: Record<string, string | string[] | undefined>,
@@ -64,95 +51,24 @@ export default async function LenderMarketplacePage({
 
   const { user } = await requireAuthenticatedUser("lender");
   const walletAddress =
-    String(user.user_metadata?.wallet_address ?? "") || null;
+    String(user.walletAddress ?? "") || null;
   const metrics = await getLenderDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const srClient = getServiceRoleClient();
+  const db = getDb();
 
-  const fundedTxsRes = srClient
-    ? await srClient
-        .from("ledger_transactions")
-        .select("id, ref_id, amount, metadata, created_at")
-        .eq("user_id", user.id)
-        .eq("ref_type", "loan_fund")
-        .order("created_at", { ascending: false })
-        .limit(20)
-    : { data: [] };
+  const [fundedTxRows, openLoans] = await Promise.all([
+    db
+      ? db
+          .select()
+          .from(ledgerTransactions)
+          .where(and(eq(ledgerTransactions.userId, user.id), eq(ledgerTransactions.refType, "loan_fund")))
+          .orderBy(desc(ledgerTransactions.createdAt))
+          .limit(20)
+      : Promise.resolve([]),
+    getMarketplaceLoans(db),
+  ]);
 
-  const openLoansRes = srClient
-    ? await srClient.rpc("get_marketplace_loans")
-    : { data: null, error: null };
-
-  let openLoans: MarketplaceLoanRow[] = [];
-
-  if (!openLoansRes.error) {
-    openLoans = (openLoansRes.data ?? []) as MarketplaceLoanRow[];
-  } else if (srClient) {
-    const fallbackLoansRes = await srClient
-      .from("loans")
-      .select(
-        "id, principal_amount, funded_amount, apr_bps, duration_days, borrower_id",
-      )
-      .in("status", ["requested", "approved"])
-      .order(
-        sort === "term_asc" || sort === "term_desc"
-          ? "duration_days"
-          : "apr_bps",
-        { ascending: sort === "apr_asc" || sort === "term_asc" },
-      );
-
-    const fallbackLoans = fallbackLoansRes.data ?? [];
-    const borrowerIds = Array.from(
-      new Set(fallbackLoans.map((loan) => String(loan.borrower_id))),
-    );
-
-    const [profilesRes, snapshotsRes] =
-      borrowerIds.length > 0
-        ? await Promise.all([
-            srClient
-              .from("profiles")
-              .select("id, full_name, wallet_address")
-              .in("id", borrowerIds),
-            srClient
-              .from("reputation_snapshots")
-              .select("user_id, score_total")
-              .in("user_id", borrowerIds),
-          ])
-        : [{ data: [] }, { data: [] }];
-
-    const profileMap = new Map(
-      (profilesRes.data ?? []).map((profile) => [String(profile.id), profile]),
-    );
-    const scoreMap = new Map(
-      (snapshotsRes.data ?? []).map((snapshot) => [
-        String(snapshot.user_id),
-        Number(snapshot.score_total ?? 250),
-      ]),
-    );
-
-    openLoans = fallbackLoans.map((loan) => {
-      const borrowerId = String(loan.borrower_id);
-      const profile = profileMap.get(borrowerId);
-
-      return {
-        id: String(loan.id),
-        principal_amount: Number(loan.principal_amount ?? 0),
-        funded_amount: Number(loan.funded_amount ?? 0),
-        apr_bps: Number(loan.apr_bps ?? 0),
-        duration_days: Number(loan.duration_days ?? 30),
-        borrower_id: borrowerId,
-        borrower_name:
-          profile?.full_name && String(profile.full_name).trim() !== ""
-            ? String(profile.full_name)
-            : `Borrower ${borrowerId.slice(0, 6)}`,
-        borrower_wallet: String(profile?.wallet_address ?? ""),
-        trust_score: Number(scoreMap.get(borrowerId) ?? 250),
-      };
-    });
-  }
-
-  const fundedTxs = fundedTxsRes.data ?? [];
+  const fundedTxs = fundedTxRows.map(ledgerToRow);
   const marketplaceLoans = openLoans
     .map((loan) => ({
       id: String(loan.id),
@@ -167,8 +83,7 @@ export default async function LenderMarketplacePage({
       ),
       borrower_wallet: String(loan.borrower_wallet ?? ""),
     }))
-    // Drop anything already at 100%. The RPC filters these out server-side, but
-    // the fallback query cannot compare two columns, so enforce it here too.
+    // Drop anything already at 100% (the query filters these too; belt and braces).
     .filter((loan) => !getFundingProgress(loan.principal_amount, loan.funded_amount).isFullyFunded);
 
   const visibleMarketplaceLoans = filterMarketplaceLoans(marketplaceLoans, {
@@ -178,14 +93,7 @@ export default async function LenderMarketplacePage({
     highReputationThreshold: HIGH_REPUTATION_THRESHOLD,
   });
 
-  const profileRes = supabase
-    ? await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle()
-    : { data: null };
-  const profile = profileRes.data;
+  const profile = await getProfile(db, user.id);
 
   return (
     <WorkspaceFrame
@@ -194,7 +102,7 @@ export default async function LenderMarketplacePage({
       description="Browse open borrower requests. Fund directly with Freighter or Albedo - XLM goes straight to the borrower's Stellar wallet. Full on-chain transparency."
       email={user.email ?? null}
       userName={String(
-        user.user_metadata?.full_name ?? profile?.full_name ?? "",
+        user.fullName ?? profile?.full_name ?? "",
       )}
       metrics={presentLenderMetrics(metrics)}
       currentPath="/dashboard/lender/marketplace"
@@ -505,15 +413,7 @@ export default async function LenderMarketplacePage({
                     </thead>
                     <tbody>
                       {fundedTxs.map((tx) => {
-                        let meta: Record<string, string> = {};
-
-                        try {
-                          meta = JSON.parse(String(tx.metadata ?? "{}"));
-                        } catch {
-                          meta = {};
-                        }
-
-                        const txHash = meta.txHash ?? "";
+                        const txHash = metaString(tx.metadata, "txHash");
 
                         return (
                           <tr key={String(tx.id)}>

@@ -5,10 +5,12 @@ import {
   getLenderDashboardMetrics,
   presentLenderMetrics,
 } from "@/lib/dashboard/metrics";
-import {
-  getServerSupabaseClient,
-  getServiceRoleClient,
-} from "@/lib/supabase/server";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { metaString } from "@/lib/db/metadata";
+import { getProfile } from "@/lib/db/queries";
+import { ledgerToRow, loanToRow, positionToRow } from "@/lib/db/rows";
+import { ledgerTransactions, loans as loansTable, poolPositions } from "@/lib/db/schema";
 import { formatTokenBalance } from "@/lib/utils/formatting";
 import { lenderNavLinks } from "@/lib/dashboard/lender-links";
 import Link from "next/link";
@@ -16,79 +18,48 @@ import Link from "next/link";
 export default async function LenderHomePage() {
   const { user } = await requireAuthenticatedUser("lender");
   const walletAddress =
-    String(user.user_metadata?.wallet_address ?? "") || null;
+    String(user.walletAddress ?? "") || null;
   const metrics = await getLenderDashboardMetrics(user.id);
-  const supabase = await getServerSupabaseClient();
-  const srClient = getServiceRoleClient();
+  const db = getDb();
 
-  const [
-    positionsRes,
-    profileRes,
-    p2pRes,
-    openLoanCountRes,
-    allLoansRes,
-    repaysRes,
-  ] =
-    supabase && srClient
-      ? await Promise.all([
-          supabase
-            .from("pool_positions")
-            .select("id, pool_id, status, principal_amount, earned_interest")
-            .eq("lender_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(5),
-          supabase
-            .from("profiles")
-            .select("full_name, kyc_status")
-            .eq("id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("ledger_transactions")
-            .select("id, ref_id, amount, status, metadata, created_at")
-            .eq("user_id", user.id)
-            .eq("ref_type", "loan_fund")
-            .order("created_at", { ascending: false })
-            .limit(20),
-          supabase
-            .from("loans")
-            .select("id", { count: "exact", head: true })
-            .in("status", ["requested", "approved"]),
-          srClient
-            .from("loans")
-            .select("id, status, repaid_amount, principal_amount"),
-          srClient
-            .from("ledger_transactions")
-            .select("ref_id, metadata")
-            .eq("ref_type", "loan_repay"),
-        ])
-      : [
-          { data: [] },
-          { data: null },
-          { data: [] },
-          { count: 0 },
-          { data: [] },
-          { data: [] },
-        ];
+  const [positionRows, profile, p2pRows, [openLoanCountRow], allLoanRows, repayRows] = db
+    ? await Promise.all([
+        db
+          .select()
+          .from(poolPositions)
+          .where(eq(poolPositions.lenderId, user.id))
+          .orderBy(desc(poolPositions.createdAt))
+          .limit(5),
+        getProfile(db, user.id),
+        db
+          .select()
+          .from(ledgerTransactions)
+          .where(and(eq(ledgerTransactions.userId, user.id), eq(ledgerTransactions.refType, "loan_fund")))
+          .orderBy(desc(ledgerTransactions.createdAt))
+          .limit(20),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(loansTable)
+          .where(inArray(loansTable.status, ["requested", "approved"])),
+        db.select().from(loansTable),
+        db
+          .select({ ref_id: ledgerTransactions.refId, metadata: ledgerTransactions.metadata })
+          .from(ledgerTransactions)
+          .where(eq(ledgerTransactions.refType, "loan_repay")),
+      ])
+    : [[], null, [], [{ count: 0 }], [], []];
 
-  const positions = positionsRes.data ?? [];
-  const dbP2pInvestments = p2pRes.data ?? [];
-  const profile = profileRes.data;
-  const openLoanCount = openLoanCountRes.count ?? 0;
+  const positions = positionRows.map(positionToRow);
+  const p2pInvestments = p2pRows.map(ledgerToRow);
+  const openLoanCount = openLoanCountRow?.count ?? 0;
   const isKycVerified = profile?.kyc_status === "verified";
 
-
-  const p2pInvestments = dbP2pInvestments;
-  const allLoansArray = allLoansRes.data ?? [];
-  const loanMap = Object.fromEntries(
-    allLoansArray.map((l) => [String(l.id), l]),
-  );
+  const loanMap = Object.fromEntries(allLoanRows.map(loanToRow).map((l) => [l.id, l]));
 
   const repayMap: Record<string, string> = {};
-  for (const r of repaysRes.data ?? []) {
-    try {
-      const m = JSON.parse(String(r.metadata || "{}"));
-      if (m.txHash) repayMap[String(r.ref_id)] = m.txHash;
-    } catch {}
+  for (const r of repayRows) {
+    const hash = metaString(r.metadata, "txHash");
+    if (hash && r.ref_id) repayMap[r.ref_id] = hash;
   }
 
   const netEarnings = metrics.totalEarnings;
@@ -100,7 +71,7 @@ export default async function LenderHomePage() {
       description="Your lending overview at a glance. Use the navigation to fund loans or manage your pool investments."
       email={user.email ?? null}
       userName={String(
-        user.user_metadata?.full_name ?? profile?.full_name ?? "",
+        user.fullName ?? profile?.full_name ?? "",
       )}
       metrics={presentLenderMetrics(metrics)}
       headerWidget={
@@ -428,15 +399,11 @@ export default async function LenderHomePage() {
                   </thead>
                   <tbody>
                     {p2pInvestments.map((tx) => {
-                      let fundTxHash = "";
-                      try {
-                        const meta = JSON.parse(String(tx.metadata || "{}"));
-                        fundTxHash = meta.txHash ?? "";
-                      } catch {}
+                      const fundTxHash = metaString(tx.metadata, "txHash");
 
                       // Find actual loan data
                       const actualLoan = loanMap[String(tx.ref_id)];
-                      const rawStatus = actualLoan?.status ?? "processing";
+                      const rawStatus: string = actualLoan?.status ?? "processing";
 
                       const repaid = Number(actualLoan?.repaid_amount ?? 0);
                       const profit = Math.max(0, repaid - Number(tx.amount));

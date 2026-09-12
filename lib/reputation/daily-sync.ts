@@ -2,11 +2,13 @@
  * lib/reputation/daily-sync.ts
  *
  * Daily reputation calculation runner. Iterates over borrower accounts,
- * aggregates on-chain loan/repayment performance, recalculates scores,
- * and updates persistent snapshots and on-chain contract state.
+ * aggregates loan/repayment performance, recalculates scores, and updates the
+ * persistent snapshots.
  */
 
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { eq, inArray } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { loanRepayments, loans, profiles, reputationEvents, reputationSnapshots } from "@/lib/db/schema";
 import {
   computeBorrowerReputationScore,
   BorrowerRepaymentStats,
@@ -32,60 +34,81 @@ export interface DailyCalculationSummary {
  * Runs the daily reputation recalculation for all active borrowers.
  */
 export async function runDailyReputationRecalculation(): Promise<DailyCalculationSummary> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) {
-    throw new Error("Supabase service client unavailable");
+  const db = getDb();
+  if (!db) {
+    throw new Error("Database unavailable");
   }
 
   // 1. Fetch all borrower profiles
-  const { data: borrowers, error: borrowersError } = await supabase
-    .from("profiles")
-    .select("id, wallet_address, kyc_status, full_name, created_at")
-    .eq("role", "borrower");
-
-  if (borrowersError) {
-    throw new Error(`Failed to fetch borrowers: ${borrowersError.message}`);
-  }
+  const borrowers = await db
+    .select({
+      id: profiles.id,
+      walletAddress: profiles.walletAddress,
+      kycStatus: profiles.kycStatus,
+      createdAt: profiles.createdAt,
+    })
+    .from(profiles)
+    .where(eq(profiles.role, "borrower"));
 
   const summary: DailyCalculationSummary = {
-    scanned: borrowers?.length ?? 0,
+    scanned: borrowers.length,
     updated: 0,
     tierUpgrades: 0,
     errors: 0,
     details: [],
   };
 
-  if (!borrowers || borrowers.length === 0) {
+  if (borrowers.length === 0) {
     return summary;
   }
 
+  // 2. Bulk-load loans, repayments and snapshots for every borrower (3 queries
+  //    instead of 3 per borrower).
+  const borrowerIds = borrowers.map((b) => b.id);
+  const [allLoans, allRepayments, allSnapshots] = await Promise.all([
+    db
+      .select({
+        id: loans.id,
+        borrowerId: loans.borrowerId,
+        status: loans.status,
+        principalAmount: loans.principalAmount,
+        dueAt: loans.dueAt,
+        createdAt: loans.createdAt,
+        metadata: loans.metadata,
+      })
+      .from(loans)
+      .where(inArray(loans.borrowerId, borrowerIds)),
+    db
+      .select({
+        payerId: loanRepayments.payerId,
+        loanId: loanRepayments.loanId,
+        amount: loanRepayments.amount,
+        paidAt: loanRepayments.paidAt,
+      })
+      .from(loanRepayments)
+      .where(inArray(loanRepayments.payerId, borrowerIds)),
+    db
+      .select({
+        userId: reputationSnapshots.userId,
+        scoreTotal: reputationSnapshots.scoreTotal,
+        level: reputationSnapshots.reputationLevel,
+      })
+      .from(reputationSnapshots)
+      .where(inArray(reputationSnapshots.userId, borrowerIds)),
+  ]);
+
+  const loansByBorrower = groupBy(allLoans, (l) => l.borrowerId);
+  const repaymentsByPayer = groupBy(allRepayments, (r) => r.payerId);
+  const snapshotByUser = new Map(allSnapshots.map((s) => [s.userId, s]));
+
   for (const borrower of borrowers) {
     try {
-      // 2. Fetch loan history
-      const { data: loans } = await supabase
-        .from("loans")
-        .select("id, status, principal_amount, repaid_amount, due_at, created_at, metadata")
-        .eq("borrower_id", borrower.id);
+      const userLoans = loansByBorrower.get(borrower.id) ?? [];
+      const userRepayments = repaymentsByPayer.get(borrower.id) ?? [];
+      const snapshot = snapshotByUser.get(borrower.id);
 
-      // 3. Fetch repayments
-      const { data: repayments } = await supabase
-        .from("loan_repayments")
-        .select("id, amount, paid_at, loan_id")
-        .eq("payer_id", borrower.id);
-
-      // 4. Fetch current reputation snapshot
-      const { data: snapshot } = await supabase
-        .from("reputation_snapshots")
-        .select("score_total, tier")
-        .eq("user_id", borrower.id)
-        .maybeSingle();
-
-      const previousScore = snapshot?.score_total ?? 250;
-      const previousTier = snapshot?.tier ?? "None";
-
-      // 5. Aggregate stats
-      const userLoans = loans ?? [];
-      const userRepayments = repayments ?? [];
+      const previousScore = snapshot?.scoreTotal ?? 250;
+      const previousTier = snapshot?.level ?? "None";
 
       const completedLoans = userLoans.filter((l) => l.status === "repaid").length;
       const defaultedLoans = userLoans.filter((l) => l.status === "defaulted").length;
@@ -95,37 +118,29 @@ export async function runDailyReputationRecalculation(): Promise<DailyCalculatio
       let lateCount = 0;
 
       for (const loan of userLoans) {
-        if (loan.status === "repaid") {
-          const dueTime = loan.due_at ? new Date(loan.due_at).getTime() : 0;
-          const creationTime = loan.created_at ? new Date(loan.created_at).getTime() : 0;
+        if (loan.status !== "repaid") continue;
+        const dueTime = loan.dueAt ? loan.dueAt.getTime() : 0;
+        const creationTime = loan.createdAt ? loan.createdAt.getTime() : 0;
 
-          // Check repayment timing from metadata or date
-          if (loan.metadata && typeof loan.metadata === "object" && (loan.metadata as { is_early?: boolean }).is_early) {
-            earlyCount++;
-          } else if (dueTime > 0) {
-            // Find latest payment date for this loan
-            const loanPayments = userRepayments.filter((r) => r.loan_id === loan.id);
-            const latestPayment = loanPayments.reduce(
-              (latest, r) => Math.max(latest, new Date(r.paid_at).getTime()),
-              creationTime
-            );
-
-            if (latestPayment <= dueTime) {
-              onTimeCount++;
-            } else {
-              lateCount++;
-            }
-          } else {
-            onTimeCount++;
-          }
+        if (loan.metadata && typeof loan.metadata === "object" && (loan.metadata as { is_early?: boolean }).is_early) {
+          earlyCount++;
+        } else if (dueTime > 0) {
+          const loanPayments = userRepayments.filter((r) => r.loanId === loan.id);
+          const latestPayment = loanPayments.reduce(
+            (latest, r) => Math.max(latest, r.paidAt.getTime()),
+            creationTime,
+          );
+          if (latestPayment <= dueTime) onTimeCount++;
+          else lateCount++;
+        } else {
+          onTimeCount++;
         }
       }
 
-      const totalBorrowed = userLoans.reduce((sum, l) => sum + Number(l.principal_amount ?? 0), 0);
+      const totalBorrowed = userLoans.reduce((sum, l) => sum + Number(l.principalAmount ?? 0), 0);
       const totalRepaid = userRepayments.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
-
-      const accountAgeDays = borrower.created_at
-        ? Math.floor((Date.now() - new Date(borrower.created_at).getTime()) / (86400 * 1000))
+      const accountAgeDays = borrower.createdAt
+        ? Math.floor((Date.now() - borrower.createdAt.getTime()) / (86400 * 1000))
         : 0;
 
       const stats: BorrowerRepaymentStats = {
@@ -137,51 +152,51 @@ export async function runDailyReputationRecalculation(): Promise<DailyCalculatio
         defaultedLoans,
         totalBorrowedXlm: totalBorrowed,
         totalRepaidXlm: totalRepaid,
-        kycVerified: borrower.kyc_status === "verified",
+        kycVerified: borrower.kycStatus === "verified",
         emailVerified: true,
         accountAgeDays,
       };
 
-      // 6. Compute new reputation score
       const result: BorrowerReputationResult = computeBorrowerReputationScore(stats);
 
-      // 7. Persist snapshot
-      const now = new Date().toISOString();
-      const { error: upsertErr } = await supabase.from("reputation_snapshots").upsert(
-        {
-          user_id: borrower.id,
-          score_total: result.score,
-          tier: result.tier,
-          score_breakdown: result.breakdown,
-          updated_at: now,
-        },
-        { onConflict: "user_id" }
-      );
+      // Persist snapshot
+      await db
+        .insert(reputationSnapshots)
+        .values({
+          userId: borrower.id,
+          scoreTotal: result.score,
+          reputationLevel: result.tier,
+          scoreBreakdown: result.breakdown,
+          calculatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: reputationSnapshots.userId,
+          set: {
+            scoreTotal: result.score,
+            reputationLevel: result.tier,
+            scoreBreakdown: result.breakdown,
+            calculatedAt: new Date(),
+          },
+        });
 
-      if (upsertErr) {
-        console.error(`[Reputation Cron] Failed to upsert snapshot for ${borrower.id}:`, upsertErr);
-        summary.errors++;
-        continue;
-      }
-
-      // Check tier upgrade
+      // Tier upgrade: log a zero-point event so the timeline shows it
+      // without double-counting the score (the snapshot is authoritative).
       if (previousTier !== result.tier && result.score > previousScore) {
         summary.tierUpgrades++;
-
-        // Log celebration event
-        await supabase.from("reputation_events").insert({
-          user_id: borrower.id,
-          event_type: "tier_upgrade",
-          points: result.score - previousScore,
-          description: `Tier upgraded to ${result.tier}! Unlocked rate discount: ${result.rateDiscountPct}% APR.`,
-          created_at: now,
+        await db.insert(reputationEvents).values({
+          userId: borrower.id,
+          sourceType: "tier_upgrade",
+          sourceKey: `${result.tier}:${new Date().toISOString().slice(0, 10)}`,
+          pointsDelta: 0,
+          reason: `Tier upgraded to ${result.tier}! Unlocked rate discount: ${result.rateDiscountPct}% APR.`,
+          metadata: { previousTier, previousScore, newScore: result.score },
         });
       }
 
       summary.updated++;
       summary.details.push({
         userId: borrower.id,
-        walletAddress: borrower.wallet_address,
+        walletAddress: borrower.walletAddress ?? undefined,
         previousScore,
         newScore: result.score,
         tier: result.tier,
@@ -194,4 +209,15 @@ export async function runDailyReputationRecalculation(): Promise<DailyCalculatio
   }
 
   return summary;
+}
+
+function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const k = key(row);
+    const list = map.get(k);
+    if (list) list.push(row);
+    else map.set(k, [row]);
+  }
+  return map;
 }

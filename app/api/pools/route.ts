@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
 import { fetchPools } from "@/lib/db/pools";
 
 /**
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
     const rateLimited = await enforceRouteRateLimit(request);
     if (rateLimited) return rateLimited;
 
-    const supabase = getServiceRoleClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json(
         { error: "Database service unavailable" },
         { status: 500 }
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       | "desc";
 
     // Fetch pools using optimized function
-    const result = await fetchPools(supabase, {
+    const result = await fetchPools(db, {
       status: status || undefined,
       limit,
       offset,

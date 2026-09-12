@@ -4,15 +4,17 @@
  * Server-side Sign-In with Stellar (SEP-0010) logic:
  *   1. buildChallenge()  — generate a signed SEP-10 challenge transaction
  *   2. verifyChallenge() — validate structure, expiry and the wallet signature
- *   3. issueSessionForWallet() — mint a Supabase session for the wallet identity
+ *   3. issueSessionForWallet() — upsert the users/profiles rows for the wallet
  *
- * SERVER-ONLY. Reads SIWS_SERVER_SECRET / SIWS_PASSWORD_SECRET / service-role key.
+ * SERVER-ONLY. Reads SIWS_SERVER_SECRET and the database.
  */
 
-import { createHmac } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { Keypair, StrKey, Transaction, WebAuth } from "@stellar/stellar-sdk";
-import { createClient, type Session } from "@supabase/supabase-js";
 import { SIWS_NETWORK_PASSPHRASE, getSiwsDomain } from "@/lib/auth/siws-config";
+import { normalizeUserRole, type UserRole } from "@/lib/auth/roles";
+import { getDb } from "@/lib/db/client";
+import { profiles, users } from "@/lib/db/schema";
 
 /** SEP-10 challenge validity window (seconds). */
 const CHALLENGE_TIMEOUT_SECS = 300;
@@ -166,89 +168,74 @@ export function verifyChallenge(signedTxXdr: string, expectedAddress: string): s
   return expectedAddress;
 }
 
-// ─── 3. Issue a Supabase session for the wallet identity ──────────────────────
+// ─── 3. Provision the wallet identity ─────────────────────────────────────────
 
-/** Deterministic e-mail identity for a wallet (never receives real mail). */
-export function walletEmail(address: string): string {
-  return `${address.toLowerCase()}@siws.trustlend.app`;
-}
-
-/**
- * Server-derived, deterministic password for the wallet's Supabase user.
- * Never leaves the server — used only to mint a session after SEP-10 passes.
- */
-function walletPassword(address: string): string {
-  const secret = process.env.SIWS_PASSWORD_SECRET;
-  if (!secret) {
-    throw new SiwsError(
-      "not_configured",
-      "SIWS is not configured on the server (SIWS_PASSWORD_SECRET missing).",
-      503
-    );
-  }
-  return createHmac("sha256", secret).update(address).digest("hex");
-}
-
-function adminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) {
-    throw new SiwsError("session_failed", "Supabase service role is not configured.", 503);
-  }
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-}
-
-/**
- * Ensure a Supabase user exists for `address` and return a fresh session
- * (access + refresh tokens) the client can adopt via `auth.setSession`.
- */
-export async function issueSessionForWallet(address: string, role?: string): Promise<{
-  session: Session;
+export interface WalletIdentity {
+  userId: string;
+  role: UserRole;
   isNewUser: boolean;
-}> {
-  const email = walletEmail(address);
-  const password = walletPassword(address);
-  const admin = adminClient();
-  const accountType = (role === "borrower" || role === "lender") ? role : "borrower";
+}
 
-  // Create the wallet user if it doesn't exist yet (idempotent).
-  let isNewUser = false;
-  const { error: createErr } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: {
-      wallet_address: address,
-      account_type: accountType,
-      auth_method: "siws",
-      full_name: `Stellar ${address.slice(0, 4)}…${address.slice(-4)}`,
-    },
-  });
+/**
+ * Ensure a `users` + `profiles` row exists for `address` and return the
+ * identity the API route turns into a session cookie.
+ *
+ * Idempotent: signing in again just bumps `last_sign_in_at`. The role chosen on
+ * the auth page only applies to brand-new accounts — an existing account keeps
+ * whatever role it already has.
+ */
+export async function issueSessionForWallet(address: string, role?: string): Promise<WalletIdentity> {
+  const db = getDb();
+  if (!db) {
+    throw new SiwsError("session_failed", "Database is not configured.", 503);
+  }
+  const requestedRole: UserRole = role === "lender" ? "lender" : "borrower";
+  const now = new Date();
 
-  if (createErr) {
-    const msg = createErr.message?.toLowerCase() ?? "";
-    const alreadyExists =
-      msg.includes("already been registered") ||
-      msg.includes("already registered") ||
-      msg.includes("email_exists") ||
-      (createErr as { code?: string }).code === "email_exists";
-    if (!alreadyExists) {
-      throw new SiwsError("session_failed", `Could not provision wallet account: ${createErr.message}`, 500);
+  const [existing] = await db
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.walletAddress, address))
+    .limit(1);
+
+  if (existing) {
+    await db.update(users).set({ lastSignInAt: now }).where(eq(users.id, existing.id));
+    // Heal a missing profile row (e.g. a partially failed first sign-in).
+    await db
+      .insert(profiles)
+      .values({ id: existing.id, role: existing.role, walletAddress: address, fullName: shortName(address) })
+      .onConflictDoNothing();
+    return { userId: existing.id, role: normalizeUserRole(existing.role), isNewUser: false };
+  }
+
+  const [created] = await db
+    .insert(users)
+    .values({ walletAddress: address, role: requestedRole, lastSignInAt: now })
+    .onConflictDoNothing({ target: users.walletAddress })
+    .returning({ id: users.id, role: users.role });
+
+  if (!created) {
+    // Lost a race with a concurrent first sign-in for the same wallet.
+    const [raced] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.walletAddress, address))
+      .limit(1);
+    if (!raced) {
+      throw new SiwsError("session_failed", "Could not provision wallet account.", 500);
     }
-  } else {
-    isNewUser = true;
+    return { userId: raced.id, role: normalizeUserRole(raced.role), isNewUser: false };
   }
 
-  // Mint a session with the deterministic password (never returned to client).
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const authClient = createClient(url, anon, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
-  if (error || !data.session) {
-    throw new SiwsError("session_failed", `Failed to issue session: ${error?.message ?? "no session"}`, 500);
-  }
+  await db
+    .insert(profiles)
+    .values({ id: created.id, role: requestedRole, walletAddress: address, fullName: shortName(address) })
+    .onConflictDoNothing();
 
-  return { session: data.session, isNewUser };
+  return { userId: created.id, role: requestedRole, isNewUser: true };
+}
+
+/** "Stellar GABC…WXYZ" — the default display name for a wallet-only account. */
+function shortName(address: string): string {
+  return `Stellar ${address.slice(0, 4)}…${address.slice(-4)}`;
 }

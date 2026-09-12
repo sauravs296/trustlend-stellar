@@ -20,10 +20,12 @@
  *   user's OS locale setting.
  * - In Node / SSR we fall back to `"en-US"` for deterministic output.
  */
+/**
+ * Amounts are always formatted with en-US separators. Reading the browser
+ * locale here made the server (en-US) and the client (user locale) disagree,
+ * which produced React hydration mismatches on every amount.
+ */
 function getLocale(): string {
-  if (typeof navigator !== "undefined" && navigator.language) {
-    return navigator.language;
-  }
   return "en-US";
 }
 

@@ -1,4 +1,6 @@
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { and, eq, gt, inArray, isNotNull, lt, lte, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { loans } from "@/lib/db/schema";
 import {
   isResendConfigured,
   sendPaymentOverdueEmail,
@@ -30,49 +32,80 @@ export interface WebhookPayload {
  * have not already had a payment-due notification sent.
  */
 export async function queryDueLoans(): Promise<DueLoan[]> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) throw new Error("Service role client unavailable");
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
 
   const now = new Date();
   const cutoff = new Date(now.getTime() + LOOKAHEAD_HOURS * 60 * 60 * 1000);
 
-  const { data, error } = await supabase
-    .from("loans")
-    .select("id, borrower_id, due_at, principal_amount, repaid_amount, metadata")
-    .in("status", ["active", "funded"])
-    .not("due_at", "is", null)
-    .gt("due_at", now.toISOString())
-    .lte("due_at", cutoff.toISOString());
-
-  if (error) throw new Error(`Failed to query due loans: ${error.message}`);
+  const rows = await db
+    .select(DUE_LOAN_COLUMNS)
+    .from(loans)
+    .where(
+      and(
+        inArray(loans.status, ["active", "funded"]),
+        isNotNull(loans.dueAt),
+        gt(loans.dueAt, now),
+        lte(loans.dueAt, cutoff),
+      ),
+    );
 
   // Filter out already-notified loans in JS (avoids complex jsonb query)
-  return (data ?? []).filter(
-    (loan) => !(loan.metadata as Record<string, unknown>)?.payment_due_notified_at
-  );
+  return rows.map(toDueLoan).filter((loan) => !loan.metadata?.payment_due_notified_at);
 }
 
 /**
  * Query active loans that are already overdue and have not had an overdue email sent.
  */
 export async function queryOverdueEmailLoans(): Promise<OverdueLoan[]> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) throw new Error("Service role client unavailable");
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
 
-  const now = new Date();
+  const rows = await db
+    .select(DUE_LOAN_COLUMNS)
+    .from(loans)
+    .where(
+      and(inArray(loans.status, ["active", "funded"]), isNotNull(loans.dueAt), lt(loans.dueAt, new Date())),
+    );
 
-  const { data, error } = await supabase
-    .from("loans")
-    .select("id, borrower_id, due_at, principal_amount, repaid_amount, metadata")
-    .in("status", ["active", "funded"])
-    .not("due_at", "is", null)
-    .lt("due_at", now.toISOString());
+  return rows.map(toDueLoan).filter((loan) => !loan.metadata?.payment_overdue_emailed_at);
+}
 
-  if (error) throw new Error(`Failed to query overdue loans: ${error.message}`);
+const DUE_LOAN_COLUMNS = {
+  id: loans.id,
+  borrowerId: loans.borrowerId,
+  dueAt: loans.dueAt,
+  principalAmount: loans.principalAmount,
+  repaidAmount: loans.repaidAmount,
+  metadata: loans.metadata,
+};
 
-  return (data ?? []).filter(
-    (loan) => !(loan.metadata as Record<string, unknown>)?.payment_overdue_emailed_at
-  );
+function toDueLoan(row: {
+  id: string;
+  borrowerId: string;
+  dueAt: Date | null;
+  principalAmount: string;
+  repaidAmount: string;
+  metadata: unknown;
+}): DueLoan {
+  return {
+    id: row.id,
+    borrower_id: row.borrowerId,
+    due_at: row.dueAt ? row.dueAt.toISOString() : "",
+    principal_amount: Number(row.principalAmount),
+    repaid_amount: Number(row.repaidAmount),
+    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+  };
+}
+
+/** Atomically merge one key into loans.metadata. */
+async function setLoanMetadataKey(loanId: string, key: string, value: string): Promise<void> {
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db
+    .update(loans)
+    .set({ metadata: sql`coalesce(${loans.metadata}, '{}'::jsonb) || jsonb_build_object(${key}::text, ${value}::text)` })
+    .where(eq(loans.id, loanId));
 }
 
 /**
@@ -113,71 +146,11 @@ export async function sendWebhookNotification(
  * Mark a loan as notified by writing a timestamp into its metadata.
  */
 export async function markLoanNotified(loanId: string): Promise<void> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) throw new Error("Service role client unavailable");
-
-  const { error } = await supabase.rpc("jsonb_set_metadata_key", {
-    p_loan_id: loanId,
-    p_key: "payment_due_notified_at",
-    p_value: new Date().toISOString(),
-  });
-
-  // Fallback: manual merge if RPC not available
-  if (error) {
-    const { data: loan, error: fetchErr } = await supabase
-      .from("loans")
-      .select("metadata")
-      .eq("id", loanId)
-      .single();
-
-    if (fetchErr) throw new Error(`Failed to fetch loan for metadata update: ${fetchErr.message}`);
-
-    const { error: updateErr } = await supabase
-      .from("loans")
-      .update({
-        metadata: {
-          ...(loan.metadata as Record<string, unknown>),
-          payment_due_notified_at: new Date().toISOString(),
-        },
-      })
-      .eq("id", loanId);
-
-    if (updateErr) throw new Error(`Failed to mark loan notified: ${updateErr.message}`);
-  }
+  await setLoanMetadataKey(loanId, "payment_due_notified_at", new Date().toISOString());
 }
 
 export async function markLoanOverdueEmailed(loanId: string): Promise<void> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) throw new Error("Service role client unavailable");
-
-  const sentAt = new Date().toISOString();
-  const { error } = await supabase.rpc("jsonb_set_metadata_key", {
-    p_loan_id: loanId,
-    p_key: "payment_overdue_emailed_at",
-    p_value: sentAt,
-  });
-
-  if (error) {
-    const { data: loan, error: fetchErr } = await supabase
-      .from("loans")
-      .select("metadata")
-      .eq("id", loanId)
-      .single();
-
-    if (fetchErr) throw new Error(`Failed to fetch loan for metadata update: ${fetchErr.message}`);
-
-    const { error: updateErr } = await supabase
-      .from("loans")
-      .update({
-        metadata: {
-          ...(loan.metadata as Record<string, unknown>),
-          payment_overdue_emailed_at: sentAt,
-        },
-      })
-      .eq("id", loanId);
-
-    if (updateErr) throw new Error(`Failed to mark overdue email sent: ${updateErr.message}`);
-  }
+  await setLoanMetadataKey(loanId, "payment_overdue_emailed_at", new Date().toISOString());
 }
 
 export interface RunResult {

@@ -4,7 +4,7 @@ import path from "node:path";
 import { NextRequest } from "next/server";
 import type { KeeperConfig } from "@/scripts/liquidation-keeper";
 
-// ── Mock the keeper module (no real RPC / Supabase in tests) ──────────────────
+// ── Mock the keeper module (no real RPC / database in tests) ──────────────────
 const mockLoadConfig = vi.fn();
 const mockRunLiquidationKeeper = vi.fn();
 

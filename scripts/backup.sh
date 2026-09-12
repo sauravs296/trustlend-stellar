@@ -26,7 +26,9 @@ if [[ -f .env ]]; then
 fi
 
 # Required.
-#   DATABASE_URL           postgres://... connection string (direct, not pooled)
+#   DATABASE_URL           postgres://... connection string. On Neon use the
+#                          DIRECT (non-pooler) host, or set BACKUP_DATABASE_URL
+#                          to it and keep DATABASE_URL pooled for the app.
 #   BACKUP_ENCRYPTION_KEY  passphrase for AES-256; store in a password manager,
 #                          NOT only in CI — losing it makes every backup useless
 #   S3_BUCKET              destination bucket name (no s3:// prefix)
@@ -35,7 +37,7 @@ BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 BACKUP_DRY_RUN="${BACKUP_DRY_RUN:-0}"
 # Comma-separated schemas to skip. Empty by default: a backup missing data is
-# worse than one carrying extra. See docs/disaster-recovery.md for Supabase notes.
+# worse than one carrying extra. See docs/disaster-recovery.md for Neon notes.
 BACKUP_EXCLUDE_SCHEMAS="${BACKUP_EXCLUDE_SCHEMAS:-}"
 # Minimum plausible dump size; guards against silently archiving an empty file.
 BACKUP_MIN_BYTES="${BACKUP_MIN_BYTES:-1024}"
@@ -103,7 +105,7 @@ if [[ -n "$BACKUP_EXCLUDE_SCHEMAS" ]]; then
     [[ -n "$schema" ]] && dump_args+=(--exclude-schema="$schema")
   done < <(tr ',' '\n' <<<"$BACKUP_EXCLUDE_SCHEMAS" | tr -d ' ')
 fi
-pg_dump "$DATABASE_URL" "${dump_args[@]}"
+pg_dump "${BACKUP_DATABASE_URL:-$DATABASE_URL}" "${dump_args[@]}"
 
 # ── 2. Verify the dump ────────────────────────────────────────────────────────
 # A truncated or empty archive uploads just as happily as a good one, so check

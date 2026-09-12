@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getDashboardPath } from "@/lib/auth/roles";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { profiles } from "@/lib/db/schema";
 import { createApplicant, getApplicantId, generateSdkToken } from "@/lib/kyc/provider";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
@@ -36,20 +38,20 @@ export async function POST(request: NextRequest) {
       redirect(getDashboardPath(role));
     }
 
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
     // ── 2. Load profile ──────────────────────────────────────────────────────
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, kyc_provider_id, kyc_status")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [profile] = await db
+      .select({ fullName: profiles.fullName, kycProviderId: profiles.kycProviderId, kycStatus: profiles.kycStatus })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
 
-    const fullName = String(profile?.full_name ?? "").trim() || "Unknown";
-    const existingApplicantId = profile?.kyc_provider_id as string | null;
+    const fullName = String(profile?.fullName ?? "").trim() || "Unknown";
+    const existingApplicantId = profile?.kycProviderId ?? null;
 
     // Don't re-create for already verified users — just return a refresh token
     let applicantId = existingApplicantId;
@@ -63,18 +65,15 @@ export async function POST(request: NextRequest) {
         fullName
       );
 
-      // Persist the applicantId using service role to bypass RLS
-      const serviceClient = getServiceRoleClient();
-      if (serviceClient) {
-        await serviceClient
-          .from("profiles")
-          .update({
-            kyc_provider_id: applicantId,
-            kyc_status: profile?.kyc_status === "pending" ? "submitted" : profile?.kyc_status,
-            kyc_submitted_at: new Date().toISOString(),
-          })
-          .eq("id", user.id);
-      }
+      // Persist the applicantId on the caller's profile
+      await db
+        .update(profiles)
+        .set({
+          kycProviderId: applicantId,
+          kycStatus: profile?.kycStatus === "pending" ? "submitted" : profile?.kycStatus,
+          kycSubmittedAt: new Date(),
+        })
+        .where(eq(profiles.id, user.id));
     }
 
     // ── 3. Generate SDK token ────────────────────────────────────────────────
@@ -101,24 +100,31 @@ export async function GET(request: NextRequest) {
     if (rateLimited) return rateLimited;
 
     const { user } = await requireAuthenticatedUser();
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("kyc_status, kyc_provider_id, kyc_submitted_at, kyc_verified_at, kyc_rejection_reason, regulated_pool_access")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [profile] = await db
+      .select({
+        kycStatus: profiles.kycStatus,
+        kycProviderId: profiles.kycProviderId,
+        kycSubmittedAt: profiles.kycSubmittedAt,
+        kycVerifiedAt: profiles.kycVerifiedAt,
+        kycRejectionReason: profiles.kycRejectionReason,
+        regulatedPoolAccess: profiles.regulatedPoolAccess,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
 
     return NextResponse.json({
-      kycStatus: profile?.kyc_status ?? "pending",
-      applicantId: profile?.kyc_provider_id ?? null,
-      submittedAt: profile?.kyc_submitted_at ?? null,
-      verifiedAt: profile?.kyc_verified_at ?? null,
-      rejectionReason: profile?.kyc_rejection_reason ?? null,
-      regulatedPoolAccess: profile?.regulated_pool_access ?? false,
+      kycStatus: profile?.kycStatus ?? "pending",
+      applicantId: profile?.kycProviderId ?? null,
+      submittedAt: profile?.kycSubmittedAt ? profile.kycSubmittedAt.toISOString() : null,
+      verifiedAt: profile?.kycVerifiedAt ? profile.kycVerifiedAt.toISOString() : null,
+      rejectionReason: profile?.kycRejectionReason ?? null,
+      regulatedPoolAccess: profile?.regulatedPoolAccess ?? false,
     });
   } catch (error) {
     if (isRedirectError(error)) throw error;

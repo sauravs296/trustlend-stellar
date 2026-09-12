@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, loanRepayments, loans, reputationEvents } from "@/lib/db/schema";
 import { getLoanLenders } from "@/lib/loans/lenders";
 import { splitRepaymentAcrossLenders } from "@/lib/loans/funding";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -30,31 +32,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "A confirmed Stellar transaction hash is required for on-chain repayment" }, { status: 400 });
     }
 
-    const supabase = await getServerSupabaseClient();
-    const srClient = getServiceRoleClient();
-    if (!supabase || !srClient) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
     // Double-check borrower & loan
-    const { data: loan, error: loanError } = await supabase
-      .from("loans")
-      .select("id, borrower_id, status, repaid_amount, principal_amount, apr_bps, duration_days")
-      .eq("id", loanId)
-      .eq("borrower_id", user.id)
-      .single();
+    const [loanRow] = await db
+      .select({
+        id: loans.id,
+        status: loans.status,
+        repaidAmount: loans.repaidAmount,
+        principalAmount: loans.principalAmount,
+        aprBps: loans.aprBps,
+        durationDays: loans.durationDays,
+      })
+      .from(loans)
+      .where(and(eq(loans.id, loanId), eq(loans.borrowerId, user.id)))
+      .limit(1);
 
-    if (loanError || !loan) return NextResponse.json({ error: "Loan not found" }, { status: 404 });
+    if (!loanRow) return NextResponse.json({ error: "Loan not found" }, { status: 404 });
+    const loan = {
+      id: loanRow.id,
+      status: loanRow.status as string,
+      repaid_amount: Number(loanRow.repaidAmount),
+      principal_amount: Number(loanRow.principalAmount),
+      apr_bps: loanRow.aprBps,
+      duration_days: loanRow.durationDays,
+    };
     if (loan.status === "repaid") return NextResponse.json({ error: "Loan is already fully repaid" }, { status: 400 });
     if (loan.status === "defaulted") return NextResponse.json({ error: "Loan is in default" }, { status: 400 });
 
     // Prevent duplicate txHash
-    const { data: existingTx } = await srClient
-      .from("ledger_transactions")
-      .select("id")
-      .eq("ref_type", "loan_repay")
-      .ilike("metadata->>txHash", txHash) // check if JSON contains this hash
-      .maybeSingle();
+    const [existingTx] = await db
+      .select({ id: ledgerTransactions.id })
+      .from(ledgerTransactions)
+      .where(
+        and(
+          eq(ledgerTransactions.refType, "loan_repay"),
+          sql`lower(${ledgerTransactions.metadata}->>'txHash') = lower(${txHash})`,
+        ),
+      )
+      .limit(1);
 
     if (existingTx) {
       return NextResponse.json({ error: "This transaction hash has already been recorded" }, { status: 409 });
@@ -62,25 +81,17 @@ export async function POST(request: NextRequest) {
 
     // Figure out every lender to notify. A loan can be funded by several
     // lenders (Issue #269), each owed a pro-rata slice of this repayment.
-    const lenders = await getLoanLenders(srClient, loanId);
+    const lenders = await getLoanLenders(db, loanId);
     const primaryLender = lenders[0];
     const lenderUserId = primaryLender?.lenderId ?? "";
     const lenderAddress = primaryLender?.address ?? "";
     const lenderPayouts = splitRepaymentAcrossLenders(amount, lenders);
 
     // Create repayment record in DB
-    const { data: repayment, error: repaymentError } = await srClient
-      .from("loan_repayments")
-      .insert({
-        loan_id: loanId,
-        payer_id: user.id,
-        amount: amount,
-        tx_ref: txHash,
-      })
-      .select()
-      .single();
-
-    if (repaymentError) return NextResponse.json({ error: repaymentError.message }, { status: 500 });
+    const [repayment] = await db
+      .insert(loanRepayments)
+      .values({ loanId, payerId: user.id, amount: String(amount), txRef: txHash })
+      .returning();
 
     // Calculate updated balances
     const newRepaidAmount = (loan.repaid_amount || 0) + amount;
@@ -101,26 +112,24 @@ export async function POST(request: NextRequest) {
       newStatus = "active";
     }
 
-    const { error: updateError } = await srClient
-      .from("loans")
-      .update({
-        repaid_amount: newRepaidAmount,
-        status: newStatus,
+    await db
+      .update(loans)
+      .set({
+        repaidAmount: String(newRepaidAmount),
+        status: newStatus as typeof loans.$inferInsert.status,
       })
-      .eq("id", loanId);
-
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+      .where(eq(loans.id, loanId));
 
     // Record on Ledger
-    await srClient.from("ledger_transactions").insert({
-      user_id: user.id, // the borrower
+    await db.insert(ledgerTransactions).values({
+      userId: user.id, // the borrower
       category: "loan_repay",
-      amount: amount,
+      amount: String(amount),
       currency: "XLM",
       status: "confirmed",
-      ref_type: "loan_repay",
-      ref_id: repayment.id, // link to the repayment record
-      metadata: JSON.stringify({
+      refType: "loan_repay",
+      refId: repayment.id, // link to the repayment record
+      metadata: {
         txHash,
         borrowerAddress,
         lenderAddress,
@@ -138,17 +147,17 @@ export async function POST(request: NextRequest) {
         principalAmount: loan.principal_amount,
         repaidSoFar: newRepaidAmount,
         repaidAt: new Date().toISOString(),
-      }),
+      },
     });
 
     // Add reputation points
     const repayPoints = newStatus === "repaid" ? 20 : 5;
-    await srClient.from("reputation_events").insert({
-      user_id:      user.id,
-      source_type:  "loan_repayment",
-      source_id:    loanId,
-      points_delta: repayPoints,
-      reason:       `On-chain repayment of ${amount.toFixed(2)} XLM`,
+    await db.insert(reputationEvents).values({
+      userId: user.id,
+      sourceType: "loan_repayment",
+      sourceId: loanId,
+      pointsDelta: repayPoints,
+      reason: `On-chain repayment of ${amount.toFixed(2)} XLM`,
     });
 
     // Notifications

@@ -22,13 +22,14 @@ vi.mock("@/lib/notifications", () => ({
   createNotification: vi.fn().mockResolvedValue({ id: "notif-1" }),
 }));
 
-// ── Mock Supabase client ──────────────────────────────────────────────────────
-const mockGetServerSupabaseClient = vi.fn();
-vi.mock("@/lib/supabase/server", () => ({
-  getServerSupabaseClient: () => mockGetServerSupabaseClient(),
+// ── Mock database ─────────────────────────────────────────────────────────────
+const mockGetDb = vi.fn();
+vi.mock("@/lib/db/client", () => ({
+  getDb: () => mockGetDb(),
 }));
 
 import { POST } from "@/app/api/loans/apply/route";
+import { createFakeDb } from "../../helpers/fake-db";
 
 function makeMockRequest(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/loans/apply", {
@@ -48,10 +49,7 @@ describe("POST /api/loans/apply - Minimum Borrow Amount Validation", () => {
   });
 
   it("rejects dust loan amount below 1 XLM with 400 status", async () => {
-    const mockDb = {
-      from: vi.fn(),
-    };
-    mockGetServerSupabaseClient.mockResolvedValue(mockDb);
+    mockGetDb.mockReturnValue(createFakeDb());
 
     const req = makeMockRequest({
       amount: 0.0000001,
@@ -67,10 +65,7 @@ describe("POST /api/loans/apply - Minimum Borrow Amount Validation", () => {
   });
 
   it("rejects zero or negative loan amounts with 400 status", async () => {
-    const mockDb = {
-      from: vi.fn(),
-    };
-    mockGetServerSupabaseClient.mockResolvedValue(mockDb);
+    mockGetDb.mockReturnValue(createFakeDb());
 
     const req = makeMockRequest({
       amount: 0,

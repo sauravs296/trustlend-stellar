@@ -2,7 +2,7 @@
  * Reading and rewriting `.env` files in place (Issue #270).
  *
  * The testnet deployment CLI writes freshly deployed contract IDs straight into
- * the developer's `.env.local`. That file usually already holds Supabase keys,
+ * the developer's `.env.local`. That file usually already holds the database URL,
  * API secrets and hand-written comments, so the merge has to be surgical:
  * update the values we own, leave every other byte alone.
  */

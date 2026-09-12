@@ -4,17 +4,18 @@
  * When a borrower's loan reaches 100% funded and activates, their referrer's
  * bonus becomes payable. The authoritative payout happens on-chain — the
  * lending contract invokes ReferralRewardsContract::claim_referral_bonus during
- * activate_loan — so this module's job is only to mirror that into Supabase and
+ * activate_loan — so this module's job is only to mirror that into the database and
  * notify the referrer.
  *
  * Every failure here is swallowed and logged. A referral is a bonus; it must
  * never turn a successful loan funding into a failed API request.
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { sql } from "drizzle-orm";
+import type { AnyDb } from "@/lib/db/pools";
 
 interface QualifyReferralParams {
-  supabase: SupabaseClient;
+  db: AnyDb;
   /** The borrower whose loan just activated — the referred user. */
   refereeId: string;
   /** The loan that triggered qualification. */
@@ -37,7 +38,7 @@ export interface QualifyReferralResult {
  * and simply carry on otherwise.
  */
 export async function qualifyReferralForLoan({
-  supabase,
+  db,
   refereeId,
   loanId,
 }: QualifyReferralParams): Promise<QualifyReferralResult> {
@@ -50,17 +51,10 @@ export async function qualifyReferralForLoan({
   if (!refereeId || !loanId) return none;
 
   try {
-    const { data, error } = await supabase.rpc("qualify_referral", {
-      p_referee_id: refereeId,
-      p_loan_id: loanId,
-    });
-
-    if (error) {
-      console.error("[referrals] qualify_referral failed:", error.message);
-      return none;
-    }
-
-    const row = Array.isArray(data) ? data[0] : data;
+    const result = await db.execute(
+      sql`select referral_id, referrer_id, status from public.qualify_referral(${refereeId}::uuid, ${loanId}::uuid)`,
+    );
+    const row = (result.rows as Array<{ referral_id?: string; referrer_id?: string; status?: string }>)[0];
     // No row means the borrower was not referred by anyone.
     if (!row?.referral_id) return none;
 

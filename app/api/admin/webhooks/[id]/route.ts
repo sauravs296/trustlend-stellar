@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
-import { enforceRouteRateLimit } from "@/lib/rate-limit";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { requireApiAdmin, UnauthorizedError } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
+import { webhookEndpoints } from "@/lib/db/schema";
+import { serializeWebhook } from "@/lib/webhooks/serialize";
+import { enforceRouteRateLimit } from "@/lib/rate-limit";
 
 const patchWebhookSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
-  url: z.string().url("Must be a valid URL").optional(),
+  url: z.string().url("Must be a valid URL").startsWith("https://", "Webhook URLs must use HTTPS").optional(),
   platform: z.enum(["discord", "telegram", "slack", "custom"]).optional(),
   topic: z.string().min(1, "Topic is required").optional(),
   is_active: z.boolean().optional(),
 });
+
+async function guard() {
+  try {
+    await requireApiAdmin();
+    const db = getDb();
+    if (!db) {
+      return { error: NextResponse.json({ error: "Database not configured" }, { status: 500 }) };
+    }
+    return { db };
+  } catch (err) {
+    const status = err instanceof UnauthorizedError ? 401 : 500;
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status }) };
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -19,18 +37,13 @@ export async function PATCH(
   if (rateLimited) return rateLimited;
 
   const { id } = await params;
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const g = await guard();
+  if ("error" in g) return g.error;
 
   let body;
   try {
     body = await request.json();
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -39,25 +52,18 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   }
 
-  const payload = parsed.data;
+  const { is_active, ...rest } = parsed.data;
+  const [row] = await g.db
+    .update(webhookEndpoints)
+    .set({ ...rest, ...(is_active !== undefined ? { isActive: is_active } : {}) })
+    .where(eq(webhookEndpoints.id, id))
+    .returning();
 
-  // The RLS policy will deny the update if they aren't admin anyway.
-  const { data, error } = await supabase
-    .from("webhook_endpoints")
-    .update(payload)
-    .eq("id", id)
-    .select("*")
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  if (!data) {
+  if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ webhook: data });
+  return NextResponse.json({ webhook: serializeWebhook(row) });
 }
 
 export async function DELETE(
@@ -68,22 +74,10 @@ export async function DELETE(
   if (rateLimited) return rateLimited;
 
   const { id } = await params;
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+  const g = await guard();
+  if ("error" in g) return g.error;
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { error } = await supabase
-    .from("webhook_endpoints")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  await g.db.delete(webhookEndpoints).where(eq(webhookEndpoints.id, id));
 
   return NextResponse.json({ success: true });
 }

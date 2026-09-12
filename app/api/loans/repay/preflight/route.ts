@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { and, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { loans } from "@/lib/db/schema";
 import { getLoanLenders } from "@/lib/loans/lenders";
 import { MAX_LENDERS_PER_REPAYMENT } from "@/lib/loans/funding";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -24,18 +26,32 @@ export async function GET(request: NextRequest) {
     const loanId   = request.nextUrl.searchParams.get("loanId");
     if (!loanId) return NextResponse.json({ error: "loanId required" }, { status: 400 });
 
-    const supabase = await getServerSupabaseClient();
-    const srClient = getServiceRoleClient();
-    if (!supabase || !srClient) return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
+    const db = getDb();
+    if (!db) return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
 
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("id, status, principal_amount, repaid_amount, apr_bps, duration_days, borrower_id, created_at, due_at")
-      .eq("id", loanId)
-      .eq("borrower_id", user.id)
-      .maybeSingle();
+    const [loanRow] = await db
+      .select({
+        id: loans.id,
+        status: loans.status,
+        principalAmount: loans.principalAmount,
+        repaidAmount: loans.repaidAmount,
+        aprBps: loans.aprBps,
+        durationDays: loans.durationDays,
+        createdAt: loans.createdAt,
+      })
+      .from(loans)
+      .where(and(eq(loans.id, loanId), eq(loans.borrowerId, user.id)))
+      .limit(1);
 
-    if (!loan) return NextResponse.json({ error: "Loan not found" }, { status: 404 });
+    if (!loanRow) return NextResponse.json({ error: "Loan not found" }, { status: 404 });
+    const loan = {
+      status: loanRow.status,
+      principal_amount: Number(loanRow.principalAmount),
+      repaid_amount: Number(loanRow.repaidAmount),
+      apr_bps: loanRow.aprBps,
+      duration_days: loanRow.durationDays,
+      created_at: loanRow.createdAt.toISOString(),
+    };
 
     const repayableStatuses = ["active", "funded", "approved"];
     if (!repayableStatuses.includes(String(loan.status))) {
@@ -44,9 +60,7 @@ export async function GET(request: NextRequest) {
 
     // Find every lender who funded this loan. A loan can be filled by several
     // lenders (Issue #269), so repayment is split pro-rata across all of them.
-    // Service role client: contributions belong to lenders and are not readable
-    // by the borrower under RLS.
-    const lenders = await getLoanLenders(srClient, loanId);
+    const lenders = await getLoanLenders(db, loanId);
 
     if (lenders.length === 0) {
       return NextResponse.json({ error: "Lender wallet not found for this loan. Cannot process on-chain repayment." }, { status: 422 });
@@ -110,7 +124,7 @@ export async function GET(request: NextRequest) {
         contribution: +entry.contribution.toFixed(7),
         share: totalContributed > 0 ? +(entry.contribution / totalContributed).toFixed(7) : 0,
       })),
-      borrowerAddress: user.user_metadata?.wallet_address ?? "",
+      borrowerAddress: user.walletAddress ?? "",
       breakdown: {
         principal:       +principal.toFixed(7),
         interest:        +totalInterest.toFixed(7),

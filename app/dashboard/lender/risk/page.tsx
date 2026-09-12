@@ -5,30 +5,22 @@ import {
   presentLenderMetrics,
 } from "@/lib/dashboard/metrics";
 import { lenderNavLinks } from "@/lib/dashboard/lender-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { asc } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { getProfile } from "@/lib/db/queries";
+import { loanToRow } from "@/lib/db/rows";
+import { loans as loansTable } from "@/lib/db/schema";
 
 export default async function LenderRiskPage() {
   const { user } = await requireAuthenticatedUser("lender");
   const metrics = await getLenderDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const [loansRes, profileRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, due_at")
-          .order("due_at", { ascending: true })
-          .limit(12),
-        supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ])
-    : [{ data: [] }, { data: null }];
-
-  const loans = loansRes.data ?? [];
-  const profile = profileRes.data;
+  const db = getDb();
+  const [loanRows, profile] = await Promise.all([
+    db ? db.select().from(loansTable).orderBy(asc(loansTable.dueAt)).limit(12) : Promise.resolve([]),
+    getProfile(db, user.id),
+  ]);
+  const loans = loanRows.map(loanToRow);
 
   return (
     <WorkspaceFrame
@@ -36,7 +28,7 @@ export default async function LenderRiskPage() {
       heading="Risk Monitor"
       description="Monitor loan maturity and defaults to keep portfolio risk within target bounds."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentLenderMetrics(metrics)}
       currentPath="/dashboard/lender/risk"
       links={lenderNavLinks}

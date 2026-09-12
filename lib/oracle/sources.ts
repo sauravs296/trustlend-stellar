@@ -52,12 +52,20 @@ export async function fetchJsonSafe(
   if (typeof fetchImpl !== "function") return null;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Race the request against the deadline as well as aborting it: a fetch
+  // implementation that ignores the signal must still not hang the poll loop.
+  const deadline = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(null);
+    }, timeoutMs);
+  });
 
   try {
-    const res = await fetchImpl(url, { signal: controller.signal, headers });
-    if (!res.ok) return null;
-    return await res.json();
+    const res = await Promise.race([fetchImpl(url, { signal: controller.signal, headers }), deadline]);
+    if (!res || !res.ok) return null;
+    return await Promise.race([res.json(), deadline]);
   } catch {
     // Timeout, DNS failure, malformed JSON — all "source down".
     return null;

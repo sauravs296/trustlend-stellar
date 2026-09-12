@@ -156,20 +156,18 @@ Restoring a single table:
 pg_restore --dbname="$DATABASE_URL" --data-only --table=loans restore.dump
 ```
 
-### 3.3 Supabase notes
+### 3.3 Neon notes
 
 - Dumps are taken with `--no-owner --no-privileges` so they restore into a
   project whose roles differ from production — which is the normal case when
   restoring into a fresh project.
-- A full dump includes Supabase-managed schemas (`auth`, `storage`, …).
-  Restoring those into a *new* project can conflict with what the platform
-  provisions. If you hit that, restore only what you need:
-  `pg_restore --schema=public …`.
-- If `pg_dump` fails on a platform-managed schema (`vault`, `pgsodium`), set the
-  `BACKUP_EXCLUDE_SCHEMAS` repository variable, e.g. `vault,pgsodium`.
-- RLS policies live in [supabase/rls-policies.sql](supabase/rls-policies.sql) and
-  are captured by the dump, but re-applying that file is a good sanity check
-  after a restore into a new project.
+- Use the **direct** (non-pooler) Neon host for `pg_dump`/`pg_restore`; set it as
+  `BACKUP_DATABASE_URL` when the app's `DATABASE_URL` is the pooled one.
+- Restore only the application schema into a new project
+  (`pg_restore --schema=public …`); Neon provisions its own system schemas.
+- The schema, triggers and SQL functions are also reproducible from source with
+  `npm run db:migrate` against an empty database — a restore only needs to
+  bring back the *data* if the migrations have already been applied.
 
 ---
 
@@ -212,8 +210,9 @@ hypothesis, not a backup.**
   in repositories with no activity for 60 days — if the repo goes quiet, confirm
   the schedule is still enabled.
 - **Recovery point objective is 24 hours.** Up to a day of writes can be lost.
-  Supabase's own point-in-time recovery is the tool for a tighter RPO; this job
-  is the independent, off-site copy that survives losing the Supabase project.
+  Neon's own point-in-time restore (branch from a timestamp) is the tool for a
+  tighter RPO; this job is the independent, off-site copy that survives losing
+  the Neon project.
 - **Restores are manual.** There is deliberately no automated restore path — an
   automated process that can overwrite production is a bigger risk than the
   minutes it saves.

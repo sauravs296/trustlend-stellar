@@ -1,17 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createFakeDb, type FakeDb } from "../helpers/fake-db";
 
-// ── Mock Supabase service role client ─────────────────────────────────────────
-const _mockUpdate = vi.fn();
-const _mockSingle = vi.fn();
-const _mockSelect = vi.fn();
-const mockFrom = vi.fn();
-const mockRpc = vi.fn();
+// ── Mock the database ─────────────────────────────────────────────────────────
+let db: FakeDb | null;
 
-vi.mock("@/lib/supabase/server", () => ({
-  getServiceRoleClient: () => ({
-    from: mockFrom,
-    rpc: mockRpc,
-  }),
+vi.mock("@/lib/db/client", () => ({
+  getDb: () => db,
 }));
 
 import {
@@ -37,25 +31,22 @@ function makeLoan(overrides: Partial<DueLoan> = {}): DueLoan {
   };
 }
 
-function buildSelectChain(data: unknown, error: unknown = null) {
-  const chain = {
-    select: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    not: vi.fn().mockReturnThis(),
-    gt: vi.fn().mockReturnThis(),
-    lte: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data, error }),
-    update: vi.fn().mockReturnThis(),
-    then: undefined as unknown,
+/** The camelCase row shape the loans query returns for a DueLoan. */
+function toDbRow(loan: DueLoan) {
+  return {
+    id: loan.id,
+    borrowerId: loan.borrower_id,
+    dueAt: loan.due_at ? new Date(loan.due_at) : null,
+    principalAmount: String(loan.principal_amount),
+    repaidAmount: String(loan.repaid_amount),
+    metadata: loan.metadata,
   };
-  // Make the chain itself resolve like a promise (for .lte(...) which is the terminal call)
-  Object.defineProperty(chain, "then", {
-    get() {
-      return (resolve: (v: unknown) => void) => resolve({ data, error });
-    },
-  });
-  return chain;
+}
+
+function primeDueLoans(loans: DueLoan[]) {
+  db = createFakeDb();
+  db.queue(loans.map(toDbRow));
+  return db;
 }
 
 // ── queryDueLoans ──────────────────────────────────────────────────────────────
@@ -64,22 +55,19 @@ describe("queryDueLoans", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns loans due within 48 hours that are not yet notified", async () => {
-    const loan = makeLoan();
-    const chain = buildSelectChain([loan]);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([makeLoan()]);
 
     const result = await queryDueLoans();
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("loan-1");
+    expect(result[0].principal_amount).toBe(1000);
   });
 
   it("filters out loans already marked as notified", async () => {
-    const notifiedLoan = makeLoan({
-      metadata: { payment_due_notified_at: "2026-06-27T00:00:00.000Z" },
-    });
-    const chain = buildSelectChain([notifiedLoan]);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([
+      makeLoan({ metadata: { payment_due_notified_at: "2026-06-27T00:00:00.000Z" } }),
+    ]);
 
     const result = await queryDueLoans();
 
@@ -87,25 +75,21 @@ describe("queryDueLoans", () => {
   });
 
   it("returns empty array when no loans are due", async () => {
-    const chain = buildSelectChain([]);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([]);
 
     const result = await queryDueLoans();
 
     expect(result).toHaveLength(0);
   });
 
-  it("throws when Supabase returns an error", async () => {
-    const chain = buildSelectChain(null, { message: "DB error" });
-    mockFrom.mockReturnValue(chain);
+  it("throws when the database is not configured", async () => {
+    db = null;
 
-    await expect(queryDueLoans()).rejects.toThrow("Failed to query due loans: DB error");
+    await expect(queryDueLoans()).rejects.toThrow("Database unavailable");
   });
 
   it("handles multiple qualifying loans", async () => {
-    const loans = [makeLoan({ id: "loan-1" }), makeLoan({ id: "loan-2" })];
-    const chain = buildSelectChain(loans);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([makeLoan({ id: "loan-1" }), makeLoan({ id: "loan-2" })]);
 
     const result = await queryDueLoans();
 
@@ -155,30 +139,21 @@ describe("sendWebhookNotification", () => {
 describe("markLoanNotified", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("falls back to manual metadata merge when RPC is unavailable", async () => {
-    mockRpc.mockResolvedValue({ error: { message: "function not found" } });
-
-    const updateFn = vi.fn().mockResolvedValue({ error: null });
-    const _eqFn = vi.fn().mockReturnValue({ error: null });
-    const chain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({
-          data: { metadata: { existing_key: "value" } },
-          error: null,
-        }),
-      }),
-      update: vi.fn().mockReturnValue({ eq: updateFn }),
-    };
-    mockFrom.mockReturnValue(chain);
+  it("merges the notified timestamp into loans.metadata with an update", async () => {
+    db = createFakeDb();
+    db.queue([]);
 
     await markLoanNotified("loan-1");
 
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({ payment_due_notified_at: expect.any(String) }),
-      })
-    );
+    const methods = db.calls.map((c) => c.method);
+    expect(methods).toEqual(expect.arrayContaining(["update", "set", "where"]));
+    const set = db.calls.find((c) => c.method === "set")?.args[0] as { metadata?: unknown };
+    expect(set.metadata).toBeDefined();
+  });
+
+  it("throws when the database is not configured", async () => {
+    db = null;
+    await expect(markLoanNotified("loan-1")).rejects.toThrow("Database unavailable");
   });
 });
 
@@ -197,10 +172,7 @@ describe("runPaymentDueScheduler", () => {
   });
 
   it("returns succeeded count when all notifications succeed", async () => {
-    const loan = makeLoan();
-    const chain = buildSelectChain([loan]);
-    mockFrom.mockReturnValue(chain);
-    mockRpc.mockResolvedValue({ error: null });
+    primeDueLoans([makeLoan()]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
 
     const result = await runPaymentDueScheduler();
@@ -211,9 +183,7 @@ describe("runPaymentDueScheduler", () => {
   });
 
   it("records failure without stopping other loans", async () => {
-    const loans = [makeLoan({ id: "loan-1" }), makeLoan({ id: "loan-2" })];
-    const chain = buildSelectChain(loans);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([makeLoan({ id: "loan-1" }), makeLoan({ id: "loan-2" })]);
 
     let callCount = 0;
     vi.stubGlobal(
@@ -224,7 +194,6 @@ describe("runPaymentDueScheduler", () => {
         return Promise.resolve({ ok: true });
       })
     );
-    mockRpc.mockResolvedValue({ error: null });
 
     const result = await runPaymentDueScheduler();
 
@@ -235,8 +204,7 @@ describe("runPaymentDueScheduler", () => {
   });
 
   it("returns zero processed for empty result set", async () => {
-    const chain = buildSelectChain([]);
-    mockFrom.mockReturnValue(chain);
+    primeDueLoans([]);
 
     const result = await runPaymentDueScheduler();
 

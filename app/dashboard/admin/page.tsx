@@ -6,7 +6,17 @@ import {
   getAdminDashboardMetrics,
   presentAdminMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerToRow, loanToRow, poolToRow, profileToRow, repaymentToRow } from "@/lib/db/rows";
+import {
+  fraudSignals as fraudSignalsTable,
+  ledgerTransactions,
+  lendingPools,
+  loanRepayments,
+  loans as loansTable,
+  profiles as profilesTable,
+} from "@/lib/db/schema";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils/formatting";
 
@@ -22,57 +32,43 @@ function sumByPeriod(
 export default async function AdminDashboardPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
   
-  // Use service role client to bypass RLS and view platform-wide aggregates
-  const srClient = getServiceRoleClient();
+  // Platform-wide aggregates for the admin overview
+  const db = getDb();
 
-  const [profilesRes, loansRes, repaymentsRes, ledgerRes, fraudRes, poolsRes] = srClient
+  const [profileRows, loanRows, repaymentRows, ledgerRowsRaw, fraudRows, poolRows] = db
     ? await Promise.all([
-        srClient
-          .from("profiles")
-          .select("id, role, kyc_status, risk_status, full_name, phone, country_code, created_at")
-          .order("created_at", { ascending: false })
-          .limit(10),
-        srClient
-          .from("loans")
-          .select("id, borrower_id, status, principal_amount, requested_at")
-          .order("requested_at", { ascending: false })
-          .limit(10),
-        srClient
-          .from("loan_repayments")
-          .select("id, payer_id, amount, paid_at, tx_ref")
-          .order("paid_at", { ascending: false })
+        db.select().from(profilesTable).orderBy(desc(profilesTable.createdAt)).limit(10),
+        db.select().from(loansTable).orderBy(desc(loansTable.requestedAt)).limit(10),
+        db.select().from(loanRepayments).orderBy(desc(loanRepayments.paidAt)).limit(120),
+        db.select().from(ledgerTransactions).orderBy(desc(ledgerTransactions.createdAt)).limit(400),
+        db
+          .select({
+            id: fraudSignalsTable.id,
+            user_id: fraudSignalsTable.userId,
+            signal_type: fraudSignalsTable.signalType,
+            severity: fraudSignalsTable.severity,
+            resolved: fraudSignalsTable.resolved,
+            created_at: fraudSignalsTable.createdAt,
+          })
+          .from(fraudSignalsTable)
+          .orderBy(desc(fraudSignalsTable.createdAt))
           .limit(120),
-        srClient
-          .from("ledger_transactions")
-          .select("id, user_id, amount, category, status, created_at, metadata")
-          .order("created_at", { ascending: false })
-          .limit(400),
-        srClient
-          .from("fraud_signals")
-          .select("id, user_id, signal_type, severity, resolved, created_at")
-          .order("created_at", { ascending: false })
-          .limit(120),
-        srClient
-          .from("lending_pools")
-          .select("id, name, status, total_liquidity, apr_bps, created_at")
-          .order("created_at", { ascending: false })
-          .limit(10)
+        db.select().from(lendingPools).orderBy(desc(lendingPools.createdAt)).limit(10),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
+    : [[], [], [], [], [], []];
 
-  const profiles = profilesRes.data ?? [];
-  const dbLoans = loansRes.data ?? [];
-  const loans = dbLoans;
-  const repayments = repaymentsRes.data ?? [];
-  const ledgerRows = ledgerRes.data ?? [];
-  const fraudSignals = fraudRes.data ?? [];
-  const pools = poolsRes.data ?? [];
+  const profiles = profileRows.map(profileToRow);
+  const loans = loanRows.map(loanToRow);
+  const repayments = repaymentRows.map(repaymentToRow);
+  const ledgerRows = ledgerRowsRaw.map(ledgerToRow);
+  const fraudSignals = fraudRows.map((r) => ({ ...r, created_at: r.created_at.toISOString() }));
+  const pools = poolRows.map(poolToRow);
 
   const anchorTime = new Date(
-    String(ledgerRows[0]?.created_at ?? user.last_sign_in_at ?? user.created_at),
+    String(ledgerRows[0]?.created_at ?? user.lastSignInAt ?? user.createdAt),
   ).getTime();
   const baseTime = Number.isFinite(anchorTime) ? anchorTime : 0;
   const baseDate = new Date(baseTime);
@@ -136,7 +132,7 @@ export default async function AdminDashboardPage() {
       heading="Control Panel"
       description="Monitor platform health, credit activity, and security posture across TrustLend operations."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin"
