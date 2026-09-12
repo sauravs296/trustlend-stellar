@@ -371,7 +371,7 @@ async function main(): Promise<void> {
   if (!cfg.dryRun) {
     console.warn(
       "[price-oracle] On-chain publishing is not configured; running in dry-run mode. " +
-        "See ORACLE_PRICE_FEEDS.md for the set_asset_oracle_prices wiring.",
+        "See docs/oracle-price-feeds.md for the set_asset_oracle_prices wiring.",
     );
   }
 

@@ -323,10 +323,6 @@ export async function runAutoMatch(): Promise<{
     };
   }
 }
-tanceof Error ? err.message : "Auto-match failed",
-    };
-  }
-}
 
 // ── Set pool borrow cap ──────────────────────────────────────────────────────
 /**

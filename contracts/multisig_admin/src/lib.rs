@@ -10,7 +10,7 @@
 //! activation, payment recording, default marking, escrow disbursement
 //! confirmation) — those must stay single-signer/backend-automatable, or the
 //! platform's existing cron jobs and liquidation keeper stop functioning.
-//! See `contracts/MULTISIG_ADMIN.md` for the full rationale.
+//! See `docs/contracts/multisig-admin.md` for the full rationale.
 //!
 //! Flow: `propose` (any registered signer) → `approve` (N distinct signers,
 //! asynchronously, over separate transactions) → `execute` (permissionless

@@ -434,6 +434,6 @@ This recreates the `.husky/_/` directory and ensures hooks are activated. The `n
 ## Next Steps
 
 - Read the [Contributing Guidelines](CONTRIBUTING.md) for the PR workflow.
-- Check the [Roadmap](ROADMAP.md) for upcoming features.
-- Browse project documentation: [Flash Loans](contracts/FLASH_LOANS.md), [MultiSig Admin](contracts/MULTISIG_ADMIN.md), [Oracle Integration](contracts/ORACLE_INTEGRATION.md), [Governance](contracts/GOVERNANCE.md).
+- Check the [Roadmap](roadmap.md) for upcoming features.
+- Browse project documentation: [Flash Loans](contracts/flash-loans.md), [MultiSig Admin](contracts/multisig-admin.md), [Oracle Integration](contracts/oracle-integration.md), [Governance](contracts/governance.md).
 - Join the community discussions on GitHub Issues.

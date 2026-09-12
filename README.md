@@ -21,8 +21,8 @@
 <p align="center">
   <strong><a href="https://trustlendborrow.vercel.app/">Live Production</a></strong> |
   <strong><a href="https://youtu.be/V-SQxunQLow">Video Demo</a></strong> |
-  <strong><a href="ROADMAP.md">Roadmap</a></strong> |
-  <strong><a href="GETTING_STARTED.md">Getting Started Guide</a></strong> |
+  <strong><a href="docs/roadmap.md">Roadmap</a></strong> |
+  <strong><a href="docs/getting-started.md">Getting Started Guide</a></strong> |
   <strong><a href="CONTRIBUTING.md">Contributing Guidelines</a></strong>
 </p>
 
@@ -55,23 +55,7 @@ TrustLend is designed as a foundational layer for decentralized, inclusive credi
 4. **Institutional Underwriting:** Enabling institutional liquidity providers to plug proprietary risk models into TrustLend's smart contracts to automatically fund specific borrower profiles.
 5. **Global Fiat On/Off Ramps:** Deepening integration with Stellar anchors to allow seamless fiat borrowing and repayment in local currencies worldwide.
 
-*We welcome open-source contributors to help us build this vision! Check out our [Roadmap](ROADMAP.md) for upcoming milestones.*
-
----
-
-## 📸 Platform Sneak Peek
-
-### Borrower & Lender Dashboards
-<p align="center">
-   <img src="assets/borrower/home-tab.png" alt="Borrower Dashboard" width="45%" />
-   <img src="assets/lender/loan-marketplace.png" alt="Lender Marketplace" width="45%" />
-</p>
-
-### Admin Controls & Verification
-<p align="center">
-   <img src="assets/admin/admin-overview.png" alt="Admin Overview" width="45%" />
-   <img src="assets/admin/adminKYC%20verify.png" alt="KYC Verification" width="45%" />
-</p>
+*We welcome open-source contributors to help us build this vision! Check out our [Roadmap](docs/roadmap.md) for upcoming milestones.*
 
 ---
 
@@ -84,7 +68,6 @@ flowchart TB
     %% ── Style definitions ────────────────────────────────────────────────────
     classDef client fill:#3b82f6,color:#fff,stroke:#2563eb,stroke-width:2px
     classDef backend fill:#8b5cf6,color:#fff,stroke:#7c3aed,stroke-width:2px
-    classDef indexer fill:#06b6d4,color:#fff,stroke:#0891b2,stroke-width:2px
     classDef automation fill:#f59e0b,color:#1e293b,stroke:#d97706,stroke-width:2px
     classDef chain fill:#10b981,color:#fff,stroke:#059669,stroke-width:2px
     classDef external fill:#64748b,color:#fff,stroke:#475569,stroke-width:2px
@@ -106,15 +89,6 @@ flowchart TB
         SC[("🔐 Server-side Contract Invoker<br/>lib/stellar/server-contract.ts")]
         RC[("⚡ Redis Cache<br/>Simulation result cache")]
         EM[("📧 Email Service<br/>Resend · Payment notices")]
-    end
-
-    %% ── Indexer Layer (Cyan) ────────────────────────────────────────────────
-    subgraph Indexer["🔍 Indexer Layer (SubQuery)"]
-        direction TB
-        SQ[("📥 SubQuery Soroban Indexer<br/>project.yaml")]
-        GR[("🗃️ GraphQL API<br/>schema.graphql")]
-        RS[("📡 REST API<br/>Read-model fallback")]
-        HM[("📊 Horizon Sync Health<br/>indexer_health table")]
     end
 
     %% ── Automation Layer (Amber) ─────────────────────────────────────────────
@@ -168,16 +142,6 @@ flowchart TB
     SC --> RC
     SA --> EM
     SA --> WH
-
-    %% ── Indexer ──────────────────────────────────────────────────────────────
-    SQ -->|"captures events from"| SR
-    SQ --> GR
-    SQ --> RS
-    GR -->|"GraphQL read-model"| SA
-    RS -->|"REST read-model"| SA
-    HZ -->|"ledger stream"| HM
-    HM -->|"persists sync state"| SB
-    HZ -.->|"also feeds direct reads"| SB
 
     %% ── Automation ───────────────────────────────────────────────────────────
     PD -->|"queries due loans"| SB
@@ -271,9 +235,8 @@ flowchart LR
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Framer Motion |
 | **Backend & DB** | Supabase (Auth, Postgres RLS, Storage) |
 | **Blockchain** | Stellar Testnet, Soroban RPC, Horizon API |
-| **Wallet** | Freighter Wallet, xBull, Albedo, WalletConnect v2 for mobile wallets (`@stellar/freighter-api`, `@creit.tech/stellar-wallets-kit`) |
+| **Wallet** | Freighter Wallet, xBull, Albedo, WalletConnect v2 for mobile wallets (`@creit.tech/stellar-wallets-kit`) |
 | **Smart Contracts** | Rust (Soroban, `wasm32v1-none`)  — 8 contracts deployed |
-| **Indexer** | SubQuery (`@subql/node-stellar`, `@subql/query`) — GraphQL + REST |
 | **Cache** | Upstash Redis |
 | **Automation** | Vercel Cron Jobs |
 | **Email** | Resend |
@@ -283,7 +246,7 @@ flowchart LR
 
 ## ⚙️ Getting Started (Local Development)
 
-> 📖 **New contributors should start with the [Getting Started Guide](GETTING_STARTED.md)** for a thorough walkthrough covering Soroban CLI setup, contract compilation, database setup, and the full test suite.
+> 📖 **New contributors should start with the [Getting Started Guide](docs/getting-started.md)** for a thorough walkthrough covering Soroban CLI setup, contract compilation, database setup, and the full test suite.
 
 ### Quick Start
 
@@ -304,7 +267,7 @@ docker-compose up
 ```
 
 ### Need more detail?
-See the [complete setup guide →](GETTING_STARTED.md)
+See the [complete setup guide →](docs/getting-started.md)
 
 ---
 
@@ -561,7 +524,7 @@ If you discover a security vulnerability within TrustLend, please refer to our [
 The PostgreSQL database is dumped, encrypted with AES-256 and uploaded to Amazon S3
 every night at 00:00 UTC by the [Automated DB Backup](.github/workflows/db-backup.yml)
 workflow. Restore steps, bucket/IAM setup and the quarterly restore drill are
-documented in [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md).
+documented in [docs/disaster-recovery.md](docs/disaster-recovery.md).
 
 ---
 

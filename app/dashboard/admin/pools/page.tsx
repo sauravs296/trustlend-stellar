@@ -38,6 +38,7 @@ export default async function AdminPoolsPage() {
     apr_bps: Number(p.apr_bps ?? 0),
     total_liquidity: Number(p.total_liquidity ?? 0),
     available_liquidity: Number(p.available_liquidity ?? 0),
+    borrow_cap: p.borrow_cap ?? null,
   }));
 
   const pendingLoans = rawLoans.map((l) => ({

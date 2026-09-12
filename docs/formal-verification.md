@@ -207,5 +207,5 @@ contracts/lending/
   Cargo.toml            # Added proptest dev-dependency
 .github/workflows/
   formal-verification.yml   # CI workflow
-FORMAL_VERIFICATION.md       # This file (in repo root)
+docs/formal-verification.md  # This file
 ```

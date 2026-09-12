@@ -15,11 +15,6 @@ import { WithdrawToFiatButton } from "@/components/dashboard/WithdrawToFiatButto
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
 import { getFundingProgress } from "@/lib/loans/funding";
 import { HealthFactorGauge } from "@/components/dashboard/HealthFactorGauge";
-import {
-  getIndexedBorrowerReadModel,
-  isIndexerConfigured,
-  isIndexerRequired,
-} from "@/lib/indexer/read-model";
 import { formatCurrency } from "@/lib/utils/formatting";
 
 // ── Inline SVG illustrations ───────────────────────────────────────────────
@@ -49,7 +44,7 @@ function EmptyLoansIllustration() {
 export default async function BorrowerDashboardPage() {
   const { user } = await requireAuthenticatedUser("borrower");
   const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
-  const metrics = await getBorrowerDashboardMetrics(user.id, walletAddress);
+  const metrics = await getBorrowerDashboardMetrics(user.id);
 
   const supabase = await getServerSupabaseClient();
   const srClient = getServiceRoleClient();
@@ -72,29 +67,7 @@ export default async function BorrowerDashboardPage() {
 
   const profile = profileRes.data;
   const dbLoans = loansRes.data ?? [];
-  let indexedLoans: typeof dbLoans | null = null;
-  if (isIndexerConfigured() && walletAddress) {
-    try {
-      const indexed = await getIndexedBorrowerReadModel({
-        userId: user.id,
-        walletAddress,
-        limit: 20,
-      });
-      indexedLoans = indexed.loans.map((loan) => ({
-        id: loan.id,
-        status: loan.status === "pending" ? "requested" : loan.status,
-        principal_amount: loan.principalAmount / 10000000,
-        repaid_amount: loan.repaidAmount / 10000000,
-        apr_bps: loan.aprBps,
-        duration_days: loan.durationDays,
-        due_at: loan.dueAt,
-        created_at: loan.createdAt,
-      })) as typeof dbLoans;
-    } catch (error) {
-      if (isIndexerRequired()) throw error;
-    }
-  }
-  const loans = indexedLoans?.length ? indexedLoans : dbLoans;
+  const loans = dbLoans;
 
   // Stellar TX lookups
   const loanIds = loans.map((l) => String(l.id));

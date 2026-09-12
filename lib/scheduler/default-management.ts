@@ -15,7 +15,7 @@
  * the kind of rare, high-impact operation that needs N-of-M human approval.
  * The automation's own key must be a REGISTERED SIGNER on the MultiSigAdmin
  * contract so it can propose; a human still has to approve + execute before
- * any funds actually move. See `contracts/MULTISIG_ADMIN.md`.
+ * any funds actually move. See `docs/contracts/multisig-admin.md`.
  *
  * Every step is idempotent (guarded by Supabase state) and individually
  * error-handled so one bad loan never aborts the whole run.

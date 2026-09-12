@@ -27,7 +27,7 @@
 //   npm run liquidation:keeper -- --interval=60    # background service, poll every 60s
 //   npm run liquidation:keeper:service             # shorthand: poll every minute
 //   POST /api/cron/liquidation (Vercel Cron, * * * * *) — deployed worker, see
-//   vercel.json + LIQUIDATION_KEEPER.md
+//   vercel.json + docs/liquidation-keeper.md
 //
 // ── Required env ─────────────────────────────────────────────────────────────
 //   ADMIN_SECRET_KEY, NEXT_PUBLIC_LENDING_CONTRACT_ID,
