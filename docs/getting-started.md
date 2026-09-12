@@ -26,7 +26,6 @@ Install these tools on your machine before cloning the repo.
 | **npm** | ^10 | Package manager |
 | **Rust** | stable (via `rustup`) | Soroban smart contract compilation |
 | **Soroban CLI** | latest | Contract deployment & interaction |
-| **Docker** (optional) | ^24 | Alternative dev environment via Compose |
 | **Freighter Wallet** | latest (browser ext.) | Stellar wallet for testnet interactions |
 
 ### Verify Installations
@@ -162,32 +161,29 @@ npm run dev
 
 The app starts at **http://localhost:3000** with hot-reloading enabled.
 
-### 3.5 Using Docker (Alternative)
-
-If you prefer a containerized setup, run:
-
-```bash
-docker-compose up
-```
-
-This starts the Next.js dev server and any required services. The app is available at `http://localhost:3000`.
-
 ---
 
 ## 4. Smart Contract Setup (Soroban / Rust)
 
-The contracts live in the `contracts/` directory — a Cargo workspace with 8 crates:
+The contracts live in the `contracts/` directory — a Cargo workspace with 16 contract crates (plus `mocks/` for test doubles):
 
 | Crate | Path | Purpose |
 |---|---|---|
-| `borrower-reputation` | `contracts/borrower_reputation/` | On-chain reputation scoring |
-| `escrow` | `contracts/escrow/` | Escrow-assisted disbursement |
-| `lending` | `contracts/lending/` | Core lending logic |
-| `default-management` | `contracts/default_management/` | Default & insurance pool |
-| `governance` | `contracts/governance/` | DAO governance controls |
-| `multisig-admin` | `contracts/multisig_admin/` | Multi-signature admin gating |
-| `auto-compound-vault` | `contracts/auto_compound_vault/` | Auto-compounding interest vault |
+| `lending` | `contracts/lending/` | Loan lifecycle, repayments, flash loans, fees |
+| `borrower_reputation` | `contracts/borrower_reputation/` | Trust score, tiers, credit limits |
+| `escrow` | `contracts/escrow/` | Escrow-assisted disbursement with revocation window |
+| `default_management` | `contracts/default_management/` | Default marking & insurance pool |
+| `pooled_lending` | `contracts/pooled_lending/` | Pooled deposits auto-matched to requests |
+| `multisig_admin` | `contracts/multisig_admin/` | N-of-M admin approvals |
+| `governance` | `contracts/governance/` | Proposals & voting on protocol parameters |
+| `referral_rewards` | `contracts/referral_rewards/` | Referral bonuses on first funded loan |
+| `tlend_token` / `tlend_vesting` / `tlend_airdrop` | `contracts/tlend_*/` | Protocol token, vesting, Merkle airdrop |
 | `treasury` | `contracts/treasury/` | Fee collection & distribution |
+| `auto_compound_vault` | `contracts/auto_compound_vault/` | Auto-compounding yield vault |
+| `liquidation_auction` | `contracts/liquidation_auction/` | Dutch auction for liquidated collateral |
+| `usdc_lending_pool` | `contracts/usdc_lending_pool/` | USDC-denominated lending pool |
+| `borrower_loyalty` | `contracts/borrower_loyalty/` | Loyalty rewards for repeat borrowers |
+| `zk_credit_verifier` | `contracts/zk_credit_verifier/` | ZK proof verification for off-chain credit data |
 
 ### 4.1 Build All Contracts
 
@@ -330,7 +326,10 @@ Our GitHub Actions CI runs these checks on every PR:
 | Workflow | What It Does |
 |---|---|
 | `ci.yml` — **Test Soroban Contracts** | `cargo test` + WASM build |
-| `ci.yml` — **Build Next.js** | `tsc --noEmit` → `eslint` → `next build` |
+| `ci.yml` — **Build Next.js** | `tsc --noEmit` → `eslint` → `vitest run` → `next build`; runs `drizzle-kit migrate` and the Vercel production deploy on pushes to `main` |
+| `e2e-playwright.yml` | Playwright end-to-end tests |
+| `keepers.yml` | Every 5 minutes: triggers the liquidation keeper and price oracle (needs `KEEPER_BASE_URL` + `CRON_SECRET` secrets) |
+| `db-backup.yml` | Nightly encrypted Postgres dump to S3 |
 | `contract-security.yml` | `cargo clippy` + `cargo audit` |
 | `formal-verification.yml` | proptest + Kani model checking |
 | `coverage.yml` | `cargo tarpaulin` → Codecov upload |
@@ -452,7 +451,7 @@ This recreates the `.husky/_/` directory and ensures hooks are activated. The `n
 
 ## Next Steps
 
-- Read the [Contributing Guidelines](CONTRIBUTING.md) for the PR workflow.
+- Read the [Contributing Guidelines](../CONTRIBUTING.md) for the PR workflow.
 - Check the [Roadmap](roadmap.md) for upcoming features.
 - Browse project documentation: [Flash Loans](contracts/flash-loans.md), [MultiSig Admin](contracts/multisig-admin.md), [Oracle Integration](contracts/oracle-integration.md), [Governance](contracts/governance.md).
 - Join the community discussions on GitHub Issues.

@@ -12,10 +12,10 @@ triggers the on-chain default + insurance contract methods automatically.
 
 | File | Role |
 |---|---|
-| [app/api/cron/default-management/route.ts](app/api/cron/default-management/route.ts) | Authenticated serverless endpoint (Vercel Cron / cURL) |
-| [lib/scheduler/default-management.ts](lib/scheduler/default-management.ts) | The run: query overdue loans → check ledger time → invoke contracts (idempotent, per-loan error handling) |
-| [lib/stellar/server-contract.ts](lib/stellar/server-contract.ts) | Server-side signed Soroban invoker (admin keypair) + ledger-time reader |
-| [vercel.json](vercel.json) | Schedules the cron daily at `02:00 UTC` |
+| [app/api/cron/default-management/route.ts](../app/api/cron/default-management/route.ts) | Authenticated serverless endpoint (Vercel Cron / cURL) |
+| [lib/scheduler/default-management.ts](../lib/scheduler/default-management.ts) | The run: query overdue loans → check ledger time → invoke contracts (idempotent, per-loan error handling) |
+| [lib/stellar/server-contract.ts](../lib/stellar/server-contract.ts) | Server-side signed Soroban invoker (admin keypair) + ledger-time reader |
+| [vercel.json](../vercel.json) | Schedules the cron daily at `02:00 UTC` |
 
 ## 2. Flow
 
@@ -43,7 +43,7 @@ Vercel Cron (02:00 UTC)  ──Bearer CRON_SECRET──►  /api/cron/default-ma
   isn't `Bearer ${CRON_SECRET}` (same scheme as the existing `payment-due` cron).
   In Vercel, set `CRON_SECRET` and Vercel Cron sends it automatically.
 - **Signing key isolation:** contract calls are signed server-side with
-  `ADMIN_SECRET_KEY`, read only inside [lib/stellar/server-contract.ts](lib/stellar/server-contract.ts)
+  `ADMIN_SECRET_KEY`, read only inside [lib/stellar/server-contract.ts](../lib/stellar/server-contract.ts)
   (never `NEXT_PUBLIC_`, never sent to the browser).
 - **On-chain authorization:** `mark_defaulted`, `record_default`, and
   `trigger_insurance_payout` all `require_auth()` the admin and assert

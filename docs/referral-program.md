@@ -102,7 +102,7 @@ funds, misconfigured, or panicking.
 
 ## Database
 
-`sql/09_referral_program.sql` adds:
+The Drizzle schema (`lib/db/schema.ts`, applied by `drizzle/0000_init.sql` and `drizzle/0001_functions_and_triggers.sql`) adds:
 
 - `profiles.referral_code` — unique, indexed, backfilled.
 - `public.referrals` — one row per invited user, with `status` moving
