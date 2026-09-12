@@ -11,7 +11,7 @@ arbitrage or re-leveraging.
 
 ## 1. `flash_loan` (Task 1)
 
-Added to [`contracts/lending/src/lib.rs`](contracts/lending/src/lib.rs):
+Added to [`contracts/lending/src/lib.rs`](../../contracts/lending/src/lib.rs):
 
 ```rust
 pub fn flash_loan(env: Env, receiver: Address, token: Address, amount: i128, params: Bytes)
@@ -95,7 +95,7 @@ still succeeds — the surplus simply accrues to the pool.
 
 ## 4. Unit tests (Task 5)
 
-12 new tests in [`contracts/lending/src/test.rs`](contracts/lending/src/test.rs),
+12 new tests in [`contracts/lending/src/test.rs`](../../contracts/lending/src/test.rs),
 using a real SEP-41 test token (`env.register_stellar_asset_contract_v2`):
 
 | Test | Proves |
@@ -131,9 +131,9 @@ which collide if two implementations of the same trait share a module.
 
 ## 6. Frontend integration
 
-- [`lib/contracts/lending.ts`](lib/contracts/lending.ts) — `flashLoan()`,
+- [`lib/contracts/lending.ts`](../../lib/contracts/lending.ts) — `flashLoan()`,
   `getFlashLoanFeeBps()`, `setFlashLoanFeeBps()`.
-- [`lib/stellar/soroban.ts`](lib/stellar/soroban.ts) — new `bytesToScVal()`
+- [`lib/stellar/soroban.ts`](../../lib/stellar/soroban.ts) — new `bytesToScVal()`
   helper for encoding the callback `params`.
 
 ## 7. Future evolution

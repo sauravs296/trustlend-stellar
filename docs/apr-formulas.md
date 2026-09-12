@@ -589,4 +589,4 @@ The lending contract's mathematical functions are formally verified using the **
 | `contracts/borrower_reputation/src/lib.rs` | Reputation tiers, oracle credit scoring |
 | `lib/dashboard/interest-rates.ts` | TypeScript implementation of rate models |
 | `types/contracts.ts` | TypeScript constants and helper functions |
-| `sql/05_interest_rate_model.sql` | Database schema for rate model columns |
+| `lib/db/schema.ts` (`loans.rate_model`, `drizzle/0000_init.sql`) | Database schema for rate model columns |

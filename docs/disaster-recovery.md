@@ -3,8 +3,8 @@
 How TrustLend's PostgreSQL database is backed up, and how to restore it.
 
 - **Schedule:** every day at **00:00 UTC**
-- **Runner:** [`.github/workflows/db-backup.yml`](.github/workflows/db-backup.yml)
-- **Script:** [`scripts/backup.sh`](scripts/backup.sh)
+- **Runner:** [`.github/workflows/db-backup.yml`](../.github/workflows/db-backup.yml)
+- **Script:** [`scripts/backup.sh`](../scripts/backup.sh)
 - **Destination:** `s3://$S3_BUCKET/backups/YYYY/MM/trustlend-<timestamp>.dump.enc`
 - **Encryption:** AES-256-CBC (PBKDF2, 600k iterations) applied **before** upload
 - **Retention:** 30 days by default (`BACKUP_RETENTION_DAYS`)
@@ -185,7 +185,7 @@ stops before the upload. The workflow also exposes this via
 
 Automated coverage for the script's safety properties (missing config is
 rejected, empty and corrupt dumps are refused, no plaintext survives) lives in
-[`__tests__/scripts/backup-script.test.ts`](__tests__/scripts/backup-script.test.ts).
+[`__tests__/scripts/backup-script.test.ts`](../__tests__/scripts/backup-script.test.ts).
 
 ### Quarterly restore drill
 

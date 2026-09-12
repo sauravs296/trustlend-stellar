@@ -1,71 +1,119 @@
 # Contributing to TrustLend
 
-First off, thank you for considering contributing to TrustLend! It's people like you that make TrustLend such a great tool.
+Thanks for your interest in TrustLend! This guide covers how to set up a
+development environment, the conventions we follow, and how to get a change
+merged. For the full local-setup walkthrough (Rust/Soroban toolchain, database,
+tests) see [docs/getting-started.md](docs/getting-started.md).
 
-## Where do I go from here?
+## Ways to contribute
 
-If you've noticed a bug or have a feature request, make one! It's generally best if you get confirmation of your bug or approval for your feature request this way before starting to code.
+- **Report bugs** or **request features** through
+  [GitHub Issues](https://github.com/thisisouvik/trustlend-stellar/issues) using
+  the provided templates. For anything security-related, follow
+  [SECURITY.md](SECURITY.md) instead of opening a public issue.
+- **Improve documentation** — everything under [`docs/`](docs/) and the README.
+- **Write code** — frontend (Next.js / React), backend routes, or Soroban
+  contracts in [`contracts/`](contracts/). Issues labelled `good first issue`
+  are a good starting point, and the "contract only" crates listed in the README
+  still need frontend wiring.
 
-## Fork & create a branch
+Before starting on a larger change, open an issue (or comment on an existing
+one) so we can agree on the approach first.
 
-If this is something you think you can fix, then fork TrustLend and create a branch with a descriptive name.
+## Development setup
 
-A good branch name would be (where issue #325 is the ticket you're working on):
+```bash
+git clone https://github.com/<your-username>/trustlend-stellar.git
+cd trustlend-stellar
+git remote add upstream https://github.com/thisisouvik/trustlend-stellar.git
 
-```sh
-git checkout -b 325-add-stellar-wallet-support
+npm install                      # also installs the Husky commit hook
+cp .env.example .env.local       # set DATABASE_URL, SESSION_SECRET, SIWS_SERVER_SECRET
+npm run db:migrate               # apply Drizzle migrations to your Neon database
+npm run dev                      # http://localhost:3000
 ```
 
-## Setup Local Development
+Contract work additionally needs a Rust toolchain with the
+`wasm32-unknown-unknown` target and the `stellar` CLI — see
+[docs/getting-started.md](docs/getting-started.md#4-smart-contract-setup-soroban--rust).
 
-**Option 1: Node.js (Standard)**
-Make sure you have Node.js and npm installed.
-```sh
-npm install
-npm run dev
+## Branches
+
+Work on a branch created from an up-to-date `main`:
+
+```bash
+git checkout main
+git pull upstream main
+git checkout -b feat/short-description     # or fix/…, docs/…, chore/…
 ```
 
-**Option 2: Docker Compose (Easier)**
-If you prefer not to install dependencies locally, just use Docker:
-```sh
-docker-compose up
+Rebase onto `main` (rather than merging) when you need to pick up changes.
+
+## Commit messages
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/);
+a `commit-msg` hook runs commitlint and rejects anything that doesn't match.
+
+```
+<type>(<scope>): <short summary>
+
+<optional body explaining what and why>
 ```
 
-Ensure everything works correctly on your local machine at `http://localhost:3000`.
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
+  `build`, `ci`, `chore`, `revert`, plus project-specific `contract`,
+  `stellar` and `security`.
+- **Scopes** (required): `lending`, `escrow`, `governance`,
+  `default-management`, `multisig-admin`, `borrower-reputation`,
+  `auto-compound-vault`, `treasury`, `contracts`, `frontend`, `dashboard`,
+  `auth`, `kyc`, `api`, `ci`, `db`, `neon`, `drizzle`, `stellar`, `soroban`,
+  `docs`, `deps`, `config`, `landing`, `hooks`.
 
-## Implement your fix or feature
+Examples: `feat(lending): add early-repayment discount`,
+`fix(auth): reject expired SEP-10 challenges`, `docs(contracts): document escrow revocation window`.
+The complete rule set lives in [`commitlint.config.ts`](commitlint.config.ts).
 
-At this point, you're ready to make your changes. Feel free to ask for help; everyone is a beginner at first.
+## Before opening a pull request
 
-## Make a Pull Request
+Run the same checks CI runs:
 
-At this point, you should switch back to your master branch and make sure it's up to date with TrustLend's master branch:
+```bash
+npx tsc --noEmit          # type check
+npm run lint              # ESLint
+npm test                  # Vitest unit tests
+npm run build             # Next.js production build
 
-```sh
-git remote add upstream git@github.com:thisisouvik/trustlend-stellar.git
-git checkout master
-git pull upstream master
+# if you touched contracts/
+cd contracts
+cargo test
+cargo clippy --all-targets -- -D warnings -A clippy::inconsistent_digit_grouping
+cargo build --target wasm32-unknown-unknown --release
 ```
 
-Then update your feature branch from your local copy of master, and push it!
+A few conventions to keep in mind:
 
-```sh
-git checkout 325-add-stellar-wallet-support
-git rebase master
-git push --set-upstream origin 325-add-stellar-wallet-support
-```
+- Add or update tests for behaviour you change (`__tests__/` for the app,
+  `#[cfg(test)]` modules for contracts).
+- Schema changes go through Drizzle: edit `lib/db/schema.ts`, run
+  `npm run db:generate`, and commit the generated migration in `drizzle/`.
+- Use the design tokens in `app/theme.css` and the primitives in
+  `components/ui/` for UI work so both light and dark themes keep working.
+- Never commit secrets. `.env.local` is git-ignored; `.env.example` documents
+  every variable.
 
-Finally, go to GitHub and make a Pull Request.
+## Pull requests
 
-## Keeping your Pull Request updated
+1. Push your branch to your fork and open a PR against `main`.
+2. Fill in the PR template: what changed, why, how it was tested, and
+   screenshots for UI changes.
+3. Keep PRs focused. Unrelated refactors are easier to review as separate PRs.
+4. CI must pass. A maintainer will review; please respond to feedback in the
+   same PR rather than opening a new one.
 
-If a maintainer asks you to "rebase" your PR, they're saying that a lot of code has changed, and that you need to update your branch so it's easier to merge.
+Maintainers merge a PR once it passes CI, has at least one approval, has no
+outstanding change requests, and is up to date with `main`.
 
-## Merging A PR (maintainers only)
+## Code of conduct
 
-A PR can only be merged into master by a maintainer if:
-
-* It is passing CI.
-* It has been approved by at least one maintainer.
-* It has no requested changes.
-* It is up to date with current master.
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By
+participating you agree to uphold it.

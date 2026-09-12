@@ -43,30 +43,30 @@ a deleted or re-roled account is reflected immediately.
 
 ## 2. Backend: challenge endpoint (Task 2)
 
-**`POST /api/auth/siws/challenge`** — [route](app/api/auth/siws/challenge/route.ts)
+**`POST /api/auth/siws/challenge`** — [route](../app/api/auth/siws/challenge/route.ts)
 ```jsonc
 // request
 { "address": "GABC...WALLET" }
 // response 200
 { "transaction": "<base64 XDR>", "networkPassphrase": "Test SDF Network ; September 2015" }
 ```
-Built with `WebAuth.buildChallengeTx` ([lib/auth/siws-server.ts](lib/auth/siws-server.ts)),
+Built with `WebAuth.buildChallengeTx` ([lib/auth/siws-server.ts](../lib/auth/siws-server.ts)),
 signed by a dedicated **SEP-10 server key** (`SIWS_SERVER_SECRET`, distinct from
 the platform admin key), valid for 5 minutes, bound to `NEXT_PUBLIC_SIWS_DOMAIN`.
 Rate-limited via the existing `enforceRouteRateLimit`.
 
 ## 3. Client: pick a wallet, then sign (Task 3)
 
-[lib/auth/siws-client.ts](lib/auth/siws-client.ts) `signInWithStellar()` drives the
-whole flow; [components/auth/StellarSignInButton.tsx](components/auth/StellarSignInButton.tsx)
-is a "Sign in with Stellar" button next to "Continue with Google" on the auth page
-([components/auth/AuthPageClient.tsx](components/auth/AuthPageClient.tsx)). It
+[lib/auth/siws-client.ts](../lib/auth/siws-client.ts) `signInWithStellar()` drives the
+whole flow; [components/auth/StellarSignInButton.tsx](../components/auth/StellarSignInButton.tsx)
+is the "Sign in with Stellar" button on the auth page — the only sign-in method
+([components/auth/AuthPageClient.tsx](../components/auth/AuthPageClient.tsx)). It
 reuses the existing multi-wallet signer
-([lib/stellar/wallet.ts](lib/stellar/wallet.ts)) so the challenge is signed exactly
+([lib/stellar/wallet.ts](../lib/stellar/wallet.ts)) so the challenge is signed exactly
 like any other TrustLend wallet transaction.
 
 Clicking the button opens the wallet picker
-([components/ui/WalletSelectionModal.tsx](components/ui/WalletSelectionModal.tsx),
+([components/ui/WalletSelectionModal.tsx](../components/ui/WalletSelectionModal.tsx),
 shared with the dashboard's `WalletCard`), which offers **Freighter**,
 **WalletConnect**, **xBull** and **Albedo**. The chosen provider is passed into
 `signInWithStellar(provider, role)`, so the login challenge is signed by whichever
@@ -80,7 +80,7 @@ phone for approval, and the signed XDR comes back over the same session. A few
 details matter for this to work end to end:
 
 - **Module id.** The kit registers WalletConnect as `wallet_connect` (underscore).
-  These ids live in [lib/stellar/wallet-providers.ts](lib/stellar/wallet-providers.ts);
+  These ids live in [lib/stellar/wallet-providers.ts](../lib/stellar/wallet-providers.ts);
   `assertWalletModuleIds()` warns in development if the kit ever renames one.
 - **Chain negotiation.** The session is opened with `allowedChains` derived from
   `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` (`stellar:pubnet` for mainnet, otherwise
@@ -98,11 +98,11 @@ details matter for this to work end to end:
   connected Freighter address would be handed to a WalletConnect request that has no
   matching session. Disconnecting calls `disconnectWallet()`, which closes the pairing.
 - **CSP.** The relay and Reown AppKit origins are allowlisted in
-  [next.config.ts](next.config.ts); without them the browser blocks the relay socket.
+  [next.config.ts](../next.config.ts); without them the browser blocks the relay socket.
 
 ## 4. Backend: signature validation → session (Task 4)
 
-**`POST /api/auth/siws/verify`** — [route](app/api/auth/siws/verify/route.ts)
+**`POST /api/auth/siws/verify`** — [route](../app/api/auth/siws/verify/route.ts)
 ```jsonc
 // request
 { "address": "GABC...", "signedTxXdr": "<base64 XDR>" }
@@ -125,8 +125,8 @@ page only applies to brand-new accounts; an existing account keeps its role.
 ## 5. Error states (Task 5)
 
 Every failure is a typed `SiwsError` with a `code` + HTTP status
-([lib/auth/siws-server.ts](lib/auth/siws-server.ts)), mapped to a friendly message
-client-side (`mapVerifyError` in [lib/auth/siws-client.ts](lib/auth/siws-client.ts)):
+([lib/auth/siws-server.ts](../lib/auth/siws-server.ts)), mapped to a friendly message
+client-side (`mapVerifyError` in [lib/auth/siws-client.ts](../lib/auth/siws-client.ts)):
 
 | Code | HTTP | User sees |
 |---|---|---|
@@ -152,7 +152,7 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=     # Reown/WalletConnect Cloud project id
 
 ## 7. Tests
 
-[__tests__/auth/siws.test.ts](__tests__/auth/siws.test.ts) exercises the real
+[__tests__/auth/siws.test.ts](../__tests__/auth/siws.test.ts) exercises the real
 `WebAuth` roundtrip (build → sign → verify) with an in-memory test keypair —
 happy path, wrong-signer, address mismatch, expired challenge, and malformed XDR —
 without hitting the network or the database.

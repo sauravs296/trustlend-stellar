@@ -16,11 +16,11 @@ The issue allows either `@stellar/wallet-sdk` *or* standard SEP-24 flows. We cho
 **standard flows on plain `fetch`** because:
 
 - The rest of the codebase already talks to Stellar over raw `fetch` / JSON-RPC
-  (see [lib/stellar/soroban.ts](lib/stellar/soroban.ts)) — this keeps the style
+  (see [lib/stellar/soroban.ts](../lib/stellar/soroban.ts)) — this keeps the style
   consistent and the bundle small.
 - `@stellar/wallet-sdk` is deprecated (superseded by `@stellar/typescript-wallet-sdk`);
   avoiding it removes a heavy, churning dependency.
-- We reuse the existing multi-wallet signer ([lib/stellar/wallet.ts](lib/stellar/wallet.ts))
+- We reuse the existing multi-wallet signer ([lib/stellar/wallet.ts](../lib/stellar/wallet.ts))
   so SEP-10 challenges are signed by **Freighter or Albedo**, matching the app.
 
 ## 2. The flow
@@ -50,10 +50,10 @@ Borrower clicks "Withdraw to Fiat"
 
 | File | Purpose |
 |---|---|
-| [lib/stellar/sep24-config.ts](lib/stellar/sep24-config.ts) | Env-driven anchor config (home domain, asset code/issuer) with testnet defaults |
-| [lib/stellar/sep24.ts](lib/stellar/sep24.ts) | SEP-1 toml discovery, SEP-10 auth, SEP-24 interactive deposit/withdraw, status polling + labels |
-| [components/dashboard/WithdrawToFiatButton.tsx](components/dashboard/WithdrawToFiatButton.tsx) | "Withdraw to Fiat" button + modal that drives the whole flow and shows live status |
-| [app/dashboard/borrower/page.tsx](app/dashboard/borrower/page.tsx) | Renders the button in the Borrower dashboard |
+| [lib/stellar/sep24-config.ts](../lib/stellar/sep24-config.ts) | Env-driven anchor config (home domain, asset code/issuer) with testnet defaults |
+| [lib/stellar/sep24.ts](../lib/stellar/sep24.ts) | SEP-1 toml discovery, SEP-10 auth, SEP-24 interactive deposit/withdraw, status polling + labels |
+| [components/dashboard/WithdrawToFiatButton.tsx](../components/dashboard/WithdrawToFiatButton.tsx) | "Withdraw to Fiat" button + modal that drives the whole flow and shows live status |
+| [app/dashboard/borrower/page.tsx](../app/dashboard/borrower/page.tsx) | Renders the button in the Borrower dashboard |
 
 Public API of `lib/stellar/sep24.ts`:
 

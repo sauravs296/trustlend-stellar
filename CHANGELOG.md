@@ -8,39 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Collateral price oracle (#267): XLM and BTC prices polled every 5 seconds from
-  CoinGecko, Binance and the Stellar DEX, aggregated by median with outlier
-  rejection, and pushed on-chain. Fallback chain is live → cached → on-chain
-  TWAP → refuse to publish. The liquidation keeper now values positions with the
-  live price instead of a hardcoded constant. See
+- Token-based design system (`app/theme.css`, `components/ui/`) with light,
+  dark and system themes, shared framer-motion presets and animated stat
+  components; landing, auth and dashboard shell rebuilt on it (#314).
+- Neon Postgres + Drizzle ORM data layer with versioned migrations in
+  `drizzle/`, `npm run db:*` scripts and a CI migration step on `main` (#313).
+- Sign-In with Stellar (SEP-10) sessions issued as signed HttpOnly cookies;
+  private KYC document storage on Vercel Blob (#313).
+- GitHub Actions keeper workflow that triggers the liquidation keeper and price
+  oracle every 5 minutes, working around Vercel's daily-cron limit (#312).
+- SEP-24 fiat on/off ramp integration with Stellar anchors (#309).
+- Grace period before liquidations can be triggered (#308).
+- Collateral price oracle (#267): XLM and BTC prices from CoinGecko, Binance
+  and the Stellar DEX, aggregated by median with outlier rejection and pushed
+  on-chain; the liquidation keeper values positions with the live price. See
   [docs/oracle-price-feeds.md](docs/oracle-price-feeds.md).
-- Referral programme (#266): every user gets a unique invite link, and when an
-  invited friend's first loan is funded the referrer's bonus is transferred
-  automatically by the new `referral_rewards` Soroban contract during
-  `activate_loan`. Includes a referral dashboard, attribution APIs, and
-  `sql/09_referral_program.sql`. See [docs/referral-program.md](docs/referral-program.md).
-- Borrowing user guide and FAQ at `/docs/borrowing`, covering the step-by-step
-  borrowing process, how the liquidation threshold is calculated, Health Factor
-  bands, and 15 frequently asked questions. Linked from the borrower dashboard
-  nav and the landing footer (#265).
-- Keyboard-accessible glossary tooltips for financial acronyms (APR, APY, LTV,
-  Trust Score, Health Factor, basis points) across the borrower, lender and
-  admin dashboards, backed by a shared `lib/glossary` definition list (#264).
-- Initial open-source release setup.
-- Basic repository files: README, LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY.
-- GitHub issue and pull request templates.
+- Referral programme (#266): unique invite links with the referrer's bonus paid
+  by the `referral_rewards` contract during `activate_loan`. See
+  [docs/referral-program.md](docs/referral-program.md).
+- Borrowing user guide and FAQ at `/docs/borrowing` (#265) and keyboard
+  accessible glossary tooltips for financial terms (#264).
+- Initial open-source release setup: README, LICENSE, CONTRIBUTING,
+  CODE_OF_CONDUCT, SECURITY, issue and pull request templates.
 
 ### Changed
-- None yet.
-
-### Deprecated
-- None yet.
+- README rewritten for open-source readers; rate-limiting and payment-due
+  scheduler details moved to `docs/rate-limiting.md` and
+  `docs/payment-due-scheduler.md`; roadmap and contributing guide refreshed.
+- Vercel cron jobs reduced to daily schedules (Hobby plan limit) (#312).
+- Hard-coded colours across dashboards replaced with theme tokens so every
+  screen renders in both themes (#314).
 
 ### Removed
-- None yet.
+- Supabase client, auth, RLS policies and SQL scripts, replaced by Neon +
+  Drizzle (#313).
+- Dead code, the indexer stack, stale documentation and unused assets (#311).
 
 ### Fixed
-- None yet.
-
-### Security
-- None yet.
+- Chart area fills rendered black because a CSS variable was used as an SVG
+  gradient id (#314).
+- Contract CI job: `usdc_lending_pool` arithmetic widths, token transfer
+  calls and clippy warnings (#312).

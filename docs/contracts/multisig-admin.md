@@ -29,7 +29,7 @@ they aren't the kind of operation the issue's examples point at.
 
 ## 2. Multi-sig approval before configuration shifts (Task 2)
 
-New [`contracts/multisig_admin`](contracts/multisig_admin/src/lib.rs) contract:
+New [`contracts/multisig_admin`](../../contracts/multisig_admin/src/lib.rs) contract:
 
 ```
 propose(signer, action) -> id     — any signer opens a proposal (counts as their own approval)
@@ -68,7 +68,7 @@ gains a one-time `set_multisig_admin(admin, multisig)` bootstrap. Once called:
 
 ## 3. Integration tests (Task 3)
 
-[`contracts/multisig_admin/src/test.rs`](contracts/multisig_admin/src/test.rs) —
+[`contracts/multisig_admin/src/test.rs`](../../contracts/multisig_admin/src/test.rs) —
 **27 tests**, using the *real* Lending, Default-Management, and Reputation
 contracts (dev-dependencies), not mocks:
 
@@ -95,7 +95,7 @@ cd contracts && cargo test -p multisig-admin
 cron (issue #23) can no longer execute payouts unattended — it now
 **proposes** the payout (its key must be a registered signer) and a human
 completes the remaining approvals + `execute`. See
-[`lib/scheduler/default-management.ts`](lib/scheduler/default-management.ts).
+[`lib/scheduler/default-management.ts`](../../lib/scheduler/default-management.ts).
 
 ## 5. Verification
 
