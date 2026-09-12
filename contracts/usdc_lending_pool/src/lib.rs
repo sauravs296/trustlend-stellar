@@ -368,7 +368,7 @@ impl UsdcLendingPool {
     }
 
     /// Build a typed SEP-41 token client for the USDC contract.
-    fn usdc_client(env: &Env) -> token::TokenClient {
+    fn usdc_client(env: &Env) -> token::TokenClient<'_> {
         let addr: Address = env
             .storage()
             .instance()

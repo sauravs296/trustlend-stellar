@@ -138,7 +138,7 @@ fn test_deposit_rejects_negative_amount() {
 
 #[test]
 fn test_deposit_accumulates_on_second_deposit() {
-    let (env, pool_id, _admin, user, usdc_addr) = setup();
+    let (env, pool_id, _admin, user, _usdc_addr) = setup();
     let client = UsdcLendingPoolClient::new(&env, &pool_id);
 
     // First deposit
