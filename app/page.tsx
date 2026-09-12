@@ -10,7 +10,7 @@ import {
   TrustBadgesSection,
   UspSection,
 } from "@/components/landing";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
 import {
   aboutContent,
   faqItems,
@@ -27,15 +27,7 @@ import {
 } from "@/lib/content/landing-content";
 
 export default async function Home() {
-  const supabase = await getServerSupabaseClient();
-  let isAuthenticated = false;
-
-  if (supabase) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    isAuthenticated = Boolean(user);
-  }
+  const isAuthenticated = Boolean(await getSessionUser());
 
   return (
     <div className="site-shell">

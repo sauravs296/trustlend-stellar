@@ -3,33 +3,30 @@ import { TasksBoard } from "@/components/dashboard/TasksBoard";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getBorrowerDashboardMetrics, presentBorrowerMetrics } from "@/lib/dashboard/metrics";
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { and, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { getProfile } from "@/lib/db/queries";
+import { reputationEvents } from "@/lib/db/schema";
 import { getPlatformTasks } from "@/app/api/tasks/complete/route";
 
 export default async function BorrowerTasksPage() {
   const { user } = await requireAuthenticatedUser("borrower");
   const metrics = await getBorrowerDashboardMetrics(user.id);
-  const supabase = await getServerSupabaseClient();
+  const db = getDb();
 
-  const [profileRes, completedEventsRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle(),
-        // Which tasks has this user already completed?
-        supabase
-          .from("reputation_events")
-          .select("source_key, source_id")
-          .eq("user_id", user.id)
-          .eq("source_type", "task_completion"),
-      ])
-    : [{ data: null }, { data: [] }];
+  const [profile, completedEvents] = await Promise.all([
+    getProfile(db, user.id),
+    // Which tasks has this user already completed?
+    db
+      ? db
+          .select({ source_key: reputationEvents.sourceKey, source_id: reputationEvents.sourceId })
+          .from(reputationEvents)
+          .where(and(eq(reputationEvents.userId, user.id), eq(reputationEvents.sourceType, "task_completion")))
+      : Promise.resolve([]),
+  ]);
 
-  const profile          = profileRes.data;
   const completedTaskIds = new Set(
-    (completedEventsRes.data ?? []).map((e) => String(e.source_key ?? e.source_id ?? ""))
+    completedEvents.map((e) => String(e.source_key ?? e.source_id ?? ""))
   );
   const currentScore     = metrics.reputationScore;
 
@@ -46,7 +43,7 @@ export default async function BorrowerTasksPage() {
       heading="Trust Tasks"
       description="Complete these tasks to build your trust score. Higher score = better loan terms and higher limits."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentBorrowerMetrics(metrics)}
       currentPath="/dashboard/borrower/tasks"
       links={borrowerNavLinks}

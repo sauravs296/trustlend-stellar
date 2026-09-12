@@ -33,8 +33,6 @@ jobs:
       - name: Build Next.js Application
         # We supply dummy configuration since tests intercept the actual calls
         env:
-          NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
           NEXT_PUBLIC_STELLAR_NETWORK: "testnet"
           NEXT_PUBLIC_STELLAR_HORIZON_URL: "https://horizon-testnet.stellar.org"
           NEXT_PUBLIC_ADMIN_ADDRESS: "GAJRNUO6HSMQG4FNHNWQVRXJZJZ7QRA7HXPYYB6H5PTA3EAAJXJNZD7U"
@@ -42,8 +40,6 @@ jobs:
 
       - name: Run Playwright tests
         env:
-          NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
           NEXT_PUBLIC_STELLAR_NETWORK: "testnet"
           NEXT_PUBLIC_STELLAR_HORIZON_URL: "https://horizon-testnet.stellar.org"
           NEXT_PUBLIC_ADMIN_ADDRESS: "GAJRNUO6HSMQG4FNHNWQVRXJZJZ7QRA7HXPYYB6H5PTA3EAAJXJNZD7U"

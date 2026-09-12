@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, lendingPools, poolPositions } from "@/lib/db/schema";
 import { discoverSep31Anchor, verifyAnchorSignature } from "@/lib/stellar/sep31";
 
 /**
@@ -25,19 +27,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
     }
 
-    const supabase = getServiceRoleClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
     // Find the matching pending transaction in the ledger
-    const { data: ledgerTx, error: dbError } = await supabase
-      .from("ledger_transactions")
-      .select("id, user_id, amount, status, metadata")
-      .eq("metadata->>anchorTxId", anchorTxId)
-      .maybeSingle();
+    const [ledgerTx] = await db
+      .select({
+        id: ledgerTransactions.id,
+        user_id: ledgerTransactions.userId,
+        amount: ledgerTransactions.amount,
+        status: ledgerTransactions.status,
+        metadata: ledgerTransactions.metadata,
+      })
+      .from(ledgerTransactions)
+      .where(sql`${ledgerTransactions.metadata}->>'anchorTxId' = ${anchorTxId}`)
+      .limit(1);
 
-    if (dbError || !ledgerTx) {
+    if (!ledgerTx) {
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
@@ -85,66 +93,46 @@ export async function POST(request: NextRequest) {
     // ── Handle Payment Lifecycle ──────────────────────────────────────────────────
     if (status === "completed") {
       // 1. Check if lender already has an active position in this pool
-      const { data: existingPosition } = await supabase
-        .from("pool_positions")
-        .select("id, principal_amount")
-        .eq("pool_id", poolId)
-        .eq("lender_id", ledgerTx.user_id)
-        .eq("status", "active")
-        .maybeSingle();
+      const [existingPosition] = await db
+        .select({ id: poolPositions.id })
+        .from(poolPositions)
+        .where(
+          and(
+            eq(poolPositions.poolId, poolId),
+            eq(poolPositions.lenderId, ledgerTx.user_id),
+            eq(poolPositions.status, "active"),
+          ),
+        )
+        .limit(1);
 
       let positionId = "";
       const depositAmount = Number(ledgerTx.amount);
 
       if (existingPosition) {
         // Update existing position amount
-        const { data: updatedPosition, error: updateError } = await supabase
-          .from("pool_positions")
-          .update({
-            principal_amount: Number(existingPosition.principal_amount ?? 0) + depositAmount,
-          })
-          .eq("id", existingPosition.id)
-          .select("id")
-          .single();
-
-        if (updateError) throw updateError;
+        const [updatedPosition] = await db
+          .update(poolPositions)
+          .set({ principalAmount: sql`${poolPositions.principalAmount} + ${depositAmount}` })
+          .where(eq(poolPositions.id, existingPosition.id))
+          .returning({ id: poolPositions.id });
         positionId = updatedPosition.id;
       } else {
         // Create new active position
-        const { data: newPosition, error: insertError } = await supabase
-          .from("pool_positions")
-          .insert({
-            pool_id: poolId,
-            lender_id: ledgerTx.user_id,
-            principal_amount: depositAmount,
-            status: "active",
-            opened_at: new Date().toISOString(),
-          })
-          .select("id")
-          .single();
-
-        if (insertError) throw insertError;
+        const [newPosition] = await db
+          .insert(poolPositions)
+          .values({ poolId, lenderId: ledgerTx.user_id, principalAmount: String(depositAmount), status: "active" })
+          .returning({ id: poolPositions.id });
         positionId = newPosition.id;
       }
 
-      // 2. Fetch current pool liquidity and update it
-      const { data: pool, error: poolError } = await supabase
-        .from("lending_pools")
-        .select("total_liquidity, available_liquidity")
-        .eq("id", poolId)
-        .single();
-
-      if (poolError) throw poolError;
-
-      const { error: poolUpdateError } = await supabase
-        .from("lending_pools")
-        .update({
-          total_liquidity: Number(pool.total_liquidity ?? 0) + depositAmount,
-          available_liquidity: Number(pool.available_liquidity ?? 0) + depositAmount,
+      // 2. Update pool liquidity (SQL-side increment)
+      await db
+        .update(lendingPools)
+        .set({
+          totalLiquidity: sql`${lendingPools.totalLiquidity} + ${depositAmount}`,
+          availableLiquidity: sql`${lendingPools.availableLiquidity} + ${depositAmount}`,
         })
-        .eq("id", poolId);
-
-      if (poolUpdateError) throw poolUpdateError;
+        .where(eq(lendingPools.id, poolId));
 
       // 3. Confirm the ledger transaction and associate with the position
       const updatedMetadata = {
@@ -153,16 +141,10 @@ export async function POST(request: NextRequest) {
         anchorStatus: status,
       };
 
-      const { error: txConfirmError } = await supabase
-        .from("ledger_transactions")
-        .update({
-          status: "confirmed",
-          ref_id: positionId,
-          metadata: updatedMetadata,
-        })
-        .eq("id", ledgerTx.id);
-
-      if (txConfirmError) throw txConfirmError;
+      await db
+        .update(ledgerTransactions)
+        .set({ status: "confirmed", refId: positionId, metadata: updatedMetadata })
+        .where(eq(ledgerTransactions.id, ledgerTx.id));
 
     } else if (status === "error" || status === "refunded") {
       // Compliance check failed or transaction was refunded
@@ -173,15 +155,10 @@ export async function POST(request: NextRequest) {
         refunded: status === "refunded",
       };
 
-      const { error: txFailError } = await supabase
-        .from("ledger_transactions")
-        .update({
-          status: "failed",
-          metadata: updatedMetadata,
-        })
-        .eq("id", ledgerTx.id);
-
-      if (txFailError) throw txFailError;
+      await db
+        .update(ledgerTransactions)
+        .set({ status: "failed", metadata: updatedMetadata })
+        .where(eq(ledgerTransactions.id, ledgerTx.id));
     } else {
       // For intermediate statuses (like pending_stellar, pending_sender, hold),
       // we update the anchorStatus in metadata to track live progress.
@@ -190,12 +167,10 @@ export async function POST(request: NextRequest) {
         anchorStatus: status,
       };
 
-      await supabase
-        .from("ledger_transactions")
-        .update({
-          metadata: updatedMetadata,
-        })
-        .eq("id", ledgerTx.id);
+      await db
+        .update(ledgerTransactions)
+        .set({ metadata: updatedMetadata })
+        .where(eq(ledgerTransactions.id, ledgerTx.id));
     }
 
     return NextResponse.json({ success: true });

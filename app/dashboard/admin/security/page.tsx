@@ -6,38 +6,58 @@ import {
   getAdminDashboardMetrics,
   presentAdminMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { fraudSignals, profiles as profilesTable, riskAssessments } from "@/lib/db/schema";
 
 export default async function AdminSecurityPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
 
-  const supabase = getServiceRoleClient();
-  const [signalsRes, riskRes, profilesRes] = supabase
+  const db = getDb();
+  const [signalRows, assessmentRows, profileRows] = db
     ? await Promise.all([
-        supabase
-          .from("fraud_signals")
-          .select("id, user_id, signal_type, severity, resolved, created_at")
-          .order("created_at", { ascending: false })
+        db
+          .select({
+            id: fraudSignals.id,
+            user_id: fraudSignals.userId,
+            signal_type: fraudSignals.signalType,
+            severity: fraudSignals.severity,
+            resolved: fraudSignals.resolved,
+            created_at: fraudSignals.createdAt,
+          })
+          .from(fraudSignals)
+          .orderBy(desc(fraudSignals.createdAt))
           .limit(40),
-        supabase
-          .from("risk_assessments")
-          .select("id, user_id, score, decision, assessed_at")
-          .order("assessed_at", { ascending: false })
+        db
+          .select({
+            id: riskAssessments.id,
+            user_id: riskAssessments.userId,
+            score: riskAssessments.score,
+            decision: riskAssessments.decision,
+            assessed_at: riskAssessments.assessedAt,
+          })
+          .from(riskAssessments)
+          .orderBy(desc(riskAssessments.assessedAt))
           .limit(40),
-        supabase
-          .from("profiles")
-          .select("id, full_name, kyc_status, risk_status")
-          .order("created_at", { ascending: false })
+        db
+          .select({
+            id: profilesTable.id,
+            full_name: profilesTable.fullName,
+            kyc_status: profilesTable.kycStatus,
+            risk_status: profilesTable.riskStatus,
+          })
+          .from(profilesTable)
+          .orderBy(desc(profilesTable.createdAt))
           .limit(120),
       ])
-    : [{ data: [] as Array<Record<string, unknown>> }, { data: [] as Array<Record<string, unknown>> }, { data: [] as Array<Record<string, unknown>> }];
+    : [[], [], []];
 
-  const signals = signalsRes.data ?? [];
-  const assessments = riskRes.data ?? [];
-  const profiles = profilesRes.data ?? [];
+  const signals = signalRows.map((r) => ({ ...r, created_at: r.created_at.toISOString() }));
+  const assessments = assessmentRows.map((r) => ({ ...r, assessed_at: r.assessed_at.toISOString() }));
+  const profiles = profileRows;
 
   const maliciousIds = new Set(
     signals
@@ -55,7 +75,7 @@ export default async function AdminSecurityPage() {
       heading="Security Center"
       description="Investigate fraud signals, manual-review decisions, and suspicious account behavior."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin/security"

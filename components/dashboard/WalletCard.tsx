@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getBrowserSupabaseClient } from "@/lib/supabase/client";
+import { updateWalletAddress } from "@/app/actions/update-profile";
 import { formatCurrency } from "@/lib/utils/formatting";
 import { STELLAR_TESTNET } from "@/lib/stellar/testnet";
 import {
@@ -80,31 +80,9 @@ export function WalletCard({
     nextAddress: string | null,
     provider: StellarWalletProvider | null,
   ) => {
-    const supabase = getBrowserSupabaseClient();
-    if (!supabase) return;
-
-    const { data } = await supabase.auth.getSession();
-    const session = data.session;
-    if (!session) return;
-
-    const nextMetadata = {
-      ...session.user.user_metadata,
-      wallet_address: nextAddress,
-      wallet_network: nextAddress ? "stellar-testnet" : null,
-      wallet_provider: provider,
-    };
-    const { error: authErr } = await supabase.auth.updateUser({
-      data: nextMetadata,
-    });
-    if (authErr) throw new Error(authErr.message);
-
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({ wallet_address: nextAddress })
-      .eq("id", session.user.id);
-
-    if (profileErr) {
-      console.warn("profiles wallet_address sync failed:", profileErr.message);
+    const result = await updateWalletAddress(nextAddress);
+    if (!result.success) {
+      console.warn("profiles wallet_address sync failed:", result.error);
     }
 
     if (nextAddress) {

@@ -2,10 +2,10 @@
 
 > Implements issue **#69 — [Backend/Integration] Implement Web3 authentication via SIWS**
 
-Adds "Sign in with Stellar" as a Web3-native login option alongside
-password/email and Google — users authenticate by **signing a challenge with
-their wallet** (Freighter) instead of typing a password, and the backend turns
-that proof into a normal Supabase session.
+"Sign in with Stellar" is the only login method: users authenticate by
+**signing a challenge with their wallet** (Freighter, xBull, Albedo, or a
+WalletConnect mobile wallet) instead of typing a password, and the backend turns
+that proof into a signed session cookie.
 
 ---
 
@@ -17,31 +17,29 @@ challenge-response transaction — it's the same mechanism the SEP-24 fiat-ramp 
 issuing the challenge and the **relying party** consuming the proof:
 
 ```
-Client                          Backend (/api/auth/siws/*)          Supabase
-  │  connect wallet (Freighter)         │                               │
+Client                          Backend (/api/auth/siws/*)          Postgres (Neon)
+  │  connect wallet                     │                               │
   │────────────────────────────────────►│                               │
   │  POST /challenge { address }        │                               │
   │─────────────────────────────────────►  buildChallenge(address)      │
   │                                     │  WebAuth.buildChallengeTx()   │
   │  ◄──────────── { transaction, networkPassphrase }                  │
-  │  sign challenge tx (Freighter)       │                               │
-  │  POST /verify { address, signedTxXdr}                               │
+  │  sign challenge tx (wallet)          │                               │
+  │  POST /verify { address, signedTxXdr, role? }                       │
   │─────────────────────────────────────►  verifyChallenge()            │
   │                                     │  WebAuth.readChallengeTx()    │
   │                                     │  WebAuth.verifyChallengeTxSigners()
-  │                                     │  issueSessionForWallet() ────► admin.createUser / signInWithPassword
-  │  ◄──────── { access_token, refresh_token, isNewUser } ◄─────────────│
-  │  supabase.auth.setSession(...)      │                               │
+  │                                     │  issueSessionForWallet() ────► upsert users + profiles
+  │  ◄──── 200 { userId, role, isNewUser } + Set-Cookie: tl_session ◄──│
 ```
 
-**Why this bridges to Supabase without a custom-JWT signer:** rather than hand-
-rolling a Supabase-compatible JWT (which requires the project's JWT signing
-secret and is brittle across Supabase versions), the backend uses the
-**service-role key** to deterministically provision a Supabase Auth user per
-wallet (`<address>@siws.trustlend.app`, HMAC-derived password) and mints a real
-session via `signInWithPassword`. The client then adopts it with
-`supabase.auth.setSession(...)`. This is a standard, supported pattern for
-"custom auth providers" on Supabase and requires no extra Supabase config.
+**Sessions** are stateless: `/verify` signs an HS256 JWT (`jose`) holding the
+user id, wallet and role, and stores it in the HttpOnly `tl_session` cookie
+(7 days). The edge proxy verifies the cookie locally for routing; pages and API
+routes call `getSessionUser()` / `requireAuthenticatedUser()` in
+[lib/auth/session.ts](../lib/auth/session.ts), which re-reads the `users` row so
+a deleted or re-roled account is reflected immediately.
+`POST /api/auth/signout` clears the cookie.
 
 ## 2. Backend: challenge endpoint (Task 2)
 
@@ -108,8 +106,8 @@ details matter for this to work end to end:
 ```jsonc
 // request
 { "address": "GABC...", "signedTxXdr": "<base64 XDR>" }
-// response 200
-{ "access_token": "...", "refresh_token": "...", "isNewUser": true }
+// response 200 (+ Set-Cookie: tl_session=<jwt>; HttpOnly; SameSite=Lax)
+{ "userId": "uuid", "role": "borrower", "isNewUser": true }
 ```
 `verifyChallenge()` performs three checks via the Stellar SDK's `WebAuth` module:
 1. **Structure & expiry** — `WebAuth.readChallengeTx` (throws on a malformed or
@@ -119,10 +117,10 @@ details matter for this to work end to end:
 3. **Signature** — `WebAuth.verifyChallengeTxSigners` confirms the wallet actually
    signed it.
 
-On success, `issueSessionForWallet()` creates (if new) a Supabase user keyed to
-the wallet and returns a session; the client adopts it with `setSession`, and
-existing role-based routing (`getDashboardPath`) takes over — new SIWS users
-default to the `borrower` role like any fresh signup.
+On success, `issueSessionForWallet()` upserts the `users` row keyed by wallet
+address (and a matching `profiles` row), the route sets the session cookie, and
+role-based routing (`getDashboardPath`) takes over. The role chosen on the auth
+page only applies to brand-new accounts; an existing account keeps its role.
 
 ## 5. Error states (Task 5)
 
@@ -147,10 +145,9 @@ network, user rejected) via the existing `signTransactionWithWallet` error paths
 ```bash
 NEXT_PUBLIC_SIWS_DOMAIN=localhost:3000   # SEP-10 home/web-auth domain (both sides must match)
 SIWS_SERVER_SECRET=                       # dedicated SEP-10 signing key (S...)
-SIWS_PASSWORD_SECRET=                     # HMAC secret for wallet-user passwords
+SESSION_SECRET=                           # >= 32 chars; signs the session cookie
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=     # Reown/WalletConnect Cloud project id (enables mobile wallets)
-# reuses: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-#         SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE
+# reuses: DATABASE_URL, NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE
 ```
 
 ## 7. Tests
@@ -158,14 +155,14 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=     # Reown/WalletConnect Cloud project id
 [__tests__/auth/siws.test.ts](__tests__/auth/siws.test.ts) exercises the real
 `WebAuth` roundtrip (build → sign → verify) with an in-memory test keypair —
 happy path, wrong-signer, address mismatch, expired challenge, and malformed XDR —
-without hitting the network or Supabase.
+without hitting the network or the database.
 
 ## 8. Notes
 
 - The SEP-10 signing key is intentionally **separate** from the platform admin
   key used elsewhere (oracle, governance, default-management) — compromising one
   cannot forge the other.
-- Rotating `SIWS_PASSWORD_SECRET` invalidates existing wallet-derived passwords;
-  treat it like rotating a real secret (plan a re-auth, don't do it casually).
-- Future: link a SIWS identity to an *existing* password-based account instead of
-  always creating a fresh one keyed by address.
+- Rotating `SESSION_SECRET` signs every user out (their cookies stop
+  verifying); the accounts themselves are unaffected.
+- Admin access requires both an allowlist entry (`TRADE_VAULT_ADMIN_EMAILS`
+  accepts wallet addresses or e-mails) and `profiles.role = 'admin'`.

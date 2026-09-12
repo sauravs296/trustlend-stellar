@@ -6,7 +6,10 @@ import {
   getAdminDashboardMetrics,
   presentAdminMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerToRow } from "@/lib/db/rows";
+import { ledgerTransactions } from "@/lib/db/schema";
 import {
   buildStellarTxVerificationUrl,
   extractPossibleTxHash,
@@ -26,19 +29,13 @@ function sumByPeriod(
 export default async function AdminActivityPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
 
-  const srClient = getServiceRoleClient();
-  const { data: ledgerRows } = srClient
-    ? await srClient
-        .from("ledger_transactions")
-        .select("id, user_id, amount, category, status, created_at, metadata")
-        .order("created_at", { ascending: false })
-        .limit(500)
-    : { data: [] as Array<Record<string, unknown>> };
-
-  const rows = ledgerRows ?? [];
+  const db = getDb();
+  const rows = db
+    ? (await db.select().from(ledgerTransactions).orderBy(desc(ledgerTransactions.createdAt)).limit(500)).map(ledgerToRow)
+    : [];
 
   const anchorTime = new Date().getTime();
   const baseTime = Number.isFinite(anchorTime) ? anchorTime : 0;
@@ -95,7 +92,7 @@ export default async function AdminActivityPage() {
       heading="Treasury & Platform Activity"
       description="Track platform-wide transaction throughput, treasury movement, and full chronological on-chain verification."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin/activity"

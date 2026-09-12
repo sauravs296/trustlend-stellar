@@ -6,7 +6,12 @@ import {
   getLenderDashboardMetrics,
   presentLenderMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { and, asc, desc, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { metaString } from "@/lib/db/metadata";
+import { getProfile } from "@/lib/db/queries";
+import { ledgerToRow, poolToRow, positionToRow } from "@/lib/db/rows";
+import { ledgerTransactions, lendingPools, poolPositions } from "@/lib/db/schema";
 import { lenderNavLinks } from "@/lib/dashboard/lender-links";
 import { formatTokenBalance, formatCurrency, formatXlmPrecise } from "@/lib/utils/formatting";
 import {
@@ -18,46 +23,32 @@ import { STELLAR_TESTNET } from "@/lib/stellar/testnet";
 export default async function LenderPoolsPage() {
   const { user } = await requireAuthenticatedUser("lender");
   const metrics = await getLenderDashboardMetrics(user.id);
-  const supabase = await getServerSupabaseClient();
+  const db = getDb();
 
   const walletAddress =
-    String(user.user_metadata?.wallet_address ?? "") || null;
+    String(user.walletAddress ?? "") || null;
 
-  const [poolsRes, positionsRes, profileRes, txHistoryRes] = supabase
+  const [poolRows, positionRows, profile, txHistoryRows] = db
     ? await Promise.all([
-        supabase
-          .from("lending_pools")
-          .select(
-            "id, name, status, apr_bps, total_liquidity, available_liquidity",
-          )
-          .order("created_at", { ascending: false })
-          .limit(8),
-        supabase
-          .from("pool_positions")
-          .select(
-            "id, pool_id, status, principal_amount, earned_interest, opened_at",
-          )
-          .eq("lender_id", user.id)
-          .order("opened_at", { ascending: true }),
-        supabase
-          .from("profiles")
-          .select("full_name, kyc_status")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("ledger_transactions")
-          .select("id, amount, category, metadata, status, created_at")
-          .eq("user_id", user.id)
-          .eq("ref_type", "pool_position")
-          .order("created_at", { ascending: false })
+        db.select().from(lendingPools).orderBy(desc(lendingPools.createdAt)).limit(8),
+        db
+          .select()
+          .from(poolPositions)
+          .where(eq(poolPositions.lenderId, user.id))
+          .orderBy(asc(poolPositions.openedAt)),
+        getProfile(db, user.id),
+        db
+          .select()
+          .from(ledgerTransactions)
+          .where(and(eq(ledgerTransactions.userId, user.id), eq(ledgerTransactions.refType, "pool_position")))
+          .orderBy(desc(ledgerTransactions.createdAt))
           .limit(10),
       ])
-    : [{ data: [] }, { data: [] }, { data: null }, { data: [] }];
+    : [[], [], null, []];
 
-  const pools = poolsRes.data ?? [];
-  const positions = positionsRes.data ?? [];
-  const profile = profileRes.data;
-  const txHistory = txHistoryRes.data ?? [];
+  const pools = poolRows.map(poolToRow);
+  const positions = positionRows.map(positionToRow);
+  const txHistory = txHistoryRows.map(ledgerToRow);
   const isKycVerified = profile?.kyc_status === "verified";
 
   const totalDeployed = positions.reduce(
@@ -131,7 +122,7 @@ export default async function LenderPoolsPage() {
       description="Deposit XLM into a lending pool and earn passive APR. The pool auto-matches your capital to open borrower requests."
       email={user.email ?? null}
       userName={String(
-        user.user_metadata?.full_name ?? profile?.full_name ?? "",
+        user.fullName ?? profile?.full_name ?? "",
       )}
       metrics={presentLenderMetrics(metrics)}
       currentPath="/dashboard/lender/pools"
@@ -369,15 +360,6 @@ export default async function LenderPoolsPage() {
           </article>
         </section>
 
-        {/* ── Available pools – rendered client-side with skeleton loading ── */}
-        {/*
-          AvailablePools is a Client Component that:
-          1. Starts with isLoading = true and renders <PoolCardSkeleton />
-          2. Fetches lending_pools from Supabase browser client
-          3. Sets isLoading = false and renders animated pool cards
-          This eliminates the blank-screen delay caused by the old
-          server-side blocking table render.
-        */}
         <article className="workspace-card workspace-card--full">
           <h2 className="workspace-card-title">Available Lending Pools</h2>
           {pools.length === 0 ? (
@@ -456,8 +438,8 @@ export default async function LenderPoolsPage() {
         {/* ── Deposit / Withdraw forms ──────────────────────────── */}
         <section className="workspace-grid workspace-grid--two">
           <LenderForms
-            pools={pools}
-            positions={positions}
+            pools={pools.map((p) => ({ ...p, available_liquidity: Number(p.available_liquidity) }))}
+            positions={positions.map((p) => ({ ...p, principal_amount: Number(p.principal_amount) }))}
             walletBalance={availableWalletBalance}
             isKycVerified={isKycVerified}
           />
@@ -572,11 +554,7 @@ export default async function LenderPoolsPage() {
                 </thead>
                 <tbody>
                   {txHistory.map((tx) => {
-                    let txHash = "";
-                    try {
-                      const meta = JSON.parse(String(tx.metadata || "{}"));
-                      txHash = meta.txHash ?? "";
-                    } catch {}
+                    const txHash = metaString(tx.metadata, "txHash");
 
                     const isDeposit = tx.category === "deposit";
 

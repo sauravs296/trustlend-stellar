@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, lendingPools, poolPositions } from "@/lib/db/schema";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export async function POST(request: NextRequest) {
@@ -21,23 +23,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Amount exceeds maximum allowed" }, { status: 400 });
     }
 
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
     // Get position and verify ownership
-    const { data: position, error: positionError } = await supabase
-      .from("pool_positions")
-      .select("id, pool_id, principal_amount, withdrawn_amount")
-      .eq("id", positionId)
-      .eq("lender_id", user.id)
-      .eq("status", "active")
-      .single();
+    const [positionRow] = await db
+      .select({
+        id: poolPositions.id,
+        poolId: poolPositions.poolId,
+        principalAmount: poolPositions.principalAmount,
+        withdrawnAmount: poolPositions.withdrawnAmount,
+      })
+      .from(poolPositions)
+      .where(
+        and(eq(poolPositions.id, positionId), eq(poolPositions.lenderId, user.id), eq(poolPositions.status, "active")),
+      )
+      .limit(1);
 
-    if (positionError || !position) {
+    if (!positionRow) {
       return NextResponse.json({ error: "Position not found" }, { status: 404 });
     }
+    const position = {
+      id: positionRow.id,
+      pool_id: positionRow.poolId,
+      principal_amount: Number(positionRow.principalAmount),
+      withdrawn_amount: Number(positionRow.withdrawnAmount),
+    };
 
     if (amount > position.principal_amount) {
       return NextResponse.json(
@@ -47,17 +60,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Get pool
-    const { data: pool, error: poolError } = await supabase
-      .from("lending_pools")
-      .select("id, total_liquidity, available_liquidity")
-      .eq("id", position.pool_id)
-      .single();
+    const [poolRow] = await db
+      .select({ availableLiquidity: lendingPools.availableLiquidity })
+      .from(lendingPools)
+      .where(eq(lendingPools.id, position.pool_id))
+      .limit(1);
 
-    if (poolError || !pool) {
+    if (!poolRow) {
       return NextResponse.json({ error: "Pool not found" }, { status: 404 });
     }
 
-    if (amount > pool.available_liquidity) {
+    if (amount > Number(poolRow.availableLiquidity)) {
       return NextResponse.json(
         { error: "Insufficient liquidity in pool for withdrawal" },
         { status: 400 }
@@ -66,42 +79,34 @@ export async function POST(request: NextRequest) {
 
     // Update position
     const newPrincipal = position.principal_amount - amount;
-    const { error: updateError } = await supabase
-      .from("pool_positions")
-      .update({
-        principal_amount: newPrincipal,
-        withdrawn_amount: (position.withdrawn_amount || 0) + amount,
+    await db
+      .update(poolPositions)
+      .set({
+        principalAmount: String(newPrincipal),
+        withdrawnAmount: String(position.withdrawn_amount + amount),
         status: newPrincipal === 0 ? "closed" : "active",
-        closed_at: newPrincipal === 0 ? new Date().toISOString() : null,
+        closedAt: newPrincipal === 0 ? new Date() : null,
       })
-      .eq("id", positionId);
+      .where(eq(poolPositions.id, positionId));
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
-    // Update pool liquidity
-    const { error: poolUpdateError } = await supabase
-      .from("lending_pools")
-      .update({
-        total_liquidity: pool.total_liquidity - amount,
-        available_liquidity: pool.available_liquidity - amount,
+    // Update pool liquidity (SQL-side decrement)
+    await db
+      .update(lendingPools)
+      .set({
+        totalLiquidity: sql`${lendingPools.totalLiquidity} - ${amount}`,
+        availableLiquidity: sql`${lendingPools.availableLiquidity} - ${amount}`,
       })
-      .eq("id", position.pool_id);
-
-    if (poolUpdateError) {
-      return NextResponse.json({ error: poolUpdateError.message }, { status: 500 });
-    }
+      .where(eq(lendingPools.id, position.pool_id));
 
     // Record transaction
-    await supabase.from("ledger_transactions").insert({
-      user_id: user.id,
+    await db.insert(ledgerTransactions).values({
+      userId: user.id,
       category: "withdrawal",
-      amount: amount,
+      amount: String(amount),
       currency: "XLM",
       status: "confirmed",
-      ref_type: "pool_position",
-      ref_id: positionId,
+      refType: "pool_position",
+      refId: positionId,
     });
 
     return NextResponse.json(

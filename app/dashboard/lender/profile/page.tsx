@@ -7,7 +7,8 @@ import {
   presentLenderMetrics,
 } from "@/lib/dashboard/metrics";
 import { lenderNavLinks } from "@/lib/dashboard/lender-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { getProfile } from "@/lib/db/queries";
 
 const KYC_CONFIG: Record<
   string,
@@ -23,14 +24,7 @@ export default async function LenderProfilePage() {
   const { user } = await requireAuthenticatedUser("lender");
   const metrics = await getLenderDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const { data: profile } = supabase
-    ? await supabase
-        .from("profiles")
-        .select("full_name, phone, date_of_birth, role, kyc_status, risk_status, government_id_url, kyc_submitted_at, kyc_provider_id")
-        .eq("id", user.id)
-        .maybeSingle()
-    : { data: null as Record<string, unknown> | null };
+  const profile = await getProfile(getDb(), user.id);
 
   const kycStatusKey = String(profile?.kyc_status ?? "pending") as keyof typeof KYC_CONFIG;
   const kycInfo = KYC_CONFIG[kycStatusKey] ?? KYC_CONFIG.pending;
@@ -42,7 +36,7 @@ export default async function LenderProfilePage() {
       heading="Profile Settings & Security"
       description="Update your personal details and complete required compliance checks to manage lending pools."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentLenderMetrics(metrics)}
       currentPath="/dashboard/lender/profile"
       links={lenderNavLinks}
@@ -145,16 +139,16 @@ export default async function LenderProfilePage() {
                 </span>
               </li>
               <li>
-                <span>Email Verified</span>
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: user.email_confirmed_at ? "#16a07a" : "#d97706", fontWeight: 600 }}>
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: user.email_confirmed_at ? "#22cf9d" : "#f59e0b", display: "inline-block" }} />
-                  {user.email_confirmed_at ? "Verified" : "Not verified"}
+                <span>Wallet Verified</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: user.walletAddress ? "#16a07a" : "#d97706", fontWeight: 600 }}>
+                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: user.walletAddress ? "#22cf9d" : "#f59e0b", display: "inline-block" }} />
+                  {user.walletAddress ? "Verified" : "Not verified"}
                 </span>
               </li>
               <li>
                 <span>Member Since</span>
                 <strong style={{ fontSize: "0.82rem" }}>
-                  {user.created_at ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—"}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—"}
                 </strong>
               </li>
             </ul>

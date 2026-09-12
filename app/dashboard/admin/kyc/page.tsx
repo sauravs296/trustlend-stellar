@@ -11,7 +11,7 @@ import AdminKYCClient from "./kyc-client";
 
 export default async function AdminKYCPage() {
   const { user } = await requireTradeVaultAdmin();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
 
   const metrics = await getAdminDashboardMetrics();
@@ -23,7 +23,7 @@ export default async function AdminKYCPage() {
       heading="KYC Verification Center"
       description="Review and verify identity documents for lender/borrower KYC compliance."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       currentPath="/dashboard/admin/kyc"
       links={[...adminNavLinks]}

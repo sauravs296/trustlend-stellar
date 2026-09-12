@@ -17,10 +17,11 @@ vi.mock("@/lib/stellar/server-contract", () => ({
   xlmToStroops: (xlm: number) => BigInt(Math.round(xlm * 10_000_000)),
 }));
 
-// ── Mock Supabase service-role client ──────────────────────────────────────────
-const mockFrom = vi.fn();
-vi.mock("@/lib/supabase/server", () => ({
-  getServiceRoleClient: () => ({ from: mockFrom }),
+// ── Mock the database ─────────────────────────────────────────────────────────
+import { createFakeDb } from "../helpers/fake-db";
+let db = createFakeDb();
+vi.mock("@/lib/db/client", () => ({
+  getDb: () => db,
 }));
 
 import {
@@ -54,24 +55,27 @@ describe("computeDaysOverdue", () => {
 
 // ── runDefaultManagement ───────────────────────────────────────────────────────
 
-/** A chain mock where every builder method returns itself; reads resolve via
- *  maybeSingle() (sequenced) and awaits resolve via the thenable. */
-function makeSupabase(loans: unknown[], maybeSingleQueue: unknown[]) {
-  const queue = [...maybeSingleQueue];
-  const chain: Record<string, unknown> = {};
-  const ret = () => chain;
-  for (const m of ["select", "in", "not", "lt", "eq", "update"]) chain[m] = vi.fn(ret);
-  chain.maybeSingle = vi.fn(() =>
-    Promise.resolve(queue.length ? queue.shift() : { data: null })
+/**
+ * Queue the results the run will read, in order: the overdue-loans query,
+ * then per loan the funding ledger row and the borrower's wallet, then any
+ * metadata-flag update.
+ */
+function makeDb(loans: ReturnType<typeof overdueLoan>[], perLoan: unknown[][]) {
+  db = createFakeDb();
+  db.queue(
+    loans.map((l) => ({
+      id: l.id,
+      borrowerId: l.borrower_id,
+      status: l.status,
+      principalAmount: String(l.principal_amount),
+      repaidAmount: String(l.repaid_amount),
+      dueAt: l.due_at ? new Date(l.due_at as string) : null,
+      defaultedAt: l.defaulted_at ? new Date(l.defaulted_at as string) : null,
+      metadata: l.metadata,
+    })),
   );
-  // Awaiting the chain (the overdue-loans query) resolves to the loan list.
-  Object.defineProperty(chain, "then", {
-    get() {
-      return (resolve: (v: unknown) => void) => resolve({ data: loans, error: null });
-    },
-  });
-  mockFrom.mockReturnValue(chain);
-  return chain;
+  for (const rows of perLoan) db.queue(rows);
+  return db;
 }
 
 const NOW = 1_700_000_000;
@@ -98,7 +102,7 @@ describe("runDefaultManagement", () => {
   });
 
   it("skips loans still within the grace period", async () => {
-    makeSupabase([overdueLoan(3)], []);
+    makeDb([overdueLoan(3)], []);
     const res = await runDefaultManagement();
     expect(res.scanned).toBe(1);
     expect(res.defaulted).toBe(0);
@@ -107,13 +111,13 @@ describe("runDefaultManagement", () => {
   });
 
   it("marks a past-grace loan defaulted (no payout before insurance threshold)", async () => {
-    // maybeSingle order: ledger funding info, borrower wallet, loans metadata (for flag write)
-    makeSupabase(
+    // read order: ledger funding info, borrower wallet, then the flag update
+    makeDb(
       [overdueLoan(30)],
       [
-        { data: { metadata: { lenderAddress: "GLENDER", onchainLoanId: 7 } } },
-        { data: { wallet_address: "GBORROWER" } },
-        { data: { metadata: {} } },
+        [{ metadata: { lenderAddress: "GLENDER", onchainLoanId: 7 }, amount: "1000" }],
+        [{ walletAddress: "GBORROWER" }],
+        [],
       ]
     );
     const res = await runDefaultManagement();
@@ -124,11 +128,11 @@ describe("runDefaultManagement", () => {
   });
 
   it("does not re-default an already-defaulted loan", async () => {
-    makeSupabase(
+    makeDb(
       [overdueLoan(30, { defaulted_at: new Date(NOW * 1000).toISOString() })],
       [
-        { data: { metadata: { lenderAddress: "GLENDER", onchainLoanId: 7 } } },
-        { data: { wallet_address: "GBORROWER" } },
+        [{ metadata: { lenderAddress: "GLENDER", onchainLoanId: 7 }, amount: "1000" }],
+        [{ walletAddress: "GBORROWER" }],
       ]
     );
     const res = await runDefaultManagement();
@@ -137,7 +141,7 @@ describe("runDefaultManagement", () => {
   });
 
   it("reports counts and never throws on a clean run", async () => {
-    makeSupabase([], []);
+    makeDb([], []);
     const res = await runDefaultManagement();
     expect(res).toMatchObject({ scanned: 0, defaulted: 0, payoutsProposed: 0, failed: 0 });
     expect(res.ledgerTime).toBe(new Date(NOW * 1000).toISOString());

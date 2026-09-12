@@ -4,7 +4,7 @@ import type { UserConfig } from "@commitlint/types";
  * commitlint configuration for TrustLend.
  *
  * Extends `@commitlint/config-conventional` with additional scopes and types
- * relevant to the project's stack (Soroban, Stellar, Next.js, Supabase).
+ * relevant to the project's stack (Soroban, Stellar, Next.js, Neon).
  *
  * Conventional commit format:
  *   <type>(<scope>): <subject>
@@ -64,7 +64,8 @@ const Configuration: UserConfig = {
         "api",
         "ci",
         "db",
-        "supabase",
+        "neon",
+        "drizzle",
         "stellar",
         "soroban",
         "docs",

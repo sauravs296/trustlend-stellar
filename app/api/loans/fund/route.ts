@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, loanFundings, loans } from "@/lib/db/schema";
 import { sendLoanFundedEmail } from "@/lib/email/resend";
 import { getFundingProgress, validateFundingAmount } from "@/lib/loans/funding";
 import { qualifyReferralForLoan } from "@/lib/referrals/qualify";
@@ -31,8 +33,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = await requireAuthenticatedUser("lender");
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
@@ -59,11 +61,11 @@ export async function POST(request: NextRequest) {
     // ── Replay guard ─────────────────────────────────────────────────────────
     // Dedupe on the transaction hash, not on the loan: a loan may legitimately
     // receive many contributions, but each Stellar payment is claimable once.
-    const { data: existingFunding } = await supabase
-      .from("loan_fundings")
-      .select("id")
-      .eq("tx_hash", normalizedTxHash)
-      .maybeSingle();
+    const [existingFunding] = await db
+      .select({ id: loanFundings.id })
+      .from(loanFundings)
+      .where(eq(loanFundings.txHash, normalizedTxHash))
+      .limit(1);
 
     if (existingFunding) {
       return NextResponse.json(
@@ -73,29 +75,30 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Fetch the loan ───────────────────────────────────────────────────────
-    const { data: loan, error: fetchErr } = await supabase
-      .from("loans")
-      .select(
-        "id, status, principal_amount, funded_amount, borrower_id, pool_id, apr_bps, duration_days"
-      )
-      .eq("id", loanId)
-      .maybeSingle();
+    const [loanRow] = await db
+      .select({
+        id: loans.id,
+        status: loans.status,
+        principalAmount: loans.principalAmount,
+        fundedAmount: loans.fundedAmount,
+        borrowerId: loans.borrowerId,
+        aprBps: loans.aprBps,
+        durationDays: loans.durationDays,
+      })
+      .from(loans)
+      .where(eq(loans.id, loanId))
+      .limit(1);
 
-    if (fetchErr) {
-      // A database that has not had sql/08_partial_loan_fills.sql applied has
-      // no funded_amount column; say so instead of reporting "Loan not found".
-      if (String(fetchErr.message ?? "").includes("funded_amount")) {
-        return NextResponse.json(
-          {
-            error:
-              "Partial-fill columns are not installed in this database yet. Apply sql/08_partial_loan_fills.sql in Supabase, then retry funding.",
-          },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ error: "Loan not found" }, { status: 404 });
-    }
+    const loan = loanRow
+      ? {
+          ...loanRow,
+          principal_amount: Number(loanRow.principalAmount),
+          funded_amount: Number(loanRow.fundedAmount),
+          borrower_id: loanRow.borrowerId,
+          apr_bps: loanRow.aprBps,
+          duration_days: loanRow.durationDays,
+        }
+      : null;
 
     if (!loan) {
       return NextResponse.json({ error: "Loan not found" }, { status: 404 });
@@ -150,34 +153,27 @@ export async function POST(request: NextRequest) {
     // ── Record the contribution atomically ───────────────────────────────────
     // The RPC locks the loan row, so concurrent lenders cannot both read the
     // same remaining balance and collectively overfund the loan.
-    const { data: fundingResult, error: rpcErr } = await supabase.rpc(
-      "record_loan_funding",
-      {
-        p_loan_id: loanId,
-        p_lender_id: user.id,
-        p_amount: contribution,
-        p_tx_hash: normalizedTxHash,
-        p_lender_address: lenderAddress ?? null,
-        p_funded_at: now,
-      }
-    );
+    type FundingResultRow = {
+      loan_id: string;
+      status: string;
+      principal_amount: string | number;
+      funded_amount: string | number;
+      remaining_amount: string | number;
+      is_fully_funded: boolean;
+      funding_id: string;
+    };
+    let fundingRows: FundingResultRow[];
+    try {
+      const executed = await db.execute(
+        sql`select loan_id, status, principal_amount, funded_amount, remaining_amount, is_fully_funded, funding_id
+             from public.record_loan_funding(${loanId}::uuid, ${user.id}::uuid, ${contribution}::numeric, ${normalizedTxHash}::text, ${lenderAddress ?? null}::text, ${now}::timestamptz)`,
+      );
+      fundingRows = executed.rows as FundingResultRow[];
+    } catch (rpcErr) {
+      const message = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
 
-    if (rpcErr) {
-      const message = String(rpcErr.message ?? "");
-
-      if (message.includes("Could not find the function public.record_loan_funding")) {
-        return NextResponse.json(
-          {
-            error:
-              "Partial-fill funding RPC is not installed in this database yet. Apply sql/08_partial_loan_fills.sql in Supabase, then retry funding.",
-          },
-          { status: 500 }
-        );
-      }
-
-      // The tx_hash unique index is the authoritative replay guard. The
-      // pre-check above can miss a duplicate recorded by a *different* lender,
-      // whose row RLS hides from this caller.
+      // The tx_hash unique index is the authoritative replay guard against a
+      // duplicate that slipped past the pre-check in a concurrent request.
       if (
         message.includes("idx_loan_fundings_tx_hash") ||
         message.includes("duplicate key value")
@@ -201,8 +197,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 500 });
     }
 
-    // The RPC returns a single-row table.
-    const result = Array.isArray(fundingResult) ? fundingResult[0] : fundingResult;
+    // The function returns a single-row table.
+    const result = fundingRows[0];
     const progressAfter = getFundingProgress(
       result?.principal_amount ?? loan.principal_amount,
       result?.funded_amount ?? progressBefore.funded + contribution
@@ -210,15 +206,15 @@ export async function POST(request: NextRequest) {
     const isFullyFunded = Boolean(result?.is_fully_funded ?? progressAfter.isFullyFunded);
 
     // ── Record in ledger with full transparency info ──────────────────────────
-    await supabase.from("ledger_transactions").insert({
-      user_id: user.id, // the lender
+    await db.insert(ledgerTransactions).values({
+      userId: user.id, // the lender
       category: "loan_fund",
-      amount: contribution,
+      amount: String(contribution),
       currency: "XLM",
       status: "confirmed",
-      ref_type: "loan_fund",
-      ref_id: loanId,
-      metadata: JSON.stringify({
+      refType: "loan_fund",
+      refId: loanId,
+      metadata: {
         txHash: normalizedTxHash,
         lenderAddress,
         lenderUserId: user.id,
@@ -232,7 +228,7 @@ export async function POST(request: NextRequest) {
         aprBps: loan.apr_bps,
         durationDays: loan.duration_days,
         fundedAt: now,
-      }),
+      },
     });
 
     // ── Emit notifications ──
@@ -258,7 +254,7 @@ export async function POST(request: NextRequest) {
       // referrer. The XLM payout itself is made on-chain by the lending
       // contract during activate_loan; this mirrors it for the dashboard.
       const referral = await qualifyReferralForLoan({
-        supabase,
+        db,
         refereeId: String(loan.borrower_id),
         loanId,
       });

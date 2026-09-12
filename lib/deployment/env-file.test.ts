@@ -93,8 +93,8 @@ describe("upsertEnvVars", () => {
 
   it("preserves unrelated keys and their comments", () => {
     const original = [
-      "# Supabase",
-      "SUPABASE_SERVICE_ROLE_KEY=super-secret",
+      "# Database",
+      "SESSION_SECRET=super-secret",
       "",
       "# Contracts",
       "NEXT_PUBLIC_LENDING_CONTRACT_ID=old",
@@ -104,8 +104,8 @@ describe("upsertEnvVars", () => {
       NEXT_PUBLIC_LENDING_CONTRACT_ID: CONTRACT_ID,
     });
 
-    expect(result).toContain("# Supabase");
-    expect(result).toContain("SUPABASE_SERVICE_ROLE_KEY=super-secret");
+    expect(result).toContain("# Database");
+    expect(result).toContain("SESSION_SECRET=super-secret");
     expect(result).toContain("# Contracts");
     expect(result).toContain(`NEXT_PUBLIC_LENDING_CONTRACT_ID=${CONTRACT_ID}`);
     expect(result).not.toContain("=old");
@@ -194,8 +194,8 @@ describe("upsertEnvVars", () => {
 
   it("keeps secrets intact across a realistic merge", () => {
     const original = [
-      "NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co",
-      "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi.secret.value",
+      "DATABASE_URL=postgres://user:pw@ep-xyz.neon.tech/db",
+      "SESSION_SECRET=eyJhbGciOi.secret.value",
       "ADMIN_SECRET_KEY=SXXXXXXX",
       "NEXT_PUBLIC_LENDING_CONTRACT_ID=",
     ].join("\n");
@@ -207,7 +207,7 @@ describe("upsertEnvVars", () => {
       })
     );
 
-    expect(parsed.SUPABASE_SERVICE_ROLE_KEY).toBe("eyJhbGciOi.secret.value");
+    expect(parsed.SESSION_SECRET).toBe("eyJhbGciOi.secret.value");
     expect(parsed.ADMIN_SECRET_KEY).toBe("SXXXXXXX");
     expect(parsed.NEXT_PUBLIC_LENDING_CONTRACT_ID).toBe(CONTRACT_ID);
     expect(parsed.NEXT_PUBLIC_ADMIN_ADDRESS).toBe("GADMIN");

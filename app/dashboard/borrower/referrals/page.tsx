@@ -16,7 +16,7 @@ export default async function BorrowerReferralsPage() {
       heading="Refer a friend"
       description="Share your invite link and earn a TLND bonus each time someone you invited takes out their first loan."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "")}
+      userName={String(user.fullName ?? "")}
       metrics={[]}
       links={borrowerNavLinks}
       currentPath="/dashboard/borrower/referrals"

@@ -4,7 +4,7 @@ Welcome to the TrustLend Roadmap! This document outlines our high-level goals an
 
 ## 🚀 Phase 1: Foundation (Current)
 - [x] Initial smart contract deployment on Stellar/Soroban Testnet
-- [x] Supabase integration for auth & user profiles
+- [x] Wallet-native auth (SEP-10) with Postgres-backed user profiles
 - [x] Web frontend MVP with Next.js & React
 - [x] Open-source repository setup & documentation
 

@@ -13,10 +13,11 @@ vi.mock("@/lib/stellar/server-contract", () => ({
   invokeSigned: (...args: unknown[]) => mockInvokeSigned(...args),
 }));
 
-// ── Mock Supabase (used only in --source=db) ────────────────────────────────────
-const mockFrom = vi.fn();
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({ from: mockFrom }),
+// ── Mock the database (used only in --source=db) ──────────────────────────────
+import { createFakeDb, type FakeDb } from "../helpers/fake-db";
+let fakeDb: FakeDb | null = null;
+vi.mock("@/lib/db/client", () => ({
+  getDb: () => fakeDb,
 }));
 
 import {
@@ -225,6 +226,8 @@ function scValLoan(overrides: Record<string, unknown> = {}) {
 describe("runLiquidationKeeper", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvokeReadOnly.mockReset();
+    mockInvokeSigned.mockReset();
     mockGetAdminKeypair.mockReturnValue({} as never);
   });
 
@@ -233,7 +236,8 @@ describe("runLiquidationKeeper", () => {
       .mockResolvedValueOnce(1) // get_loan_count
       .mockResolvedValueOnce(scValLoan()) // get_loan
       .mockResolvedValueOnce(500) // get_reputation_score
-      .mockResolvedValueOnce(8000); // calculate_liquidation_threshold
+      .mockResolvedValueOnce(8000) // calculate_liquidation_threshold
+      .mockResolvedValueOnce(true); // check_liquidation_eligibility (grace period over, #157)
     mockInvokeSigned.mockResolvedValueOnce({ hash: "abc123", returnValue: null });
 
     const cfg: KeeperConfig = { ...BASE_CFG, source: "chain" };
@@ -251,7 +255,8 @@ describe("runLiquidationKeeper", () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(scValLoan())
       .mockResolvedValueOnce(500)
-      .mockResolvedValueOnce(8000);
+      .mockResolvedValueOnce(8000)
+      .mockResolvedValueOnce(true); // grace period over
 
     const cfg: KeeperConfig = { ...BASE_CFG, source: "chain", dryRun: true };
     const summary = await runLiquidationKeeper(cfg, null);
@@ -312,7 +317,8 @@ describe("runLiquidationKeeper", () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(scValLoan())
       .mockResolvedValueOnce(500)
-      .mockResolvedValueOnce(8000);
+      .mockResolvedValueOnce(8000)
+      .mockResolvedValueOnce(true); // grace period over
 
     const cfg: KeeperConfig = { ...BASE_CFG, source: "chain", dryRun: false };
     const summary = await runLiquidationKeeper(cfg, null);
@@ -321,34 +327,23 @@ describe("runLiquidationKeeper", () => {
     expect(mockInvokeSigned).not.toHaveBeenCalled();
   });
 
-  it("resolves candidate loans from Supabase when source=db", async () => {
-    const chain = {
-      select: vi.fn().mockReturnThis(),
-      in: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { metadata: { onchainLoanId: 7 } },
-      }),
-    };
-    // The initial `.in(...)` query resolves via awaiting the chain itself.
-    Object.defineProperty(chain, "then", {
-      get() {
-        return (resolve: (v: unknown) => void) => resolve({ data: [{ id: "db-loan-1" }], error: null });
-      },
-    });
-    mockFrom.mockReturnValue(chain);
+  it("resolves candidate loans from the database when source=db", async () => {
+    fakeDb = createFakeDb();
+    // open loans, then the funding ledger row that carries the on-chain id
+    fakeDb.queue([{ id: "db-loan-1" }]);
+    fakeDb.queue([{ metadata: { onchainLoanId: 7 } }]);
 
     mockInvokeReadOnly
       .mockResolvedValueOnce(scValLoan({ id: 7 }))
       .mockResolvedValueOnce(500)
-      .mockResolvedValueOnce(8000);
+      .mockResolvedValueOnce(8000)
+      .mockResolvedValueOnce(true); // grace period over
     mockInvokeSigned.mockResolvedValueOnce({ hash: "xyz", returnValue: null });
 
     const cfg: KeeperConfig = {
       ...BASE_CFG,
       source: "db",
-      supabaseUrl: "https://x.supabase.co",
-      supabaseServiceKey: "svc",
+      databaseUrl: "postgres://example",
     };
     const summary = await runLiquidationKeeper(cfg, {} as never);
 

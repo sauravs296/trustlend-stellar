@@ -3,32 +3,16 @@ import { BorrowerForms } from "@/components/dashboard/BorrowerForms";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getBorrowerDashboardMetrics, presentBorrowerMetrics } from "@/lib/dashboard/metrics";
 import { borrowerNavLinks } from "@/lib/dashboard/borrower-links";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { getBorrowerLoans, getProfile } from "@/lib/db/queries";
 import { getFundingProgress } from "@/lib/loans/funding";
 
 export default async function BorrowerLoansPage() {
   const { user } = await requireAuthenticatedUser("borrower");
   const metrics  = await getBorrowerDashboardMetrics(user.id);
 
-  const supabase = await getServerSupabaseClient();
-  const [loansRes, profileRes] = supabase
-    ? await Promise.all([
-        supabase
-          .from("loans")
-          .select("id, status, principal_amount, funded_amount, apr_bps, duration_days, repaid_amount, due_at, created_at")
-          .eq("borrower_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("profiles")
-          .select("full_name, kyc_status")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ])
-    : [{ data: [] }, { data: null }];
-
-  const loans   = loansRes.data ?? [];
-  const profile = profileRes.data;
+  const db = getDb();
+  const [loans, profile] = await Promise.all([getBorrowerLoans(db, user.id, 20), getProfile(db, user.id)]);
 
   // Funding progress drives the status shown to the borrower (Issue #269).
   // A request is only "funded" once contributions cover the full principal —
@@ -59,7 +43,7 @@ export default async function BorrowerLoansPage() {
       heading="Apply for a Loan"
       description="Submit a new loan request or make a repayment on your active loan."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? profile?.full_name ?? "")}
+      userName={String(user.fullName ?? profile?.full_name ?? "")}
       metrics={presentBorrowerMetrics(metrics)}
       currentPath="/dashboard/borrower/loans"
       links={borrowerNavLinks}
@@ -83,8 +67,8 @@ export default async function BorrowerLoansPage() {
         <BorrowerForms
           canApplyLoan={canApplyLoan}
           maxLoanAmount={maxLoanAmount}
-          loans={normalizedLoans as { id: string; status: string; due_at: string | null; principal_amount: number; funded_amount?: number; repaid_amount: number; apr_bps?: number; duration_days?: number; created_at?: string | null; }[]}
-          selectedRepaymentLoan={repayableLoan as { id: string; status: string; due_at: string | null; principal_amount: number; repaid_amount: number } | null}
+          loans={normalizedLoans as unknown as { id: string; status: string; due_at: string | null; principal_amount: number; funded_amount?: number; repaid_amount: number; apr_bps?: number; duration_days?: number; created_at?: string | null; }[]}
+          selectedRepaymentLoan={repayableLoan as unknown as { id: string; status: string; due_at: string | null; principal_amount: number; repaid_amount: number } | null}
           dueAmount={dueAmount}
         />
       </div>

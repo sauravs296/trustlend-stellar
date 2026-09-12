@@ -2,7 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import PDFDocument from "pdfkit";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { eq } from "drizzle-orm";
+import { getSessionUser } from "@/lib/auth/session";
+import { getDb, type Db } from "@/lib/db/client";
+import { lendingPools, poolPositions, profiles } from "@/lib/db/schema";
 import { getLenderTaxReportData } from "@/lib/lender/tax-report-data";
 import {
   buildTaxReportRows,
@@ -37,22 +40,19 @@ export async function GET(request: NextRequest) {
           ? parsedYear
           : new Date().getFullYear();
 
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getSessionUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (format === "csv") {
-      return await buildCsvResponse(supabase, user.id, {
-        walletAddress: String(user.user_metadata?.wallet_address ?? "") || null,
+      return await buildCsvResponse(db, user.id, {
+        walletAddress: user.walletAddress || null,
         year,
       });
     }
@@ -60,32 +60,27 @@ export async function GET(request: NextRequest) {
     // ── PDF summary (original behaviour) ─────────────────────────────────────
     const pdfYear = year ?? new Date().getFullYear();
 
-    const [profileRes, positionsRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("pool_positions")
-        .select(`
-          id,
-          principal_amount,
-          earned_interest,
-          opened_at,
-          closed_at,
-          status,
-          lending_pools ( name )
-        `)
-        .eq("lender_id", user.id)
+    const [[profile], positions] = await Promise.all([
+      db.select({ fullName: profiles.fullName }).from(profiles).where(eq(profiles.id, user.id)).limit(1),
+      db
+        .select({
+          id: poolPositions.id,
+          principal_amount: poolPositions.principalAmount,
+          earned_interest: poolPositions.earnedInterest,
+          opened_at: poolPositions.openedAt,
+          closed_at: poolPositions.closedAt,
+          status: poolPositions.status,
+          pool_name: lendingPools.name,
+        })
+        .from(poolPositions)
+        .leftJoin(lendingPools, eq(lendingPools.id, poolPositions.poolId))
+        .where(eq(poolPositions.lenderId, user.id)),
     ]);
 
-    const positions = positionsRes.data ?? [];
-    
     // Filter positions active or closed in the given year
     const yearPositions = positions.filter((pos) => {
-      const openedAt = new Date(pos.opened_at);
-      const closedAt = pos.closed_at ? new Date(pos.closed_at) : new Date();
+      const openedAt = pos.opened_at;
+      const closedAt = pos.closed_at ?? new Date();
       return openedAt.getFullYear() <= pdfYear && closedAt.getFullYear() >= pdfYear;
     });
 
@@ -125,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     doc.fillColor("#111827").fontSize(12);
 
-    const lenderName = profileRes.data?.full_name ?? user.user_metadata?.full_name ?? "TrustLend Lender";
+    const lenderName = profile?.fullName || user.fullName || "TrustLend Lender";
 
     const summaryRows = [
       ["Report generated", new Date().toLocaleString("en-US")],
@@ -177,8 +172,7 @@ export async function GET(request: NextRequest) {
         y = 60;
       }
       
-      const poolRaw = Array.isArray(pos.lending_pools) ? pos.lending_pools[0] : pos.lending_pools;
-      const poolName = (poolRaw as { name?: string })?.name ?? "Unknown Pool";
+      const poolName = pos.pool_name ?? "Unknown Pool";
 
       doc
         .fillColor("#111827")
@@ -224,19 +218,11 @@ export async function GET(request: NextRequest) {
  * loans — where the PDF summary only ever reported pool positions.
  */
 async function buildCsvResponse(
-  supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
+  db: Db,
   userId: string,
   { walletAddress, year }: { walletAddress: string | null; year: number | null }
 ) {
-  if (!supabase) {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
-  }
-
-  // Repayment ledger rows are written by the borrower, so reading them needs
-  // the service-role client. Without it the report still covers pool interest.
-  const srClient = getServiceRoleClient();
-
-  const data = await getLenderTaxReportData(supabase, srClient, userId, walletAddress);
+  const data = await getLenderTaxReportData(db, userId, walletAddress);
   const rows = buildTaxReportRows({ ...data, year });
   const summary = summarizeTaxReport(rows);
   const csv = toCsv(rows);
@@ -252,9 +238,7 @@ async function buildCsvResponse(
       // without having to parse the file back.
       "X-Report-Rows": String(summary.rowCount),
       "X-Report-Total-Interest": String(summary.totalInterest),
-      // A lender with no P2P history still gets a valid pool-only report; this
-      // flags when the P2P half could not be read at all.
-      "X-Report-P2P-Included": String(Boolean(srClient)),
+      "X-Report-P2P-Included": "true",
     },
   });
 }

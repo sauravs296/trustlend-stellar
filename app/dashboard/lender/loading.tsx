@@ -3,7 +3,7 @@ import { WorkspaceFrame } from "@/components/dashboard/WorkspaceFrame";
 
 /**
  * Next.js renders this file immediately (via React Suspense) while
- * the main `LenderHomePage` resolves its Supabase + Stellar fetches.
+ * the main `LenderHomePage` resolves its database + Stellar fetches.
  * Prevents the blank/jump screen on initial lender dashboard load.
  */
 export default function LenderDashboardLoading() {

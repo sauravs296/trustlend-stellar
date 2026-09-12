@@ -5,7 +5,10 @@
  * Only admins can verify/reject user identity documents
  */
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { requireApiAdmin } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
+import { profiles, reputationSnapshots } from "@/lib/db/schema";
 
 export async function verifyKYCDocument(
   userId: string,
@@ -13,81 +16,57 @@ export async function verifyKYCDocument(
   rejectionReason?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
-      return { success: false, error: "Supabase not available" };
-    }
-
-    // Verify admin status
-    const { data: adminUser, error: authError } = await supabase.auth.getUser();
-    if (authError || !adminUser?.user) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    // Check if requester is admin
-    const { data: adminProfile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", adminUser.user.id)
-      .maybeSingle();
-
-    if (adminProfile?.role !== "admin") {
+    try {
+      await requireApiAdmin();
+    } catch {
       return { success: false, error: "Unauthorized: Admin access required" };
     }
+    const db = getDb();
+    if (!db) {
+      return { success: false, error: "Database not available" };
+    }
 
-    // Update KYC status
-    const updateData = approved
-      ? {
-          kyc_status: "verified",
-          kyc_verified_at: new Date().toISOString(),
-          kyc_rejection_reason: null,
-        }
-      : {
-          kyc_status: "rejected",
-          kyc_rejection_reason: rejectionReason || "Document does not meet requirements",
-        };
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update(updateData)
-      .eq("id", userId);
-
-    if (updateError) throw updateError;
+    await db
+      .update(profiles)
+      .set(
+        approved
+          ? { kycStatus: "verified", kycVerifiedAt: new Date(), kycRejectionReason: null }
+          : {
+              kycStatus: "rejected",
+              kycRejectionReason: rejectionReason || "Document does not meet requirements",
+            },
+      )
+      .where(eq(profiles.id, userId));
 
     // When KYC is approved, seed an initial reputation score from real profile fields.
     if (approved) {
-      const { data: userProfile } = await supabase
-        .from("profiles")
-        .select("full_name, phone, country_code")
-        .eq("id", userId)
-        .maybeSingle();
+      const [userProfile] = await db
+        .select({ fullName: profiles.fullName, phone: profiles.phone, countryCode: profiles.countryCode })
+        .from(profiles)
+        .where(eq(profiles.id, userId))
+        .limit(1);
 
       let initialScore = 70;
-      if (userProfile?.full_name?.trim()) initialScore += 15;
+      if (userProfile?.fullName?.trim()) initialScore += 15;
       if (userProfile?.phone?.trim()) initialScore += 15;
-      if (userProfile?.country_code?.trim()) initialScore += 10;
+      if (userProfile?.countryCode?.trim()) initialScore += 10;
+      const clamped = Math.max(0, Math.min(750, initialScore));
 
-      const { error: reputationError } = await supabase.rpc("seed_reputation_snapshot", {
-        p_user_id: userId,
-        p_initial_score: initialScore,
-      });
+      await db
+        .insert(reputationSnapshots)
+        .values({ userId, scoreTotal: clamped })
+        .onConflictDoUpdate({
+          target: reputationSnapshots.userId,
+          set: { scoreTotal: clamped, updatedAt: sql`now()` },
+        });
 
-      if (reputationError) {
-        throw reputationError;
-      }
-
-      console.log(
-        `[TrustLend] Reputation snapshot seeded for ${userId}: score=${initialScore}`
-      );
+      console.log(`[TrustLend] Reputation snapshot seeded for ${userId}: score=${clamped}`);
     }
 
-
-    console.log(
-      `✅ KYC ${approved ? "approved" : "rejected"} for user ${userId}`
-    );
+    console.log(`[TrustLend] KYC ${approved ? "approved" : "rejected"} for user ${userId}`);
     return { success: true };
   } catch (error) {
-    console.error("❌ KYC verification failed:", error);
+    console.error("[TrustLend] KYC verification failed:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Verification failed",
@@ -95,76 +74,50 @@ export async function verifyKYCDocument(
   }
 }
 
-export async function getPendingKYCDocuments(): Promise<
-  Array<{
-    id: string;
-    email: string;
-    full_name: string;
-    kyc_status: string;
-    government_id_url: string;
-    submitted_at: string;
-  }> | null
-> {
+export interface PendingKycDocument {
+  id: string;
+  email: string;
+  full_name: string;
+  kyc_status: string;
+  government_id_url: string;
+  submitted_at: string;
+}
+
+export async function getPendingKYCDocuments(): Promise<PendingKycDocument[] | null> {
   try {
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) return null;
-
-    // Verify admin
-    const { data: adminUser } = await supabase.auth.getUser();
-    if (!adminUser?.user) return null;
-
-    const { data: adminProfile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", adminUser.user.id)
-      .maybeSingle();
-
-    if (adminProfile?.role !== "admin") return null;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, full_name, kyc_status, government_id_ipfs_hash, government_id_url, kyc_submitted_at")
-      .in("kyc_status", ["submitted", "verified", "rejected"])
-      .order("kyc_submitted_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching KYC documents:", error);
+    try {
+      await requireApiAdmin();
+    } catch {
       return null;
     }
+    const db = getDb();
+    if (!db) return null;
 
-    // Generate signed URLs for each profile document path.
-    const docsWithEmail = await Promise.all(
-      (data || []).map(async (doc) => {
-        let viewUrl = doc.government_id_url;
-        if (doc.government_id_ipfs_hash) {
-           const { data: signedData } = await supabase.storage
-             .from("kyc-documents")
-             .createSignedUrl(doc.government_id_ipfs_hash, 3600);
-           
-           if (signedData?.signedUrl) {
-             viewUrl = signedData.signedUrl;
-           }
-        }
-
-        return {
-           ...doc,
-            email: "hidden",
-           submitted_at: doc.kyc_submitted_at || "",
-           government_id_url: viewUrl || "",
-        };
+    const rows = await db
+      .select({
+        id: profiles.id,
+        fullName: profiles.fullName,
+        kycStatus: profiles.kycStatus,
+        documentPath: profiles.governmentIdIpfsHash,
+        kycSubmittedAt: profiles.kycSubmittedAt,
       })
-    );
+      .from(profiles)
+      .where(inArray(profiles.kycStatus, ["submitted", "verified", "rejected"]))
+      .orderBy(desc(profiles.kycSubmittedAt));
 
-    return docsWithEmail as Array<{
-      id: string;
-      email: string;
-      full_name: string;
-      kyc_status: string;
-      government_id_url: string;
-      submitted_at: string;
-    }>;
+    return rows.map((doc) => ({
+      id: doc.id,
+      email: "hidden",
+      full_name: doc.fullName,
+      kyc_status: doc.kycStatus,
+      // Documents are private; admins view them through the streaming route.
+      government_id_url: doc.documentPath
+        ? `/api/admin/kyc/document?path=${encodeURIComponent(doc.documentPath)}`
+        : "",
+      submitted_at: doc.kycSubmittedAt ? doc.kycSubmittedAt.toISOString() : "",
+    }));
   } catch (error) {
-    console.error("❌ Failed to fetch KYC documents:", error);
+    console.error("[TrustLend] Failed to fetch KYC documents:", error);
     return null;
   }
 }

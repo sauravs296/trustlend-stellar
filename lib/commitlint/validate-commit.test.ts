@@ -22,7 +22,7 @@ const ALLOWED_TYPES = [
 const ALLOWED_SCOPES = [
   "lending", "escrow", "governance", "default-management", "multisig-admin",
   "borrower-reputation", "auto-compound-vault", "treasury", "contracts",
-  "frontend", "dashboard", "auth", "kyc", "api", "ci", "db", "supabase",
+  "frontend", "dashboard", "auth", "kyc", "api", "ci", "db", "neon", "drizzle",
   "stellar", "soroban", "docs", "deps", "config", "landing", "hooks",
 ] as const;
 

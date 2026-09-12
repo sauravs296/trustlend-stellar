@@ -9,7 +9,7 @@
 // cron invocation.
 //
 // Flow:
-//   1. Fetch open (Active) loans — from Supabase (`--source=db`, default) or
+//   1. Fetch open (Active) loans — from the database (`--source=db`, default) or
 //      directly from the LendingContract (`--source=chain`).
 //   2. For each loan, read its authoritative on-chain record (collateral +
 //      remaining debt), the borrower's reputation score, and the dynamic
@@ -23,23 +23,25 @@
 // ── Usage ────────────────────────────────────────────────────────────────────
 //   npm run liquidation:keeper                    # one-shot run (cron-friendly)
 //   npm run liquidation:keeper -- --dry-run        # evaluate only, never submit
-//   npm run liquidation:keeper -- --source=chain   # bypass Supabase entirely
+//   npm run liquidation:keeper -- --source=chain   # bypass the database entirely
 //   npm run liquidation:keeper -- --interval=60    # background service, poll every 60s
 //   npm run liquidation:keeper:service             # shorthand: poll every minute
-//   POST /api/cron/liquidation (Vercel Cron, * * * * *) — deployed worker, see
-//   vercel.json + docs/liquidation-keeper.md
+//   POST /api/cron/liquidation — deployed worker (GitHub Actions every 5 min +
+//   a daily Vercel Cron safety net), see docs/liquidation-keeper.md
 //
 // ── Required env ─────────────────────────────────────────────────────────────
 //   ADMIN_SECRET_KEY, NEXT_PUBLIC_LENDING_CONTRACT_ID,
 //   NEXT_PUBLIC_REPUTATION_CONTRACT_ID, NEXT_PUBLIC_ADMIN_ADDRESS
-//   (+ NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY for --source=db)
+//   (+ DATABASE_URL for --source=db)
 // See `.env.example` for the full LIQUIDATION_* configuration surface.
 // =============================================================================
 
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { and, eq, inArray } from "drizzle-orm";
+import { getDb, type Db } from "@/lib/db/client";
+import { ledgerTransactions, loans } from "@/lib/db/schema";
 import type { Keypair } from "@stellar/stellar-sdk";
 import {
   addr,
@@ -104,8 +106,7 @@ export interface KeeperConfig {
   defaultAssetVolatilityBps: number;
   slackWebhookUrl?: string;
   discordWebhookUrl?: string;
-  supabaseUrl?: string;
-  supabaseServiceKey?: string;
+  databaseUrl?: string;
 }
 
 function loadPriceTable(): Record<string, AssetPriceEntry> {
@@ -153,9 +154,7 @@ export function loadConfig(argv: string[] = process.argv.slice(2)): KeeperConfig
     ),
     slackWebhookUrl: process.env.LIQUIDATION_SLACK_WEBHOOK_URL || undefined,
     discordWebhookUrl: process.env.LIQUIDATION_DISCORD_WEBHOOK_URL || undefined,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseServiceKey:
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
+    databaseUrl: process.env.DATABASE_URL,
   };
 }
 
@@ -335,17 +334,13 @@ async function checkLiquidationEligibility(
 
 // ─── Candidate discovery ──────────────────────────────────────────────────────
 
-/** Resolve an on-chain loan id for a Supabase loan row from its funding ledger entry. */
-async function resolveOnchainLoanId(
-  supabase: SupabaseClient,
-  dbLoanId: string
-): Promise<number | null> {
-  const { data } = await supabase
-    .from("ledger_transactions")
-    .select("metadata")
-    .eq("ref_type", "loan_fund")
-    .eq("ref_id", dbLoanId)
-    .maybeSingle();
+/** Resolve an on-chain loan id for a database loan row from its funding ledger entry. */
+async function resolveOnchainLoanId(db: Db, dbLoanId: string): Promise<number | null> {
+  const [data] = await db
+    .select({ metadata: ledgerTransactions.metadata })
+    .from(ledgerTransactions)
+    .where(and(eq(ledgerTransactions.refType, "loan_fund"), eq(ledgerTransactions.refId, dbLoanId)))
+    .limit(1);
 
   const raw = data?.metadata;
   const meta: Record<string, unknown> | null =
@@ -365,25 +360,21 @@ function safeJsonParse(s: string): Record<string, unknown> | null {
 }
 
 async function fetchCandidatesFromDb(cfg: KeeperConfig): Promise<number[]> {
-  if (!cfg.supabaseUrl || !cfg.supabaseServiceKey) {
+  const db = cfg.databaseUrl ? getDb() : null;
+  if (!db) {
     throw new Error(
-      "Supabase is not configured (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) " +
-        '— use --source=chain to bypass the database.'
+      "The database is not configured (DATABASE_URL) — use --source=chain to bypass it."
     );
   }
-  const supabase = createClient(cfg.supabaseUrl, cfg.supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
-  const { data, error } = await supabase
-    .from("loans")
-    .select("id")
-    .in("status", ["active", "funded"]);
-  if (error) throw new Error(`Failed to query open loans: ${error.message}`);
+  const rows = await db
+    .select({ id: loans.id })
+    .from(loans)
+    .where(inArray(loans.status, ["active", "funded"]));
 
   const onchainIds: number[] = [];
-  for (const row of data ?? []) {
-    const onchainId = await resolveOnchainLoanId(supabase, String(row.id));
+  for (const row of rows) {
+    const onchainId = await resolveOnchainLoanId(db, row.id);
     if (onchainId) onchainIds.push(onchainId);
   }
   return onchainIds;

@@ -36,7 +36,7 @@ export default async function AdminRiskParametersPage() {
       heading="Risk Parameters"
       description="View and securely adjust platform risk limits, collateral factors, jump-rate interest curves, and protocol fees."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin/risk"

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, lendingPools } from "@/lib/db/schema";
 import { requireKycVerified } from "@/lib/kyc/middleware";
 
 /**
@@ -19,13 +21,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = await requireAuthenticatedUser("lender");
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
     // Require KYC verification for lenders using fiat rails
-    const kycCheck = await requireKycVerified(user.id, supabase, { regulatedPoolOnly: true });
+    const kycCheck = await requireKycVerified(user.id, db, { regulatedPoolOnly: true });
     if (!kycCheck.allowed) {
       return NextResponse.json(
         { error: kycCheck.reason, kycStatus: kycCheck.kycStatus },
@@ -48,23 +50,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify pool exists and is active
-    const { data: pool, error: poolError } = await supabase
-      .from("lending_pools")
-      .select("id, status")
-      .eq("id", poolId)
-      .eq("status", "active")
-      .single();
+    const [pool] = await db
+      .select({ id: lendingPools.id })
+      .from(lendingPools)
+      .where(and(eq(lendingPools.id, poolId), eq(lendingPools.status, "active")))
+      .limit(1);
 
-    if (poolError || !pool) {
+    if (!pool) {
       return NextResponse.json({ error: "Pool not found or inactive" }, { status: 404 });
     }
 
     // Prevent duplicate recording of the same anchor transaction
-    const { data: existingTx } = await supabase
-      .from("ledger_transactions")
-      .select("id")
-      .eq("metadata->>anchorTxId", anchorTxId)
-      .maybeSingle();
+    const [existingTx] = await db
+      .select({ id: ledgerTransactions.id })
+      .from(ledgerTransactions)
+      .where(sql`${ledgerTransactions.metadata}->>'anchorTxId' = ${anchorTxId}`)
+      .limit(1);
 
     if (existingTx) {
       return NextResponse.json(
@@ -74,30 +75,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Record the pending deposit ledger entry
-    const { data: transaction, error: txError } = await supabase
-      .from("ledger_transactions")
-      .insert({
-        user_id: user.id,
+    const [transaction] = await db
+      .insert(ledgerTransactions)
+      .values({
+        userId: user.id,
         category: "deposit",
-        amount,
+        amount: String(amount),
         currency,
         status: "pending",
-        ref_type: "pool_position",
-        ref_id: null, // pool_position is created asynchronously upon webhook confirmation
-        metadata: JSON.stringify({
-          anchorTxId,
-          instructions,
-          poolId,
-          lenderAddress: lenderAddress ?? null,
-          isSep31: true,
-        }),
+        refType: "pool_position",
+        refId: null, // pool_position is created asynchronously upon webhook confirmation
+        metadata: { anchorTxId, instructions, poolId, lenderAddress: lenderAddress ?? null, isSep31: true },
       })
-      .select()
-      .single();
-
-    if (txError) {
-      return NextResponse.json({ error: txError.message }, { status: 500 });
-    }
+      .returning();
 
     return NextResponse.json({ success: true, transaction });
   } catch (error) {

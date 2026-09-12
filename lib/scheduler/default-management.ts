@@ -17,11 +17,13 @@
  * contract so it can propose; a human still has to approve + execute before
  * any funds actually move. See `docs/contracts/multisig-admin.md`.
  *
- * Every step is idempotent (guarded by Supabase state) and individually
+ * Every step is idempotent (guarded by database state) and individually
  * error-handled so one bad loan never aborts the whole run.
  */
 
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { getDb, type Db } from "@/lib/db/client";
+import { ledgerTransactions, loans, profiles } from "@/lib/db/schema";
 import {
   addr,
   getAdminKeypair,
@@ -93,23 +95,19 @@ function outstandingXlm(loan: LoanRow): number {
 }
 
 /** Resolve the borrower's Stellar wallet from the profiles table. */
-async function getWallet(
-  supabase: ReturnType<typeof getServiceRoleClient>,
-  profileId: string
-): Promise<string | null> {
-  if (!supabase) return null;
-  const { data } = await supabase
-    .from("profiles")
-    .select("wallet_address")
-    .eq("id", profileId)
-    .maybeSingle();
-  const w = data?.wallet_address;
+async function getWallet(db: Db, profileId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ walletAddress: profiles.walletAddress })
+    .from(profiles)
+    .where(eq(profiles.id, profileId))
+    .limit(1);
+  const w = row?.walletAddress;
   return typeof w === "string" && w.startsWith("G") ? w : null;
 }
 
 /** Lender wallet + on-chain loan id are recorded at funding time in the ledger. */
 async function getFundingInfo(
-  supabase: ReturnType<typeof getServiceRoleClient>,
+  db: Db,
   loanId: string,
   loanMeta: Record<string, unknown> | null
 ): Promise<{ lenderAddress: string | null; onchainLoanId: number | null }> {
@@ -118,20 +116,16 @@ async function getFundingInfo(
     toOnchainId(loanMeta?.onchain_loan_id) ?? toOnchainId(loanMeta?.onchainLoanId);
   let lenderAddress: string | null = null;
 
-  if (!supabase) return { lenderAddress, onchainLoanId };
-
   // A loan can be filled by several lenders (Issue #269), so this may match
   // many rows. Take the largest contributor as the payout designee — the
   // MultiSigAdmin insurance proposal names a single lender, so splitting an
   // insurance payout across lenders is a separate piece of work.
-  const { data } = await supabase
-    .from("ledger_transactions")
-    .select("metadata, amount")
-    .eq("ref_type", "loan_fund")
-    .eq("ref_id", loanId)
-    .order("amount", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [data] = await db
+    .select({ metadata: ledgerTransactions.metadata, amount: ledgerTransactions.amount })
+    .from(ledgerTransactions)
+    .where(and(eq(ledgerTransactions.refType, "loan_fund"), eq(ledgerTransactions.refId, loanId)))
+    .orderBy(desc(ledgerTransactions.amount))
+    .limit(1);
 
   const raw = data?.metadata;
   const meta: Record<string, unknown> | null =
@@ -160,18 +154,20 @@ function safeJson(s: string): Record<string, unknown> | null {
 }
 
 async function setLoanMetadataFlag(
-  supabase: ReturnType<typeof getServiceRoleClient>,
+  db: Db,
   loanId: string,
   patch: Record<string, unknown>,
-  extraCols: Record<string, unknown> = {}
+  extraCols: { status?: "defaulted"; defaulted_at?: string } = {}
 ): Promise<void> {
-  if (!supabase) return;
-  const { data } = await supabase.from("loans").select("metadata").eq("id", loanId).maybeSingle();
-  const current = (data?.metadata as Record<string, unknown>) ?? {};
-  await supabase
-    .from("loans")
-    .update({ metadata: { ...current, ...patch }, ...extraCols })
-    .eq("id", loanId);
+  await db
+    .update(loans)
+    .set({
+      // Atomic jsonb merge so concurrent runs cannot clobber each other's flags.
+      metadata: sql`coalesce(${loans.metadata}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb`,
+      ...(extraCols.status ? { status: extraCols.status } : {}),
+      ...(extraCols.defaulted_at ? { defaultedAt: new Date(extraCols.defaulted_at) } : {}),
+    })
+    .where(eq(loans.id, loanId));
 }
 
 // ─── Core run ─────────────────────────────────────────────────────────────────
@@ -179,26 +175,36 @@ async function setLoanMetadataFlag(
 /**
  * Query loans that are live (active/funded) and already past their due date.
  */
-async function queryOverdueLoans(
-  supabase: NonNullable<ReturnType<typeof getServiceRoleClient>>,
-  nowIso: string
-): Promise<LoanRow[]> {
-  const { data, error } = await supabase
-    .from("loans")
-    .select(
-      "id, borrower_id, status, principal_amount, repaid_amount, due_at, defaulted_at, metadata"
-    )
-    .in("status", ["active", "funded"])
-    .not("due_at", "is", null)
-    .lt("due_at", nowIso);
+async function queryOverdueLoans(db: Db, nowIso: string): Promise<LoanRow[]> {
+  const rows = await db
+    .select({
+      id: loans.id,
+      borrowerId: loans.borrowerId,
+      status: loans.status,
+      principalAmount: loans.principalAmount,
+      repaidAmount: loans.repaidAmount,
+      dueAt: loans.dueAt,
+      defaultedAt: loans.defaultedAt,
+      metadata: loans.metadata,
+    })
+    .from(loans)
+    .where(and(inArray(loans.status, ["active", "funded"]), isNotNull(loans.dueAt), lt(loans.dueAt, new Date(nowIso))));
 
-  if (error) throw new Error(`Failed to query overdue loans: ${error.message}`);
-  return (data ?? []) as LoanRow[];
+  return rows.map((r) => ({
+    id: r.id,
+    borrower_id: r.borrowerId,
+    status: r.status,
+    principal_amount: Number(r.principalAmount),
+    repaid_amount: Number(r.repaidAmount),
+    due_at: r.dueAt ? r.dueAt.toISOString() : null,
+    defaulted_at: r.defaultedAt ? r.defaultedAt.toISOString() : null,
+    metadata: (r.metadata as Record<string, unknown> | null) ?? null,
+  }));
 }
 
 export async function runDefaultManagement(): Promise<DefaultRunResult> {
-  const supabase = getServiceRoleClient();
-  if (!supabase) throw new Error("Service role client unavailable (check SUPABASE_SERVICE_ROLE_KEY)");
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable (check DATABASE_URL)");
 
   const ledgerTimeSecs = await getLedgerTimeSecs();
   const ledgerIso = new Date(ledgerTimeSecs * 1000).toISOString();
@@ -212,7 +218,7 @@ export async function runDefaultManagement(): Promise<DefaultRunResult> {
     );
   }
 
-  const loans = await queryOverdueLoans(supabase, ledgerIso);
+  const loans = await queryOverdueLoans(db, ledgerIso);
 
   const result: DefaultRunResult = {
     ledgerTime: ledgerIso,
@@ -247,9 +253,9 @@ export async function runDefaultManagement(): Promise<DefaultRunResult> {
       const alreadyDefaulted = Boolean(loan.defaulted_at) || Boolean(meta.defaulted_onchain_at);
       const alreadyProposedPayout = Boolean(meta.insurance_payout_proposed_at);
 
-      const { lenderAddress, onchainLoanId } = await getFundingInfo(supabase, loan.id, meta);
+      const { lenderAddress, onchainLoanId } = await getFundingInfo(db, loan.id, meta);
       outcome.onchainLoanId = onchainLoanId;
-      const borrowerWallet = await getWallet(supabase, loan.borrower_id);
+      const borrowerWallet = await getWallet(db, loan.borrower_id);
       const amountStroops = xlmToStroops(outstandingXlm(loan));
 
       // ── 1 + 2: mark defaulted & record the phase ─────────────────────────────
@@ -267,7 +273,7 @@ export async function runDefaultManagement(): Promise<DefaultRunResult> {
           outcome.actions.push("skipped on-chain default (missing onchain id / wallet)");
         }
         await setLoanMetadataFlag(
-          supabase,
+          db,
           loan.id,
           { defaulted_onchain_at: ledgerIso, days_overdue: daysOverdue },
           { status: "defaulted", defaulted_at: ledgerIso }
@@ -289,7 +295,7 @@ export async function runDefaultManagement(): Promise<DefaultRunResult> {
             amountStroops
           );
           outcome.actions.push("propose:trigger_insurance_payout");
-          await setLoanMetadataFlag(supabase, loan.id, {
+          await setLoanMetadataFlag(db, loan.id, {
             insurance_payout_proposed_at: ledgerIso,
             insurance_payout_proposal_id: proposalId,
             insurance_amount_stroops: amountStroops.toString(),

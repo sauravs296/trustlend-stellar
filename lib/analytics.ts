@@ -1,4 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AnyDb } from "@/lib/db/pools";
+import { ledgerTransactions, loanRepayments, loans, poolPositions } from "@/lib/db/schema";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 export const ANALYTICS_CACHE_TTL_SECONDS = 60 * 60;
@@ -70,13 +71,14 @@ export function aggregatePlatformAnalytics(
     ledgerTransactions?: LedgerTransactionRow[] | null;
   },
   activeWindowMs: number = ANALYTICS_ACTIVE_WINDOW_MS,
+  now: number = Date.now(),
 ): PlatformAnalyticsMetrics {
   const loans = normalizeRows(rows.loans);
   const poolPositions = normalizeRows(rows.poolPositions);
   const loanRepayments = normalizeRows(rows.loanRepayments);
   const ledgerTransactions = normalizeRows(rows.ledgerTransactions);
 
-  const activeWindowStart = Date.now() - activeWindowMs;
+  const activeWindowStart = now - activeWindowMs;
 
   const tvlFromLoans = loans
     .filter((loan) => isActiveLoanStatus(loan.status))
@@ -110,31 +112,32 @@ export function aggregatePlatformAnalytics(
   };
 }
 
-export async function fetchPlatformAnalytics(
-  supabase: SupabaseClient,
-): Promise<PlatformAnalyticsMetrics> {
-  const [loansRes, poolPositionsRes, loanRepaymentsRes, ledgerTransactionsRes] = await Promise.all([
-    supabase.from("loans").select("principal_amount,status"),
-    supabase.from("pool_positions").select("principal_amount,earned_interest,status"),
-    supabase.from("loan_repayments").select("amount"),
-    supabase.from("ledger_transactions").select("amount,user_id,status,created_at"),
+export async function fetchPlatformAnalytics(db: AnyDb): Promise<PlatformAnalyticsMetrics> {
+  const [loanRows, positionRows, repaymentRows, ledgerRows] = await Promise.all([
+    db.select({ principal_amount: loans.principalAmount, status: loans.status }).from(loans),
+    db
+      .select({
+        principal_amount: poolPositions.principalAmount,
+        earned_interest: poolPositions.earnedInterest,
+        status: poolPositions.status,
+      })
+      .from(poolPositions),
+    db.select({ amount: loanRepayments.amount }).from(loanRepayments),
+    db
+      .select({
+        amount: ledgerTransactions.amount,
+        user_id: ledgerTransactions.userId,
+        status: ledgerTransactions.status,
+        created_at: ledgerTransactions.createdAt,
+      })
+      .from(ledgerTransactions),
   ]);
 
-  const firstError =
-    loansRes.error ??
-    poolPositionsRes.error ??
-    loanRepaymentsRes.error ??
-    ledgerTransactionsRes.error;
-
-  if (firstError) {
-    throw new Error(firstError.message);
-  }
-
   return aggregatePlatformAnalytics({
-    loans: loansRes.data,
-    poolPositions: poolPositionsRes.data,
-    loanRepayments: loanRepaymentsRes.data,
-    ledgerTransactions: ledgerTransactionsRes.data,
+    loans: loanRows,
+    poolPositions: positionRows,
+    loanRepayments: repaymentRows,
+    ledgerTransactions: ledgerRows,
   });
 }
 

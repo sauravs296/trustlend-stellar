@@ -45,7 +45,7 @@ If you discover a security vulnerability within TrustLend, **do NOT open a publi
 - **Frontend/UI Bugs:** Visual presentation flaws, CSS issues, or non-security UI bugs without impact on user funds or data.
 - **Denial of Service (DoS):** Volumetric DoS/DDoS attacks against infrastructure or public Stellar RPC endpoints not caused by application design flaws.
 - **Social Engineering:** Phishing, spam, or social engineering attacks targeted at TrustLend maintainers or users.
-- **Third-Party Dependencies:** Vulnerabilities in underlying infrastructure (e.g. Stellar Core, Soroban SDK, Supabase platform) unless directly exploitable through TrustLend code logic.
+- **Third-Party Dependencies:** Vulnerabilities in underlying infrastructure (e.g. Stellar Core, Soroban SDK, Neon, Vercel) unless directly exploitable through TrustLend code logic.
 - **Known Issues:** Vulnerabilities already reported, tracked in public issues/PRs, or previously disclosed in security audit reports.
 
 ---

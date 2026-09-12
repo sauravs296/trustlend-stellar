@@ -97,12 +97,10 @@ export function ProfileSettingsForm({
   const handleLogout = async () => {
     setSigningOut(true);
     try {
-      const { getBrowserSupabaseClient } = await import("@/lib/supabase/client");
-      const supabase = getBrowserSupabaseClient();
-      if (supabase) {
-        await supabase.auth.signOut();
-      }
+      const { signOut } = await import("@/lib/auth/siws-client");
+      await signOut();
       router.push("/auth");
+      router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
       setSigningOut(false);

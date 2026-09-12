@@ -9,7 +9,6 @@ import {
   ReputationTier,
   TIER_MAX_LOAN,
   TIER_INTEREST_BPS,
-  scoreToTier,
 } from "@/types/contracts";
 
 export interface BorrowerRepaymentStats {
@@ -62,6 +61,26 @@ export const BASE_REPUTATION_SCORE = 250;
 export const MAX_REPUTATION_SCORE = 1000;
 export const MIN_REPUTATION_SCORE = 0;
 export const STANDARD_BASE_APR_BPS = 1500; // 15.00% APR standard rate
+
+/**
+ * Off-chain tier thresholds on the 0–1000 platform scale (base score 250).
+ * This is deliberately NOT the on-chain `scoreToTier` mapping in
+ * types/contracts.ts, which works on the contract's raw point scale.
+ */
+export const OFFCHAIN_TIER_MIN_SCORE: Record<Exclude<ReputationTier, "None">, number> = {
+  Beginner: 300,
+  Silver: 500,
+  Gold: 700,
+  Platinum: 850,
+};
+
+export function offchainScoreToTier(score: number): ReputationTier {
+  if (score >= OFFCHAIN_TIER_MIN_SCORE.Platinum) return "Platinum";
+  if (score >= OFFCHAIN_TIER_MIN_SCORE.Gold) return "Gold";
+  if (score >= OFFCHAIN_TIER_MIN_SCORE.Silver) return "Silver";
+  if (score >= OFFCHAIN_TIER_MIN_SCORE.Beginner) return "Beginner";
+  return "None";
+}
 
 // Score weights
 export const SCORING_WEIGHTS = {
@@ -129,7 +148,7 @@ export function computeBorrowerReputationScore(
   const score = Math.max(MIN_REPUTATION_SCORE, Math.min(MAX_REPUTATION_SCORE, Math.round(rawScore)));
 
   // 9. Tier and Rate Determination
-  const tier = scoreToTier(BigInt(score));
+  const tier = offchainScoreToTier(score);
   const interestRateBps = TIER_INTEREST_BPS[tier] ?? STANDARD_BASE_APR_BPS;
   const interestRatePct = Number((interestRateBps / 100).toFixed(2));
   const standardRateBps = STANDARD_BASE_APR_BPS;

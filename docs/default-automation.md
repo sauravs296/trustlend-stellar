@@ -81,7 +81,7 @@ period; `trigger_insurance_payout` fires once a loan reaches the Reported phase
 ```bash
 CRON_SECRET=                       # required: shared scheduler secret
 ADMIN_SECRET_KEY=                  # required for on-chain calls (S...)
-SUPABASE_SERVICE_ROLE_KEY=         # required: trusted DB access
+DATABASE_URL=                      # required: Neon connection string
 DEFAULT_GRACE_PERIOD_DAYS=7        # optional (default 7)
 DEFAULT_INSURANCE_PAYOUT_DAYS=60   # optional (default 60)
 # reuses: NEXT_PUBLIC_LENDING_CONTRACT_ID, NEXT_PUBLIC_DEFAULT_CONTRACT_ID,

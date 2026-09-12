@@ -6,46 +6,39 @@ import {
   getAdminDashboardMetrics,
   presentAdminMetrics,
 } from "@/lib/dashboard/metrics";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { desc, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { loanToRow, repaymentToRow } from "@/lib/db/rows";
+import { ledgerTransactions, loanRepayments, loans as loansTable } from "@/lib/db/schema";
 import { buildStellarTxVerificationUrl, extractPossibleTxHash, isLikelyTxHash } from "@/lib/stellar/explorer";
 import { formatCurrency } from "@/lib/utils/formatting";
 
 export default async function AdminLoansPage() {
   const { user } = await requireTradeVaultAdmin();
   const metrics = await getAdminDashboardMetrics();
-  const walletAddress = String(user.user_metadata?.wallet_address ?? "") || null;
+  const walletAddress = String(user.walletAddress ?? "") || null;
   const walletConnected = Boolean(walletAddress);
 
-  const srClient = getServiceRoleClient();
-  const [loansRes, repaymentsRes, ledgerRepaysRes] = srClient
+  const db = getDb();
+  const [loanRows, repaymentRows, ledgerRepays] = db
     ? await Promise.all([
-        srClient
-          .from("loans")
-          .select("id, borrower_id, status, principal_amount, apr_bps, duration_days, due_at")
-          .order("requested_at", { ascending: false })
-          .limit(40),
-        srClient
-          .from("loan_repayments")
-          .select("id, loan_id, payer_id, amount, paid_at, tx_ref")
-          .order("paid_at", { ascending: false })
-          .limit(40),
-        srClient
-          .from("ledger_transactions")
-          .select("ref_id, metadata")
-          .eq("ref_type", "loan_repay")
+        db.select().from(loansTable).orderBy(desc(loansTable.requestedAt)).limit(40),
+        db.select().from(loanRepayments).orderBy(desc(loanRepayments.paidAt)).limit(40),
+        db
+          .select({ ref_id: ledgerTransactions.refId, metadata: ledgerTransactions.metadata })
+          .from(ledgerTransactions)
+          .where(eq(ledgerTransactions.refType, "loan_repay")),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }];
+    : [[], [], []];
 
-  const loans = loansRes.data ?? [];
-  const repayments = repaymentsRes.data ?? [];
+  const loans = loanRows.map(loanToRow);
+  const repayments = repaymentRows.map(repaymentToRow);
   const oldHashesMap: Record<string, string> = {};
-  
-  if (ledgerRepaysRes?.data) {
-    for (const r of ledgerRepaysRes.data) {
-        const extracted = extractPossibleTxHash(r.metadata);
-        if (extracted) {
-           oldHashesMap[String(r.ref_id)] = extracted;
-        }
+
+  for (const r of ledgerRepays) {
+    const extracted = extractPossibleTxHash(r.metadata);
+    if (extracted) {
+      oldHashesMap[String(r.ref_id)] = extracted;
     }
   }
   const sanctionedAmount = loans
@@ -59,7 +52,7 @@ export default async function AdminLoansPage() {
       heading="Loan Operations"
       description="Monitor loan lifecycle, exposure, and maturity timelines across the platform."
       email={user.email ?? null}
-      userName={String(user.user_metadata?.full_name ?? "Admin")}
+      userName={String(user.fullName ?? "Admin")}
       metrics={presentAdminMetrics(metrics)}
       links={[...adminNavLinks]}
       currentPath="/dashboard/admin/loans"

@@ -1,4 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { and, desc, eq } from "drizzle-orm";
+import type { AnyDb } from "@/lib/db/pools";
+import { ledgerTransactions, loanFundings } from "@/lib/db/schema";
 import type { LenderContribution } from "./funding";
 
 /**
@@ -7,21 +9,19 @@ import type { LenderContribution } from "./funding";
  * Reads `loan_fundings`, the per-contribution table. Loans funded before
  * partial fills existed are recorded only in `ledger_transactions`, so those
  * fall back to the ledger — the same place the single-lender code used to look.
- *
- * Requires a service-role client: contributions belong to lenders, and the
- * borrower calling repayment cannot read them under RLS.
  */
-export async function getLoanLenders(
-  srClient: SupabaseClient,
-  loanId: string
-): Promise<LenderContribution[]> {
-  const { data: fundings, error } = await srClient
-    .from("loan_fundings")
-    .select("lender_id, lender_address, amount")
-    .eq("loan_id", loanId)
-    .order("amount", { ascending: false });
+export async function getLoanLenders(db: AnyDb, loanId: string): Promise<LenderContribution[]> {
+  const fundings = await db
+    .select({
+      lender_id: loanFundings.lenderId,
+      lender_address: loanFundings.lenderAddress,
+      amount: loanFundings.amount,
+    })
+    .from(loanFundings)
+    .where(eq(loanFundings.loanId, loanId))
+    .orderBy(desc(loanFundings.amount));
 
-  if (!error && fundings && fundings.length > 0) {
+  if (fundings.length > 0) {
     return mergeByLender(
       fundings.map((row) => ({
         lenderId: String(row.lender_id ?? ""),
@@ -32,15 +32,17 @@ export async function getLoanLenders(
   }
 
   // ── Legacy fallback ────────────────────────────────────────────────────────
-  // Pre-#269 loans, or a database where sql/08_partial_loan_fills.sql has not
-  // been applied yet.
-  const { data: fundTxs } = await srClient
-    .from("ledger_transactions")
-    .select("user_id, amount, metadata")
-    .eq("ref_type", "loan_fund")
-    .eq("ref_id", loanId);
+  // Pre-#269 loans are recorded only in the ledger.
+  const fundTxs = await db
+    .select({
+      user_id: ledgerTransactions.userId,
+      amount: ledgerTransactions.amount,
+      metadata: ledgerTransactions.metadata,
+    })
+    .from(ledgerTransactions)
+    .where(and(eq(ledgerTransactions.refType, "loan_fund"), eq(ledgerTransactions.refId, loanId)));
 
-  const legacy = (fundTxs ?? []).map((row) => {
+  const legacy = fundTxs.map((row) => {
     let address = "";
 
     try {

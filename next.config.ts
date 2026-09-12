@@ -35,17 +35,16 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      // Supabase + Stellar APIs + the WalletConnect relay
+      // Stellar APIs + the WalletConnect relay. The database is only reached
+      // server-side, so no DB host is needed here.
       [
         "connect-src 'self'",
-        "https://*.supabase.co",
-        "wss://*.supabase.co",
         "https://horizon-testnet.stellar.org",
         "https://soroban-testnet.stellar.org",
         "https://friendbot.stellar.org",
         ...WALLET_CONNECT_CONNECT_SRC,
       ].join(" "),
-      ["img-src 'self' data: blob:", "https://*.supabase.co", ...WALLET_IMG_SRC].join(" "),
+      ["img-src 'self' data: blob:", ...WALLET_IMG_SRC].join(" "),
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { desc, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { referrals } from "@/lib/db/schema";
 import { buildReferralLink } from "@/lib/referrals/codes";
 import { resolveSiteUrl } from "@/lib/referrals/site-url";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -22,47 +24,48 @@ export async function GET(request: NextRequest) {
     }
 
     const { user } = await requireAuthenticatedUser();
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
     // Guarantees a code exists before we try to build a link from it.
-    const { data: code, error: codeError } = await supabase.rpc(
-      "ensure_referral_code",
-      { p_user_id: user.id },
+    const codeResult = await db.execute(
+      sql`select public.ensure_referral_code(${user.id}::uuid) as code`,
     );
+    const code = (codeResult.rows[0] as { code?: string } | undefined)?.code;
 
-    if (codeError || !code) {
-      console.error("Referral code assignment failed:", codeError?.message);
+    if (!code) {
+      console.error("Referral code assignment failed for", user.id);
       return NextResponse.json(
         { error: "Could not prepare your referral code" },
         { status: 500 },
       );
     }
 
-    const { data: statsRows, error: statsError } = await supabase.rpc(
-      "get_referral_stats",
-      { p_user_id: user.id },
-    );
+    const [stats] = await db
+      .select({
+        total_invited: sql<number>`count(*)::int`,
+        pending_count: sql<number>`count(*) filter (where ${referrals.status} = 'pending')::int`,
+        qualified_count: sql<number>`count(*) filter (where ${referrals.status} = 'qualified')::int`,
+        paid_count: sql<number>`count(*) filter (where ${referrals.status} = 'paid')::int`,
+        total_earned: sql<string>`coalesce(sum(${referrals.bonusAmount}) filter (where ${referrals.status} = 'paid'), 0)`,
+      })
+      .from(referrals)
+      .where(eq(referrals.referrerId, user.id));
 
-    if (statsError) {
-      console.error("Referral stats lookup failed:", statsError.message);
-      return NextResponse.json(
-        { error: "Could not load your referral stats" },
-        { status: 500 },
-      );
-    }
-
-    const stats = Array.isArray(statsRows) ? statsRows[0] : statsRows;
-
-    // The invited-user list is read directly; RLS restricts it to rows where
-    // the caller is the referrer.
-    const { data: referrals } = await supabase
-      .from("referrals")
-      .select("id, status, bonus_amount, created_at, qualified_at, paid_at")
-      .eq("referrer_id", user.id)
-      .order("created_at", { ascending: false })
+    const invited = await db
+      .select({
+        id: referrals.id,
+        status: referrals.status,
+        bonus_amount: referrals.bonusAmount,
+        created_at: referrals.createdAt,
+        qualified_at: referrals.qualifiedAt,
+        paid_at: referrals.paidAt,
+      })
+      .from(referrals)
+      .where(eq(referrals.referrerId, user.id))
+      .orderBy(desc(referrals.createdAt))
       .limit(50);
 
     return NextResponse.json(
@@ -76,13 +79,13 @@ export async function GET(request: NextRequest) {
           paid: Number(stats?.paid_count ?? 0),
           totalEarned: Number(stats?.total_earned ?? 0),
         },
-        referrals: (referrals ?? []).map((r) => ({
-          id: String(r.id),
-          status: String(r.status),
+        referrals: invited.map((r) => ({
+          id: r.id,
+          status: r.status,
           bonusAmount: Number(r.bonus_amount ?? 0),
-          invitedAt: r.created_at,
-          qualifiedAt: r.qualified_at,
-          paidAt: r.paid_at,
+          invitedAt: r.created_at.toISOString(),
+          qualifiedAt: r.qualified_at ? r.qualified_at.toISOString() : null,
+          paidAt: r.paid_at ? r.paid_at.toISOString() : null,
         })),
       },
       { status: 200 },

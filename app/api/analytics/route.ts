@@ -9,7 +9,7 @@ import {
   getCachedPlatformAnalytics,
   setCachedPlatformAnalytics,
 } from "@/lib/analytics-cache";
-import { getServiceRoleClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
 
 export const revalidate = 3600; // Match ANALYTICS_CACHE_TTL_SECONDS (1 hour)
 
@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const supabase = getServiceRoleClient();
+  const db = getDb();
 
-  if (!supabase) {
+  if (!db) {
     return NextResponse.json(
       { error: "Analytics service unavailable" },
       { status: 503 }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const metrics = await fetchPlatformAnalytics(supabase);
+    const metrics = await fetchPlatformAnalytics(db);
     const payload = buildPlatformAnalyticsResponse(metrics);
 
     await setCachedPlatformAnalytics(payload, ANALYTICS_CACHE_TTL_SECONDS);

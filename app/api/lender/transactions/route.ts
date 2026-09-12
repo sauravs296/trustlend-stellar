@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
-import { getServerSupabaseClient, getServiceRoleClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { metaString, readMetadata } from "@/lib/db/metadata";
+import { ledgerTransactions } from "@/lib/db/schema";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
 
 const PAGE_SIZE = 20;
@@ -16,92 +19,90 @@ export async function GET(request: NextRequest) {
     if (rateLimited) return rateLimited;
 
     const { user } = await requireAuthenticatedUser("lender");
-    const supabase = await getServerSupabaseClient();
-    const srClient = getServiceRoleClient();
-
-    if (!supabase || !srClient) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
     const cursor = request.nextUrl.searchParams.get("cursor") || undefined;
     const direction = request.nextUrl.searchParams.get("direction") || "next";
 
-    // Fetch user-initiated transactions with cursor-based pagination
-    let userTxsQuery = supabase
-      .from("ledger_transactions")
-      .select("id, category, ref_type, ref_id, amount, currency, status, metadata, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const columns = {
+      id: ledgerTransactions.id,
+      category: ledgerTransactions.category,
+      refType: ledgerTransactions.refType,
+      refId: ledgerTransactions.refId,
+      amount: ledgerTransactions.amount,
+      currency: ledgerTransactions.currency,
+      status: ledgerTransactions.status,
+      metadata: ledgerTransactions.metadata,
+      createdAt: ledgerTransactions.createdAt,
+    };
 
-    if (cursor) {
-      const cursorDate = new Date(cursor);
-      if (direction === "next") {
-        userTxsQuery = userTxsQuery.lt("created_at", cursor);
-      } else {
-        userTxsQuery = userTxsQuery.gt("created_at", cursor);
-      }
-    }
+    // The lender's own transactions with cursor-based pagination.
+    const cursorDate = cursor ? new Date(cursor) : null;
+    const cursorClause =
+      cursorDate && !Number.isNaN(cursorDate.getTime())
+        ? direction === "next"
+          ? lt(ledgerTransactions.createdAt, cursorDate)
+          : gt(ledgerTransactions.createdAt, cursorDate)
+        : undefined;
 
-    userTxsQuery = userTxsQuery.limit(PAGE_SIZE + 1);
+    const userTxs = await db
+      .select(columns)
+      .from(ledgerTransactions)
+      .where(and(eq(ledgerTransactions.userId, user.id), cursorClause))
+      .orderBy(desc(ledgerTransactions.createdAt))
+      .limit(PAGE_SIZE + 1);
 
-    const { data: userTxs, error: userTxsError } = await userTxsQuery;
+    const hasMore = userTxs.length > PAGE_SIZE;
+    const items = userTxs.slice(0, PAGE_SIZE);
 
-    if (userTxsError) {
-      console.error("User transactions fetch error:", userTxsError);
-      return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
-    }
-
-    const hasMore = (userTxs?.length ?? 0) > PAGE_SIZE;
-    const items = userTxs?.slice(0, PAGE_SIZE) ?? [];
-
-    // Fetch incoming repayments (where lender is the recipient)
-    const { data: allRepays } = await srClient
-      .from("ledger_transactions")
-      .select("id, category, ref_type, ref_id, amount, currency, status, metadata, created_at")
-      .eq("ref_type", "loan_repay")
-      .order("created_at", { ascending: false })
+    // Incoming repayments are written by the borrower; the lender is
+    // identified from the metadata the repayment route records.
+    const allRepays = await db
+      .select(columns)
+      .from(ledgerTransactions)
+      .where(eq(ledgerTransactions.refType, "loan_repay"))
+      .orderBy(desc(ledgerTransactions.createdAt))
       .limit(200);
 
-    const incomingRepays = (allRepays ?? []).filter((tx) => {
-      try {
-        const meta = JSON.parse(String(tx.metadata || "{}"));
-        return String(meta.lenderUserId) === String(user.id) || String(meta.lenderAddress) === String(user.id);
-      } catch {
-        return false;
-      }
+    const incomingRepays = allRepays.filter((tx) => {
+      const meta = readMetadata(tx.metadata);
+      return String(meta.lenderUserId) === user.id || String(meta.lenderAddress) === user.walletAddress;
     });
 
     // Merge and dedup
-    const txMap = new Map();
+    const txMap = new Map<string, (typeof items)[number]>();
     for (const t of items) txMap.set(t.id, t);
     for (const t of incomingRepays) txMap.set(t.id, t);
 
     const transactions = Array.from(txMap.values()).sort(
-      (a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime()
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
 
-    // Format transactions
     const formattedTransactions = transactions.map((tx) => {
-      let txHash = "";
+      const meta = readMetadata(tx.metadata);
+      const txHash = metaString(tx.metadata, "txHash");
       let subLabel = "";
-      try {
-        const meta = JSON.parse(String(tx.metadata ?? "{}"));
-        txHash = String(meta.txHash ?? "");
-        if (meta.loanId) subLabel = `Loan #${String(meta.loanId).slice(0, 8)}`;
-        else if (tx.ref_id) subLabel = `Ref #${String(tx.ref_id).slice(0, 8)}`;
-      } catch { /* ok */ }
+      if (meta.loanId) subLabel = `Loan #${String(meta.loanId).slice(0, 8)}`;
+      else if (tx.refId) subLabel = `Ref #${tx.refId.slice(0, 8)}`;
 
       let label = "Transaction";
-      if (tx.ref_type === "loan_fund") label = "P2P Loan Deployed";
-      else if (tx.ref_type === "loan_repay") label = "Repayment Received";
-      else if (tx.category === "pool_deposit") label = "Pool Deposit";
-      else if (tx.category === "pool_withdraw") label = "Pool Withdrawal";
-
       let type: "funding" | "repayment" | "deposit" | "withdrawal" = "funding";
-      if (tx.ref_type === "loan_fund") type = "funding";
-      else if (tx.ref_type === "loan_repay") type = "repayment";
-      else if (tx.category === "pool_deposit") type = "deposit";
-      else if (tx.category === "pool_withdraw") type = "withdrawal";
+      if (tx.refType === "loan_fund") {
+        label = "P2P Loan Deployed";
+        type = "funding";
+      } else if (tx.refType === "loan_repay") {
+        label = "Repayment Received";
+        type = "repayment";
+      } else if (tx.category === "deposit" || tx.category === "pool_deposit") {
+        label = "Pool Deposit";
+        type = "deposit";
+      } else if (tx.category === "withdrawal" || tx.category === "pool_withdraw") {
+        label = "Pool Withdrawal";
+        type = "withdrawal";
+      }
 
       return {
         id: tx.id,
@@ -109,22 +110,17 @@ export async function GET(request: NextRequest) {
         subLabel,
         amount: Number(tx.amount),
         currency: tx.currency || "XLM",
-        date: String(tx.created_at),
+        date: tx.createdAt.toISOString(),
         status: tx.status || "completed",
         txHash,
         type,
       };
     });
 
-    const nextCursor = formattedTransactions.length > 0
-      ? formattedTransactions[formattedTransactions.length - 1].date
-      : undefined;
+    const nextCursor =
+      formattedTransactions.length > 0 ? formattedTransactions[formattedTransactions.length - 1].date : undefined;
 
-    return NextResponse.json({
-      transactions: formattedTransactions,
-      hasMore,
-      nextCursor,
-    });
+    return NextResponse.json({ transactions: formattedTransactions, hasMore, nextCursor });
   } catch (err) {
     console.error("Lender transactions fetch error:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

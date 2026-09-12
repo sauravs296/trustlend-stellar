@@ -34,18 +34,19 @@ export function parseDeploymentUrl(rawOutput: string): string {
   const url = urlCandidates[urlCandidates.length - 1].trim();
 
   // Validate the URL is well-formed
+  let parsed: URL;
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") {
-      throw new Error("Deployment URL must use HTTPS");
-    }
-    return url;
+    parsed = new URL(url);
   } catch (cause) {
     throw new Error(
       `Extracted candidate "${url}" is not a valid URL`,
       { cause },
     );
   }
+  if (parsed.protocol !== "https:") {
+    throw new Error("Deployment URL must use HTTPS");
+  }
+  return url;
 }
 
 /**

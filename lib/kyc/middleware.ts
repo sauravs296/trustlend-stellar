@@ -2,13 +2,15 @@
  * Reusable KYC guard for API routes.
  *
  * Usage:
- *   const check = await requireKycVerified(user.id, supabase);
+ *   const check = await requireKycVerified(user.id, db);
  *   if (!check.allowed) {
  *     return NextResponse.json({ error: check.reason }, { status: 403 });
  *   }
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
+import type { AnyDb } from "@/lib/db/pools";
+import { profiles } from "@/lib/db/schema";
 
 export interface KycGuardResult {
   allowed: boolean;
@@ -22,16 +24,23 @@ export interface KycGuardResult {
  */
 export async function requireKycVerified(
   userId: string,
-  supabase: SupabaseClient,
+  db: AnyDb,
   options: { regulatedPoolOnly?: boolean } = {}
 ): Promise<KycGuardResult> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("kyc_status, regulated_pool_access, risk_status")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
+  let profile:
+    | { kycStatus: string; regulatedPoolAccess: boolean; riskStatus: string }
+    | undefined;
+  try {
+    [profile] = await db
+      .select({
+        kycStatus: profiles.kycStatus,
+        regulatedPoolAccess: profiles.regulatedPoolAccess,
+        riskStatus: profiles.riskStatus,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1);
+  } catch {
     return {
       allowed: false,
       reason: "Unable to verify identity status. Please try again.",
@@ -45,8 +54,8 @@ export async function requireKycVerified(
     };
   }
 
-  const kycStatus = (profile.kyc_status as string) ?? "pending";
-  const riskStatus = (profile.risk_status as string) ?? "medium";
+  const kycStatus = profile.kycStatus ?? "pending";
+  const riskStatus = profile.riskStatus ?? "medium";
 
   // Blocked accounts can never access regulated pools
   if (riskStatus === "blocked") {
@@ -78,7 +87,7 @@ export async function requireKycVerified(
   }
 
   // For regulated pools specifically, also check the explicit access flag
-  if (options.regulatedPoolOnly && !profile.regulated_pool_access) {
+  if (options.regulatedPoolOnly && !profile.regulatedPoolAccess) {
     return {
       allowed: false,
       kycStatus,
@@ -91,18 +100,14 @@ export async function requireKycVerified(
 }
 
 /**
- * Lightweight check — returns `true` if KYC verified, `false` otherwise.
+ * Lightweight check: `true` if KYC verified, `false` otherwise.
  * Use this for UI gates where you don't need the reason string.
  */
-export async function isKycVerified(
-  userId: string,
-  supabase: SupabaseClient
-): Promise<boolean> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("kyc_status")
-    .eq("id", userId)
-    .maybeSingle();
-
-  return data?.kyc_status === "verified";
+export async function isKycVerified(userId: string, db: AnyDb): Promise<boolean> {
+  const [row] = await db
+    .select({ kycStatus: profiles.kycStatus })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+  return row?.kycStatus === "verified";
 }

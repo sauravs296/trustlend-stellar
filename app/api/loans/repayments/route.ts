@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { and, desc, eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { loanRepayments, loans } from "@/lib/db/schema";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export async function GET(request: NextRequest) {
@@ -17,55 +19,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "loanId is required" }, { status: 400 });
     }
 
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
     // Verify loan belongs to this borrower
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("id, principal_amount, repaid_amount, status")
-      .eq("id", loanId)
-      .eq("borrower_id", user.id)
-      .maybeSingle();
+    const [loan] = await db
+      .select({
+        id: loans.id,
+        principal_amount: loans.principalAmount,
+        repaid_amount: loans.repaidAmount,
+        status: loans.status,
+      })
+      .from(loans)
+      .where(and(eq(loans.id, loanId), eq(loans.borrowerId, user.id)))
+      .limit(1);
 
     if (!loan) {
       return NextResponse.json({ error: "Loan not found" }, { status: 404 });
     }
 
-    // TODO (SubQuery Indexer Migration):
-    // Migrate this data fetch to read from the SubQuery Indexer:
-    // 1. Fetch repayment events by querying the SubQuery GraphQL endpoint:
-    //    query {
-    //      repayments(filter: { loanId: { equalTo: "${loanId}" } }, orderBy: TIMESTAMP_DESC) {
-    //        nodes {
-    //          id
-    //          amount
-    //          timestamp
-    //        }
-    //      }
-    //    }
-    // 2. Map the results back to the expected output payload:
-    //    repayments: subqueryData.repayments.nodes.map(r => ({
-    //      id: r.id,
-    //      repayment_id: r.id,
-    //      amount: Number(r.amount),
-    //      created_at: r.timestamp
-    //    }))
-
     // Fetch repayment history
-    const { data: repayments } = await supabase
-      .from("loan_repayments")
-      .select("id, amount, created_at")
-      .eq("loan_id", loanId)
-      .order("created_at", { ascending: false })
+    const repayments = await db
+      .select({ id: loanRepayments.id, amount: loanRepayments.amount, created_at: loanRepayments.createdAt })
+      .from(loanRepayments)
+      .where(eq(loanRepayments.loanId, loanId))
+      .orderBy(desc(loanRepayments.createdAt))
       .limit(50);
 
     const dueAmount = Math.max(0, Number(loan.principal_amount) - Number(loan.repaid_amount ?? 0));
 
     return NextResponse.json({
-      repayments: (repayments ?? []).map((r) => ({
+      repayments: repayments.map((r) => ({
         id: r.id,
         repayment_id: r.id,
         amount: Number(r.amount),

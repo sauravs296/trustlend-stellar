@@ -1,56 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
-import { enforceRouteRateLimit } from "@/lib/rate-limit";
+import { desc } from "drizzle-orm";
 import { z } from "zod";
+import { requireApiAdmin, UnauthorizedError } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
+import { webhookEndpoints } from "@/lib/db/schema";
+import { serializeWebhook } from "@/lib/webhooks/serialize";
+import { enforceRouteRateLimit } from "@/lib/rate-limit";
 
 const webhookSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  url: z.string().url("Must be a valid URL"),
+  url: z.string().url("Must be a valid URL").startsWith("https://", "Webhook URLs must use HTTPS"),
   platform: z.enum(["discord", "telegram", "slack", "custom"]),
   topic: z.string().min(1, "Topic is required"),
 });
+
+async function guard() {
+  try {
+    const user = await requireApiAdmin();
+    const db = getDb();
+    if (!db) {
+      return { error: NextResponse.json({ error: "Database not configured" }, { status: 500 }) };
+    }
+    return { user, db };
+  } catch (err) {
+    const status = err instanceof UnauthorizedError ? 401 : 500;
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status }) };
+  }
+}
 
 export async function GET(request: NextRequest) {
   const rateLimited = await enforceRouteRateLimit(request);
   if (rateLimited) return rateLimited;
 
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+  const g = await guard();
+  if ("error" in g) return g.error;
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Fetch webhooks — RLS ensures only admins get rows.
-  const { data, error } = await supabase
-    .from("webhook_endpoints")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ webhooks: data ?? [] });
+  const rows = await g.db.select().from(webhookEndpoints).orderBy(desc(webhookEndpoints.createdAt));
+  return NextResponse.json({ webhooks: rows.map(serializeWebhook) });
 }
 
 export async function POST(request: NextRequest) {
   const rateLimited = await enforceRouteRateLimit(request);
   if (rateLimited) return rateLimited;
 
-  const supabase = await getServerSupabaseClient();
-  if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const g = await guard();
+  if ("error" in g) return g.error;
 
   let body;
   try {
     body = await request.json();
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -59,22 +58,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   }
 
-  const { data, error } = await supabase
-    .from("webhook_endpoints")
-    .insert([{
+  const [row] = await g.db
+    .insert(webhookEndpoints)
+    .values({
       name: parsed.data.name,
       url: parsed.data.url,
       platform: parsed.data.platform,
       topic: parsed.data.topic,
-      is_active: true,
-      created_by: user.id
-    }])
-    .select("*")
-    .single();
+      isActive: true,
+      createdBy: g.user.id,
+    })
+    .returning();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ webhook: data }, { status: 201 });
+  return NextResponse.json({ webhook: serializeWebhook(row) }, { status: 201 });
 }

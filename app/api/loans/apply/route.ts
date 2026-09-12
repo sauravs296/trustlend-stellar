@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { and, desc, eq, gte, notInArray } from "drizzle-orm";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db/client";
+import { ledgerTransactions, lendingPools, loans, reputationSnapshots } from "@/lib/db/schema";
 import { requireKycVerified } from "@/lib/kyc/middleware";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
@@ -13,13 +15,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = await requireAuthenticatedUser("borrower");
-    const supabase = await getServerSupabaseClient();
-    if (!supabase) {
+    const db = getDb();
+    if (!db) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
     }
 
     // ── KYC guard: regulated pools require verified identity ─────────────────
-    const kycCheck = await requireKycVerified(user.id, supabase);
+    const kycCheck = await requireKycVerified(user.id, db);
     if (!kycCheck.allowed) {
       return NextResponse.json(
         { error: kycCheck.reason, kycStatus: kycCheck.kycStatus },
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['fixed', 'floating'].includes(rateModel)) {
+    if (!["fixed", "floating"].includes(rateModel)) {
       return NextResponse.json(
         { error: `Invalid rate model: must be 'fixed' or 'floating'` },
         { status: 400 }
@@ -57,14 +59,15 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 1. Anti-scam: only ONE active loan at a time ─────────────────────────
-    const { data: existingLoans } = await supabase
-      .from("loans")
-      .select("id, status")
-      .eq("borrower_id", user.id)
-      .not("status", "in", '("repaid","defaulted","cancelled")')
+    const existingLoans = await db
+      .select({ id: loans.id })
+      .from(loans)
+      .where(
+        and(eq(loans.borrowerId, user.id), notInArray(loans.status, ["repaid", "defaulted", "cancelled"])),
+      )
       .limit(1);
 
-    if (existingLoans && existingLoans.length > 0) {
+    if (existingLoans.length > 0) {
       return NextResponse.json(
         {
           error:
@@ -75,13 +78,13 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Reputation / credit limit check ───────────────────────────────────
-    const { data: reputation } = await supabase
-      .from("reputation_snapshots")
-      .select("score_total")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [reputation] = await db
+      .select({ scoreTotal: reputationSnapshots.scoreTotal })
+      .from(reputationSnapshots)
+      .where(eq(reputationSnapshots.userId, user.id))
+      .limit(1);
 
-    const reputationScore: number = reputation?.score_total ?? 250;
+    const reputationScore: number = reputation?.scoreTotal ?? 250;
     const maxLoan = reputationScore * 10;
 
     if (amount > maxLoan) {
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // ── 3. Calculate APR ─────────────────────────────────────────────────────────
     let aprBps: number;
-    if (rateModel === 'floating') {
+    if (rateModel === "floating") {
       // Floating rate: base 5% + utilization slope
       // Start lower than fixed — the rate will be updated dynamically
       aprBps = 500; // 5% base floating rate
@@ -107,19 +110,22 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 4. Try to auto-assign a pool with enough liquidity and headroom under cap ─
-    const { data: availablePools } = await supabase
-      .from("lending_pools")
-      .select("id, available_liquidity, total_borrowed, borrow_cap")
-      .eq("status", "active")
-      .gte("available_liquidity", amount)
-      .order("available_liquidity", { ascending: false })
+    const availablePools = await db
+      .select({
+        id: lendingPools.id,
+        availableLiquidity: lendingPools.availableLiquidity,
+        totalBorrowed: lendingPools.totalBorrowed,
+        borrowCap: lendingPools.borrowCap,
+      })
+      .from(lendingPools)
+      .where(and(eq(lendingPools.status, "active"), gte(lendingPools.availableLiquidity, String(amount))))
+      .orderBy(desc(lendingPools.availableLiquidity))
       .limit(10); // fetch a few so we can apply cap filtering
 
-    const eligiblePool = (availablePools ?? []).find((p) => {
+    const eligiblePool = availablePools.find((p) => {
       // If a borrow cap is set, ensure there is headroom (#153)
-      if (p.borrow_cap !== null && p.borrow_cap !== undefined) {
-        const currentBorrowed = Number(p.total_borrowed ?? 0);
-        return currentBorrowed + amount <= Number(p.borrow_cap);
+      if (p.borrowCap !== null) {
+        return Number(p.totalBorrowed ?? 0) + amount <= Number(p.borrowCap);
       }
       return true; // no cap set — pool is eligible
     });
@@ -127,55 +133,44 @@ export async function POST(request: NextRequest) {
     const poolId = eligiblePool ? eligiblePool.id : null; // loan will be funded directly by a lender
 
     // ── 5. Create the loan ───────────────────────────────────────────────────
-    const { data: loan, error: loanError } = await supabase
-      .from("loans")
-      .insert({
-        borrower_id: user.id,
-        ...(poolId ? { pool_id: poolId } : {}),
-        principal_amount: amount,
-        apr_bps: aprBps,
-        duration_days: Number(durationDays),
+    const [loan] = await db
+      .insert(loans)
+      .values({
+        borrowerId: user.id,
+        poolId,
+        principalAmount: String(amount),
+        aprBps,
+        durationDays: Number(durationDays),
+        rateModel,
         status: "requested",
-        metadata: {
-          rate_model: rateModel,
-        },
+        metadata: { rate_model: rateModel },
       })
-      .select()
-      .single();
-
-    if (loanError) {
-      return NextResponse.json({ error: loanError.message }, { status: 500 });
-    }
+      .returning();
 
     // ── 6. Record request in ledger for traceability ────────────────────────
-    const { error: ledgerError } = await supabase
-      .from("ledger_transactions")
-      .insert({
-        user_id: user.id,
+    try {
+      await db.insert(ledgerTransactions).values({
+        userId: user.id,
         category: "loan_request",
-        amount: Number(amount),
+        amount: String(amount),
         currency: "XLM",
         status: "confirmed",
-        ref_type: "loan_request",
-        ref_id: String(loan.id),
+        refType: "loan_request",
+        refId: loan.id,
         metadata: {
           stage: "requested",
-          loanId: String(loan.id),
+          loanId: loan.id,
           durationDays: Number(durationDays),
           aprBps,
           rateModel,
           fundingPath: poolId ? "pool" : "direct",
         },
       });
-
-    if (ledgerError) {
+    } catch (ledgerError) {
       // Roll back the just-created loan to keep invariants strict: every request must have a ledger entry.
-      await supabase
-        .from("loans")
-        .delete()
-        .eq("id", String(loan.id))
-        .eq("borrower_id", user.id);
-      return NextResponse.json({ error: `Failed to record transaction trail: ${ledgerError.message}` }, { status: 500 });
+      await db.delete(loans).where(and(eq(loans.id, loan.id), eq(loans.borrowerId, user.id)));
+      const message = ledgerError instanceof Error ? ledgerError.message : String(ledgerError);
+      return NextResponse.json({ error: `Failed to record transaction trail: ${message}` }, { status: 500 });
     }
 
     // ── Emit notification ──
