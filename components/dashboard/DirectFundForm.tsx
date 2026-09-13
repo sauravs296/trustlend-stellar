@@ -14,6 +14,9 @@ import {
   getFundingProgress,
   validateFundingAmount,
 } from "@/lib/loans/funding";
+import { LendingContract } from "@/lib/contracts";
+import { isOnchainLifecycleRequired } from "@/lib/stellar/lifecycle-mode";
+import { PAYMENT_MEMO } from "@/lib/stellar/verify-payment";
 
 interface OpenLoan {
   id: string;
@@ -25,6 +28,8 @@ interface OpenLoan {
   duration_days: number;
   trust_score: number;
   borrower_wallet?: string | null;
+  /** LendingContract loan id; set when the borrower signed the request on-chain. */
+  onchain_loan_id?: number | null;
 }
 
 interface DirectFundFormProps {
@@ -49,6 +54,7 @@ type Step =
   | "building"
   | "signing"
   | "submitting"
+  | "approving"
   | "recording"
   | "done"
   | "error";
@@ -59,6 +65,7 @@ const STEP_LABELS: Record<Step, string> = {
   building: "2/5 -- Building Stellar payment...",
   signing: "3/5 -- Waiting for signature...",
   submitting: "4/5 -- Submitting to Stellar network...",
+  approving: "4/5 -- Approve the loan on the LendingContract...",
   recording: "5/5 -- Recording on TrustLend...",
   done: "Success!",
   error: "Failed",
@@ -153,7 +160,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
             amount: contribution.toFixed(7),
           }),
         )
-        .addMemo(Memo.text(`TL-FUND:${loan.id.slice(0, 12)}`))
+        .addMemo(Memo.text(PAYMENT_MEMO.fund(loan.id)))
         .setTimeout(180)
         .build();
 
@@ -187,6 +194,20 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
 
       const txHash: string = submitData.hash;
 
+      // Step 4b -- Approve the loan on the LendingContract when this
+      // contribution completes the funding. The API verifies this call and
+      // then signs activate_loan. Escrow id 0: direct funding bypasses escrow.
+      let approveTxHash: string | undefined;
+      if (completesLoan && loan.onchain_loan_id && isOnchainLifecycleRequired()) {
+        setStep("approving");
+        const approval = await LendingContract.approveLoan(
+          lenderAddress,
+          loan.onchain_loan_id,
+          0,
+        );
+        approveTxHash = approval.txHash;
+      }
+
       // Step 5 -- Record on TrustLend
       setStep("recording");
       const apiRes = await fetch("/api/loans/fund", {
@@ -197,6 +218,7 @@ export function DirectFundForm({ loan, onClose }: DirectFundFormProps) {
           txHash,
           lenderAddress,
           amount: contribution,
+          approveTxHash,
         }),
       });
 

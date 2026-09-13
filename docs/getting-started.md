@@ -243,12 +243,21 @@ Useful flags (`npm run deploy:testnet -- --help` lists them all):
 | `--only lending,escrow` | Deploy just these contracts |
 | `--resume` | Reuse IDs from the last run instead of redeploying |
 | `--skip-build` | Reuse the WASM already in `contracts/target` |
-| `--env-file .env.staging` | Write to a different env file |
+| `--out-env .env.staging` | Write to a different env file |
+| `--admin-key <name>` | Stellar CLI identity to deploy from (default `trustlend-admin`) |
 | `--dry-run` | Print every command without running it |
 
 If a deploy fails partway through, re-run with `--resume`: contract IDs are
 recorded after each individual deployment, so you never pay to deploy the same
 contract twice.
+
+After deploying, give the server the admin signer so it can activate loans and
+record repayments on-chain (see [onchain-lifecycle.md](onchain-lifecycle.md)):
+
+```bash
+stellar keys show trustlend-admin     # → ADMIN_SECRET_KEY in .env.local / Vercel
+npx tsx scripts/verify-onchain-lifecycle.ts   # optional: walk the full lifecycle on testnet
+```
 
 To deploy a single contract by hand instead:
 

@@ -10,6 +10,14 @@ export * as LendingContract from "./lending";
 export * as DefaultContract from "./default";
 export * as GovernanceContract from "./governance";
 export * as MultiSigAdminContract from "./multisig-admin";
+export * as PooledLendingContract from "./pooled-lending";
+export * as TreasuryContract from "./treasury";
+export * as BorrowerLoyaltyContract from "./borrower-loyalty";
+export * as ReferralRewardsContract from "./referral-rewards";
+export * as AutoCompoundVaultContract from "./auto-compound-vault";
+export * as LiquidationAuctionContract from "./liquidation-auction";
+export * as UsdcLendingPoolContract from "./usdc-lending-pool";
+export * as ZkCreditVerifierContract from "./zk-credit-verifier";
 
 export { SOROBAN_RPC_URL, NETWORK_PASSPHRASE } from "@/lib/stellar/soroban";
 

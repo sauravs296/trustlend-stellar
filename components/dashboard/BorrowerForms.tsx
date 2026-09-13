@@ -18,6 +18,12 @@ import {
   ReputationContract,
   xlmToStroops,
 } from "@/lib/contracts";
+import { isOnchainLifecycleRequired } from "@/lib/stellar/lifecycle-mode";
+import { nativeAssetContractId } from "@/lib/stellar/native-asset";
+import type { ReputationTier } from "@/types/contracts";
+
+/** Collateral factor the LendingContract applies when no asset config is set (75%). */
+const DEFAULT_COLLATERAL_FACTOR = 0.75;
 
 interface LoanApplicationFormProps {
   maxAmount: number;
@@ -44,8 +50,9 @@ export function LoanApplicationForm({
 }: LoanApplicationFormProps) {
   const [amount, setAmount] = useState("");
   const [duration, setDuration] = useState("60");
-  const [collateralAsset, setCollateralAsset] = useState("");
+  const [collateralAsset, setCollateralAsset] = useState(() => nativeAssetContractId());
   const [collateralAmount, setCollateralAmount] = useState("");
+  const onchainRequired = isOnchainLifecycleRequired();
   const [rateModel, setRateModel] = useState<"fixed" | "floating">("fixed");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +77,12 @@ export function LoanApplicationForm({
         setError("Collateral amount must be positive");
         return;
       }
+      if (onchainRequired && collateralAmountNum * DEFAULT_COLLATERAL_FACTOR < amountNum) {
+        setError(
+          `The LendingContract needs at least ${(amountNum / DEFAULT_COLLATERAL_FACTOR).toFixed(2)} XLM of collateral for a ${amountNum} XLM loan (75% LTV)`
+        );
+        return;
+      }
       await onSubmit(
         amountNum,
         parseInt(duration),
@@ -79,7 +92,7 @@ export function LoanApplicationForm({
       );
       setAmount("");
       setDuration("60");
-      setCollateralAsset("");
+      setCollateralAsset(nativeAssetContractId());
       setCollateralAmount("");
       setRateModel("fixed");
     } catch (err) {
@@ -204,6 +217,9 @@ export function LoanApplicationForm({
           className="workspace-input"
           disabled={loading}
         />
+        <p className="workspace-hint" style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: "var(--fg-muted)" }}>
+          Defaults to native XLM. The asset must be whitelisted on the LendingContract.
+        </p>
       </div>
 
       <div>
@@ -688,7 +704,8 @@ export function BorrowerForms({
     rateModel: "fixed" | "floating"
   ) => {
     setSorobanLoading(true);
-    setStatusMessage("1/3 Submitting loan request...");
+    const onchainRequired = isOnchainLifecycleRequired();
+    setStatusMessage(onchainRequired ? "1/3 Checking eligibility..." : "1/3 Submitting loan request...");
     try {
       // 1. Ensure borrower wallet is connected (defaults to Freighter)
       let activeWallet = walletAddress;
@@ -704,71 +721,102 @@ export function BorrowerForms({
         );
       }
 
-      // 2. Submit application record to backend
-      const response = await fetch("/api/loans/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          duration_days: duration,
-          pool_id: "default",
-          collateral_asset: collateralAsset,
-          collateral_amount: collateralAmount,
-          rateModel,
-        }),
-      });
+      const submitApplication = async (extra: Record<string, unknown>) => {
+        const response = await fetch("/api/loans/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            duration_days: duration,
+            pool_id: "default",
+            collateral_asset: collateralAsset,
+            collateral_amount: collateralAmount,
+            rateModel,
+            ...extra,
+          }),
+        });
+        const json = await response.json();
+        if (!response.ok) {
+          throw new Error(json.error || "Failed to apply for loan");
+        }
+        return json;
+      };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to apply for loan");
-      }
+      if (onchainRequired) {
+        // ── On-chain lifecycle: the request must exist on the LendingContract ──
+        if (!activeWallet) {
+          throw new Error("Connect your Stellar wallet to sign the on-chain loan request.");
+        }
 
-      await response.json();
+        // Validate eligibility server-side first so the wallet is never asked
+        // to sign a request the API would reject afterwards.
+        await submitApplication({ preflight: true, walletAddress: activeWallet });
 
-      // 3. Authorize on-chain loan request using Freighter
-      if (activeWallet) {
         setStatusMessage(
-          `2/3 Please approve the transaction in ${getWalletProviderLabel(walletProvider)}...`
+          `2/3 Reading your on-chain reputation terms...`
         );
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Soroban RPC timeout")), 15000)
+        const [onChainRate, onChainMax, profile] = await Promise.all([
+          ReputationContract.getInterestRate(activeWallet, activeWallet),
+          ReputationContract.getMaxLoan(activeWallet, activeWallet),
+          ReputationContract.getBorrowerProfile(activeWallet, activeWallet).catch(() => null),
+        ]);
+        const reputationTier: ReputationTier = profile?.reputationTier ?? "None";
+
+        setStatusMessage(
+          `3/3 Sign the loan request in ${getWalletProviderLabel(walletProvider)}...`
         );
-        try {
-          console.log("[TrustLend] Initiating Soroban loan request with Freighter...");
+        const { loanId: onchainLoanId, txHash: onchainTxHash } =
+          await LendingContract.createLoanRequest({
+            borrowerAddress: activeWallet,
+            amountStroops: xlmToStroops(amount),
+            durationDays: duration,
+            interestRateBps: onChainRate,
+            maxLoanAmountStroops: onChainMax,
+            collateralEntries: [{ asset: collateralAsset, amount: xlmToStroops(collateralAmount) }],
+            rateModel: rateModel === "fixed" ? "Fixed" : "Floating",
+            reputationTier,
+          });
 
-          const [onChainRate, onChainMax] = await Promise.race([
-            Promise.all([
-              ReputationContract.getInterestRate(activeWallet, activeWallet),
-              ReputationContract.getMaxLoan(activeWallet, activeWallet),
-            ]),
-            timeout,
-          ]);
+        setStatusMessage("Recording your request...");
+        await submitApplication({ onchainLoanId, onchainTxHash, walletAddress: activeWallet });
+      } else {
+        // ── Database-only mode: record first, mirror on-chain best-effort ──
+        await submitApplication({});
 
-          const amountStroops = xlmToStroops(amount);
-          const collateralAmountStroops = xlmToStroops(collateralAmount);
-
+        if (activeWallet) {
           setStatusMessage(
-            `3/3 Signing & confirming on-chain with ${getWalletProviderLabel(walletProvider)}...`
+            `2/3 Please approve the transaction in ${getWalletProviderLabel(walletProvider)}...`
           );
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Soroban RPC timeout")), 15000)
+          );
+          try {
+            const [onChainRate, onChainMax] = await Promise.race([
+              Promise.all([
+                ReputationContract.getInterestRate(activeWallet, activeWallet),
+                ReputationContract.getMaxLoan(activeWallet, activeWallet),
+              ]),
+              timeout,
+            ]);
 
-          await LendingContract.createLoanRequest(
-            activeWallet,
-            amountStroops,
-            duration,
-            onChainRate,
-            onChainMax,
-            [{ asset: collateralAsset, amount: collateralAmountStroops }],
-            rateModel === "fixed" ? "Fixed" : "Floating"
-          );
-
-          console.log(
-            `[TrustLend] Soroban loan request authorized and recorded via ${walletProvider}.`
-          );
-        } catch (sorobanErr) {
-          console.warn(
-            "[TrustLend] Soroban sync warning:",
-            (sorobanErr as Error).message
-          );
+            setStatusMessage(
+              `3/3 Signing & confirming on-chain with ${getWalletProviderLabel(walletProvider)}...`
+            );
+            await LendingContract.createLoanRequest({
+              borrowerAddress: activeWallet,
+              amountStroops: xlmToStroops(amount),
+              durationDays: duration,
+              interestRateBps: onChainRate,
+              maxLoanAmountStroops: onChainMax,
+              collateralEntries: [{ asset: collateralAsset, amount: xlmToStroops(collateralAmount) }],
+              rateModel: rateModel === "fixed" ? "Fixed" : "Floating",
+            });
+          } catch (sorobanErr) {
+            console.warn(
+              "[TrustLend] Soroban sync warning:",
+              (sorobanErr as Error).message
+            );
+          }
         }
       }
 

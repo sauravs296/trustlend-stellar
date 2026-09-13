@@ -219,6 +219,8 @@ export const lendingPools = pgTable(
     totalBorrowed: money("total_borrowed").notNull().default("0"),
     /** Max total principal this pool may lend out (null = unlimited). */
     borrowCap: numeric("borrow_cap", { precision: 20, scale: 7 }),
+    /** Pool id on the PooledLendingContract; null until mirrored on-chain. */
+    onchainPoolId: integer("onchain_pool_id"),
     createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

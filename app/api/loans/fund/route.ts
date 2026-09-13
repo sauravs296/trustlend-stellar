@@ -3,10 +3,12 @@ import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { ledgerTransactions, loanFundings, loans } from "@/lib/db/schema";
+import { ledgerTransactions, loanFundings, loans, profiles } from "@/lib/db/schema";
 import { sendLoanFundedEmail } from "@/lib/email/resend";
 import { getFundingProgress, validateFundingAmount } from "@/lib/loans/funding";
 import { qualifyReferralForLoan } from "@/lib/referrals/qualify";
+import { PAYMENT_MEMO, verifyPaymentTransaction } from "@/lib/stellar/verify-payment";
+import { activateFundedLoanOnchain } from "@/lib/loans/onchain";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 /**
@@ -18,10 +20,16 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
  * Flow:
  *   1. Lender signs a Stellar payment to the BORROWER's wallet (client-side)
  *   2. Client sends the confirmed txHash and the amount funded
- *   3. record_loan_funding() atomically records the contribution and, once the
+ *   3. The payment is verified against Horizon: signed by the lender's wallet,
+ *      memo bound to this loan, at least `amount` XLM paid to the borrower's
+ *      wallet and nothing paid anywhere else (Phase 2.1)
+ *   4. record_loan_funding() atomically records the contribution and, once the
  *      contributions cover the principal, flips the loan to "active"
+ *   5. If the loan exists on the LendingContract, the lender who completed the
+ *      funding also signed `approve_loan`; the server verifies that call and
+ *      then signs `activate_loan` (Phase 2.2)
  *
- * Body: { loanId, txHash, lenderAddress, amount? }
+ * Body: { loanId, txHash, lenderAddress, amount?, approveTxHash? }
  *   `amount` defaults to the full remaining balance, so a client that predates
  *   partial fills keeps working unchanged.
  */
@@ -39,11 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { loanId, txHash, lenderAddress, amount } = body as {
+    const { loanId, txHash, lenderAddress, amount, approveTxHash } = body as {
       loanId: string;
       txHash: string;
       lenderAddress: string;
       amount?: number | string;
+      approveTxHash?: string;
     };
 
     if (!loanId) {
@@ -84,8 +93,11 @@ export async function POST(request: NextRequest) {
         borrowerId: loans.borrowerId,
         aprBps: loans.aprBps,
         durationDays: loans.durationDays,
+        metadata: loans.metadata,
+        borrowerWallet: profiles.walletAddress,
       })
       .from(loans)
+      .leftJoin(profiles, eq(profiles.id, loans.borrowerId))
       .where(eq(loans.id, loanId))
       .limit(1);
 
@@ -97,6 +109,7 @@ export async function POST(request: NextRequest) {
           borrower_id: loanRow.borrowerId,
           apr_bps: loanRow.aprBps,
           duration_days: loanRow.durationDays,
+          borrower_wallet: String(loanRow.borrowerWallet ?? ""),
         }
       : null;
 
@@ -150,6 +163,48 @@ export async function POST(request: NextRequest) {
     const contribution = Number(validation.amount.toFixed(7));
     const now = new Date().toISOString();
 
+    // ── Verify the payment on-chain before crediting anything ────────────────
+    if (!loan.borrower_wallet) {
+      return NextResponse.json(
+        { error: "The borrower has no wallet connected, so this loan cannot be funded yet" },
+        { status: 409 }
+      );
+    }
+
+    // The payment must come from the wallet this account signed in with (or
+    // the wallet saved on the lender's profile), not from an address the
+    // client merely claims.
+    const [lenderProfile] = await db
+      .select({ walletAddress: profiles.walletAddress })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
+    const lenderWallets = new Set(
+      [user.walletAddress, lenderProfile?.walletAddress].filter(
+        (w): w is string => typeof w === "string" && w.length > 0
+      )
+    );
+    if (!lenderWallets.has(String(lenderAddress ?? ""))) {
+      return NextResponse.json(
+        { error: "lenderAddress does not match a wallet linked to your account" },
+        { status: 400 }
+      );
+    }
+
+    const verification = await verifyPaymentTransaction({
+      txHash: normalizedTxHash,
+      expectedSource: String(lenderAddress),
+      expectedMemo: PAYMENT_MEMO.fund(loanId),
+      expectedPayments: [{ destination: loan.borrower_wallet, minAmount: contribution }],
+    });
+    if (!verification.ok) {
+      return NextResponse.json(
+        { error: `Payment verification failed: ${verification.reason}` },
+        { status: verification.status }
+      );
+    }
+    const verifiedLenderAddress = verification.source;
+
     // ── Record the contribution atomically ───────────────────────────────────
     // The RPC locks the loan row, so concurrent lenders cannot both read the
     // same remaining balance and collectively overfund the loan.
@@ -166,7 +221,7 @@ export async function POST(request: NextRequest) {
     try {
       const executed = await db.execute(
         sql`select loan_id, status, principal_amount, funded_amount, remaining_amount, is_fully_funded, funding_id
-             from public.record_loan_funding(${loanId}::uuid, ${user.id}::uuid, ${contribution}::numeric, ${normalizedTxHash}::text, ${lenderAddress ?? null}::text, ${now}::timestamptz)`,
+             from public.record_loan_funding(${loanId}::uuid, ${user.id}::uuid, ${contribution}::numeric, ${normalizedTxHash}::text, ${verifiedLenderAddress}::text, ${now}::timestamptz)`,
       );
       fundingRows = executed.rows as FundingResultRow[];
     } catch (rpcErr) {
@@ -205,6 +260,19 @@ export async function POST(request: NextRequest) {
     );
     const isFullyFunded = Boolean(result?.is_fully_funded ?? progressAfter.isFullyFunded);
 
+    // ── Mirror activation to the LendingContract ─────────────────────────────
+    // The XLM has already moved and is recorded above; a chain failure here is
+    // surfaced in the response and in loans.metadata rather than rolled back.
+    const onchain = isFullyFunded
+      ? await activateFundedLoanOnchain({
+          db,
+          loanId,
+          loanMetadata: loan.metadata,
+          lenderAddress: verifiedLenderAddress,
+          approveTxHash,
+        })
+      : { attempted: false as const };
+
     // ── Record in ledger with full transparency info ──────────────────────────
     await db.insert(ledgerTransactions).values({
       userId: user.id, // the lender
@@ -216,8 +284,9 @@ export async function POST(request: NextRequest) {
       refId: loanId,
       metadata: {
         txHash: normalizedTxHash,
-        lenderAddress,
+        lenderAddress: verifiedLenderAddress,
         lenderUserId: user.id,
+        verifiedLedger: verification.ledger,
         borrowerId: String(loan.borrower_id),
         loanId,
         contributionAmount: contribution,
@@ -299,6 +368,7 @@ export async function POST(request: NextRequest) {
         remainingAmount: progressAfter.remaining,
         fundedPercent: progressAfter.percent,
         isFullyFunded,
+        onchain,
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${normalizedTxHash}`,
         message: isFullyFunded
           ? "Loan fully funded and activated. The borrower will receive XLM in their wallet."

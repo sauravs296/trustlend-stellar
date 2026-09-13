@@ -17,6 +17,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { Asset } from "@stellar/stellar-sdk";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -86,7 +87,8 @@ Options:
   --network <name>      Stellar network (default: testnet)
   --admin-key <name>    Stellar CLI identity to deploy with (default: trustlend-admin)
                         Created and funded automatically if it does not exist.
-  --env-file <path>     Env file to update in place (default: .env.local)
+  --out-env <path>      Env file to update in place (default: .env.local)
+                        (--env-file also works, but only as --env-file=<path>)
   --only <a,b,c>        Deploy only these contracts. Available:
                         ${CONTRACT_KEYS.join(", ")}
   --skip-build          Reuse the WASM already in contracts/target
@@ -107,6 +109,15 @@ Environment overrides:
   ORACLE_ADDRESS              Authorize a credit-score oracle during deploy
   TLEND_TOTAL_SUPPLY          Raw units minted to admin (default: 1000000000000)
   TLEND_AIRDROP_MERKLE_ROOT   64-char hex root; airdrop init is skipped without it
+  USDC_TOKEN_ADDRESS          USDC SAC / token contract for the USDC pool (init skipped without it)
+  INSURANCE_FUND_ADDRESS      Treasury insurance destination (default: default-management contract)
+  DAO_TREASURY_ADDRESS        Treasury DAO destination (default: admin address)
+
+After deploying, the app needs:
+  NEXT_PUBLIC_ONCHAIN_LOAN_LIFECYCLE=required   (default when a lending id is set)
+  ADMIN_SECRET_KEY=<secret of the admin identity>  so the server can sign
+  activate_loan / record_payment / update_pool_state. Print it with:
+    stellar keys show trustlend-admin
 `;
 
 function parseArgs(argv: string[]): Options {
@@ -137,6 +148,9 @@ function parseArgs(argv: string[]): Options {
         options.adminKey = next();
         break;
       case "--env-file":
+      // Node itself consumes a bare "--env-file <path>" when the script runs
+      // under tsx, so "--out-env" is the form that always reaches us.
+      case "--out-env":
         options.envFile = next();
         break;
       case "--only":
@@ -539,6 +553,169 @@ function initializeContracts(
 
   if (has("tlend_token")) {
     initializeTlend(ids, adminAddress, options);
+  }
+
+  initializeSatellites(ids, adminAddress, options);
+}
+
+/** Native XLM's Stellar Asset Contract id on the target network. */
+function nativeAssetContractId(network: string): string {
+  const passphrase =
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ??
+    (network === "futurenet"
+      ? "Test SDF Future Network ; October 2022"
+      : network === "mainnet" || network === "public"
+        ? "Public Global Stellar Network ; September 2015"
+        : "Test SDF Network ; September 2015");
+  return Asset.native().contractId(passphrase);
+}
+
+/**
+ * Contracts the lending contract calls into, plus the standalone protocol
+ * modules. Everything here is optional — a missing id is skipped — but when
+ * present the contracts are initialised and linked so the app can use them
+ * without any manual invoke calls (Phase 2.2).
+ */
+function initializeSatellites(
+  ids: Record<string, string>,
+  adminAddress: string,
+  options: Options
+): void {
+  const has = (key: string) => Boolean(ids[key]);
+  const xlm = nativeAssetContractId(options.network);
+  const rewardToken = ids.tlend_token || xlm;
+
+  if (has("lending") && has("multisig_admin")) {
+    // Loan requests need at least one whitelisted collateral asset; native
+    // XLM is the default the borrower form uses. whitelist_asset is
+    // multisig-gated, so it goes through propose + execute.
+    proposeAndExecute(
+      ids.multisig_admin,
+      adminAddress,
+      JSON.stringify({ WhitelistAsset: [ids.lending, xlm] }),
+      options,
+      "WhitelistAsset (native XLM)"
+    );
+  }
+
+  if (has("referral_rewards") && has("lending")) {
+    // 10 XLM bonus at a 100 XLM reference loan, capped at 3x, min 10 XLM loans.
+    const config = JSON.stringify({
+      base_bonus: "100000000",
+      reference_loan_amount: "1000000000",
+      max_size_multiplier_bps: 30000,
+      min_qualifying_loan: "100000000",
+      max_referrals_per_referrer: 0,
+    });
+    invoke(
+      ids.referral_rewards,
+      "initialize",
+      [
+        "--admin", adminAddress,
+        "--reward_token", rewardToken,
+        "--lending_contract", ids.lending,
+        "--config", config,
+      ],
+      options
+    );
+    invoke(
+      ids.lending,
+      "set_referral_contract",
+      ["--admin", adminAddress, "--referral", ids.referral_rewards],
+      options
+    );
+    log.ok("ReferralRewardsContract initialized and linked to Lending");
+    log.info("Fund it with reward tokens before the first referral pays out");
+  }
+
+  if (has("borrower_loyalty") && has("lending")) {
+    // 5 XLM base reward at a 100 XLM reference loan; tier multipliers 1x-2x.
+    const config = JSON.stringify({
+      base_amount: "50000000",
+      reference_loan_amount: "1000000000",
+      max_duration_multiplier_bps: 20000,
+      tier_none_multiplier_bps: 10000,
+      tier_beginner_multiplier_bps: 11000,
+      tier_silver_multiplier_bps: 12500,
+      tier_gold_multiplier_bps: 15000,
+      tier_platinum_multiplier_bps: 20000,
+    });
+    invoke(
+      ids.borrower_loyalty,
+      "initialize",
+      [
+        "--admin", adminAddress,
+        "--reward_token", rewardToken,
+        "--lending_contract", ids.lending,
+        "--config", config,
+      ],
+      options
+    );
+    invoke(
+      ids.lending,
+      "set_loyalty_contract",
+      ["--admin", adminAddress, "--loyalty", ids.borrower_loyalty],
+      options
+    );
+    log.ok("BorrowerLoyaltyContract initialized and linked to Lending");
+  }
+
+  if (has("treasury")) {
+    const insuranceFund = process.env.INSURANCE_FUND_ADDRESS ?? ids.default_management ?? adminAddress;
+    const daoTreasury = process.env.DAO_TREASURY_ADDRESS ?? adminAddress;
+    invoke(
+      ids.treasury,
+      "initialize",
+      [
+        "--admin", adminAddress,
+        "--insurance_fund", insuranceFund,
+        "--dao_treasury", daoTreasury,
+        "--insurance_share_bps", "5000",
+        "--dao_share_bps", "5000",
+      ],
+      options
+    );
+    log.ok("TreasuryContract initialized (50/50 insurance / DAO split)");
+  }
+
+  if (has("auto_compound_vault") && has("lending")) {
+    invoke(
+      ids.auto_compound_vault,
+      "initialize",
+      [
+        "--admin", adminAddress,
+        "--asset_token", xlm,
+        "--lending_contract", ids.lending,
+        "--harvest_fee_bps", "100",
+      ],
+      options
+    );
+    log.ok("AutoCompoundVaultContract initialized (1% harvest fee)");
+  }
+
+  if (has("liquidation_auction")) {
+    invoke(ids.liquidation_auction, "initialize", ["--admin", adminAddress], options);
+    log.ok("LiquidationAuctionContract initialized");
+  }
+
+  if (has("zk_credit_verifier")) {
+    invoke(ids.zk_credit_verifier, "initialize", ["--admin", adminAddress], options);
+    log.ok("ZkCreditVerifierContract initialized");
+  }
+
+  if (has("usdc_lending_pool")) {
+    const usdc = process.env.USDC_TOKEN_ADDRESS;
+    if (usdc) {
+      invoke(
+        ids.usdc_lending_pool,
+        "initialize",
+        ["--admin", adminAddress, "--usdc_token", usdc, "--annual_yield_bps", "800"],
+        options
+      );
+      log.ok("UsdcLendingPoolContract initialized (8% APY)");
+    } else {
+      log.info("Skipping USDC pool initialization — set USDC_TOKEN_ADDRESS to enable it");
+    }
   }
 }
 

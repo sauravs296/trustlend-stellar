@@ -18,6 +18,7 @@ interface MarketplaceLoan {
   trust_score: number;
   borrower_name: string;
   borrower_wallet: string;
+  onchain_loan_id?: number | null;
 }
 
 interface LoanMarketplaceProps {
@@ -210,6 +211,7 @@ export function LoanMarketplace({
                             duration_days: loan.duration_days,
                             trust_score: loan.trust_score,
                             borrower_wallet: loan.borrower_wallet,
+                            onchain_loan_id: loan.onchain_loan_id ?? null,
                           }}
                           onClose={() => setExpandedId(null)}
                         />

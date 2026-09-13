@@ -6,13 +6,23 @@
 
 import {
   callContract,
+  invokeContract,
   simulateContractCall,
   addressToScVal,
   u32ToScVal,
   i128ToScVal,
   bytesToScVal,
+  enumToScVal,
+  structToScVal,
+  vecToScVal,
 } from "@/lib/stellar/soroban";
-import type { LoanRecord, LoanStatus, PaymentRecord, InterestRateModel, CollateralEntry } from "@/types/contracts";
+import type {
+  LoanRecord,
+  LoanStatus,
+  PaymentRecord,
+  InterestRateModel,
+  ReputationTier,
+} from "@/types/contracts";
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ID!;
 
@@ -384,45 +394,71 @@ export async function flashLoan(
   });
 }
 
+/** Numeric tier the contract stores next to each loan (0 = None … 4 = Platinum). */
+export const REPUTATION_TIER_INDEX: Record<ReputationTier, number> = {
+  None: 0,
+  Beginner: 1,
+  Silver: 2,
+  Gold: 3,
+  Platinum: 4,
+};
+
+export interface CreateLoanRequestParams {
+  borrowerAddress: string;
+  amountStroops: bigint;
+  durationDays: number;
+  /** From `ReputationContract.calculate_interest_rate`. */
+  interestRateBps: number;
+  /** From `ReputationContract.calculate_max_loan`. */
+  maxLoanAmountStroops: bigint;
+  /** At least one whitelisted asset; the contract checks borrowing power. */
+  collateralEntries: { asset: string; amount: bigint }[];
+  rateModel?: InterestRateModel;
+  reputationTier?: ReputationTier;
+}
+
+export interface CreateLoanRequestResult {
+  /** The on-chain loan id (`LoanRecord.id`). */
+  loanId: number;
+  /** Hash of the create_loan_request transaction, verified server-side. */
+  txHash: string;
+}
+
 /**
- * Borrower creates a loan request.
- * `interestRateBps` and `maxLoanAmount` should be fetched from the
- * ReputationContract first and passed here.
+ * Encode `LoanRequestInput` exactly as the contract declares it. Exported so
+ * tests can assert the wire format without a network.
+ */
+export function encodeLoanRequestInput(params: CreateLoanRequestParams) {
+  return structToScVal({
+    amount: i128ToScVal(params.amountStroops),
+    duration_days: u32ToScVal(params.durationDays),
+    interest_rate_bps: u32ToScVal(params.interestRateBps),
+    max_loan_amount: i128ToScVal(params.maxLoanAmountStroops),
+    collateral_entries: vecToScVal(
+      params.collateralEntries.map((entry) =>
+        structToScVal({ asset: addressToScVal(entry.asset), amount: i128ToScVal(entry.amount) }),
+      ),
+    ),
+    rate_model: enumToScVal(params.rateModel ?? "Fixed"),
+    reputation_tier: u32ToScVal(REPUTATION_TIER_INDEX[params.reputationTier ?? "None"]),
+  });
+}
+
+/**
+ * Borrower creates a loan request. Signed by the borrower's wallet; the
+ * returned id and hash are sent to POST /api/loans/apply, which verifies them
+ * against Soroban RPC before creating the database row.
  */
 export async function createLoanRequest(
-  borrowerAddress: string,
-  amountStroops: bigint,
-  durationDays: number,
-  interestRateBps: number,
-  maxLoanAmountStroops: bigint,
-  collateralEntries: { asset: string; amount: bigint }[],
-  rateModel: InterestRateModel = "Fixed",
-): Promise<number> {
-  // Build the LoanRequestInput struct
-  const collateralEntriesScVal = collateralEntries.map((e) => ({
-    asset: addressToScVal(e.asset),
-    amount: i128ToScVal(e.amount),
-  }));
-  const rateModelScVal = { type: "symbol", value: rateModel };
-  const requestInput = {
-    amount: i128ToScVal(amountStroops),
-    duration_days: u32ToScVal(durationDays),
-    interest_rate_bps: u32ToScVal(interestRateBps),
-    max_loan_amount: i128ToScVal(maxLoanAmountStroops),
-    collateral_entries: collateralEntriesScVal,
-    rate_model: rateModelScVal,
-  };
-  const result = await callContract({
+  params: CreateLoanRequestParams,
+): Promise<CreateLoanRequestResult> {
+  const { returnValue, hash } = await invokeContract({
     contractId: CONTRACT_ID,
     method: "create_loan_request",
-    args: [
-      addressToScVal(borrowerAddress),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      requestInput as any,
-    ],
-    callerAddress: borrowerAddress,
+    args: [addressToScVal(params.borrowerAddress), encodeLoanRequestInput(params)],
+    callerAddress: params.borrowerAddress,
   });
-  return Number(result);
+  return { loanId: Number(returnValue), txHash: hash };
 }
 
 /**
@@ -467,8 +503,8 @@ export async function approveLoan(
   lenderAddress: string,
   loanId: number,
   escrowId: number
-) {
-  return callContract({
+): Promise<{ txHash: string }> {
+  const { hash } = await invokeContract({
     contractId: CONTRACT_ID,
     method: "approve_loan",
     args: [
@@ -478,6 +514,7 @@ export async function approveLoan(
     ],
     callerAddress: lenderAddress,
   });
+  return { txHash: hash };
 }
 
 /**

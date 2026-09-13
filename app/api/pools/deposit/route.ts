@@ -3,8 +3,11 @@ import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { ledgerTransactions, lendingPools, poolPositions } from "@/lib/db/schema";
+import { ledgerTransactions, lendingPools, poolPositions, profiles } from "@/lib/db/schema";
 import { requireKycVerified } from "@/lib/kyc/middleware";
+import { syncPoolOnchain } from "@/lib/pools/onchain";
+import { platformWalletAddress } from "@/lib/stellar/platform-wallet";
+import { PAYMENT_MEMO, verifyPaymentTransaction } from "@/lib/stellar/verify-payment";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 /**
@@ -13,9 +16,12 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
  * Body: { poolId, amount, txHash, lenderAddress }
  *
  * Flow:
- *   1. Lender signs a real Stellar payment tx in Freighter (client-side)
+ *   1. Lender signs a real Stellar payment to the platform wallet (client-side)
  *   2. Client passes the confirmed tx hash here
- *   3. We verify the tx hash is non-empty, then record the position
+ *   3. The payment is verified against Horizon (signed by the lender's wallet,
+ *      memo bound to this pool, `amount` XLM delivered to the platform wallet)
+ *   4. The position and pool liquidity are recorded, then mirrored to the
+ *      PooledLendingContract
  */
 export async function POST(request: NextRequest) {
   try {
@@ -87,6 +93,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Pool not found or inactive" }, { status: 404 });
     }
 
+    // ── Verify the payment on-chain before crediting anything ────────────────
+    const platformWallet = platformWalletAddress();
+    if (!platformWallet) {
+      return NextResponse.json(
+        { error: "Pool deposits are not configured (NEXT_PUBLIC_PLATFORM_STELLAR_ADDRESS is missing)" },
+        { status: 503 }
+      );
+    }
+
+    const [lenderProfile] = await db
+      .select({ walletAddress: profiles.walletAddress })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
+    const lenderWallets = new Set(
+      [user.walletAddress, lenderProfile?.walletAddress].filter(
+        (w): w is string => typeof w === "string" && w.length > 0
+      )
+    );
+    if (!lenderAddress || !lenderWallets.has(lenderAddress)) {
+      return NextResponse.json(
+        { error: "lenderAddress does not match a wallet linked to your account" },
+        { status: 400 }
+      );
+    }
+
+    const verification = await verifyPaymentTransaction({
+      txHash,
+      expectedSource: lenderAddress,
+      expectedMemo: PAYMENT_MEMO.deposit(poolId),
+      expectedPayments: [{ destination: platformWallet, minAmount: amount }],
+    });
+    if (!verification.ok) {
+      return NextResponse.json(
+        { error: `Payment verification failed: ${verification.reason}` },
+        { status: verification.status }
+      );
+    }
+
     // Upsert pool position (add to existing or create new)
     const [existingPosition] = await db
       .select({ id: poolPositions.id })
@@ -128,13 +173,17 @@ export async function POST(request: NextRequest) {
       status: "confirmed",
       refType: "pool_position",
       refId: position.id,
-      metadata: { txHash, lenderAddress: lenderAddress ?? null, poolId },
+      metadata: { txHash, lenderAddress, poolId, verifiedLedger: verification.ledger },
     });
+
+    // ── Mirror pool totals to the PooledLendingContract ──────────────────────
+    const onchain = await syncPoolOnchain(db, poolId);
 
     return NextResponse.json(
       {
         position,
         txHash,
+        onchain,
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${txHash}`,
       },
       { status: 201 }

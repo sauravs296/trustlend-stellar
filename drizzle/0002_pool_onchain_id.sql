@@ -1,0 +1,1 @@
+ALTER TABLE "lending_pools" ADD COLUMN "onchain_pool_id" integer;

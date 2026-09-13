@@ -13,6 +13,7 @@ import { getDb, type Db } from "@/lib/db/client";
 import { fetchActivePoolsWithLiquidity, fetchPoolById } from "@/lib/db/pools";
 import { lendingPools, loans } from "@/lib/db/schema";
 import { sendLoanApprovedEmail } from "@/lib/email/resend";
+import { registerPoolOnchain } from "@/lib/pools/onchain";
 
 async function requireAdmin(): Promise<{ db: Db }> {
   await requireApiAdmin();
@@ -42,15 +43,26 @@ export async function createLendingPool(
     if (!aprBps || aprBps <= 0 || aprBps > 10000)
       return { success: false, error: "APR must be between 0.01% and 100%" };
 
-    await db.insert(lendingPools).values({
-      name,
-      description: description || null,
-      status: "active",
-      aprBps,
-      totalLiquidity: "0",
-      availableLiquidity: "0",
-      borrowCap: borrowCap === null ? null : String(borrowCap),
-    });
+    const [created] = await db
+      .insert(lendingPools)
+      .values({
+        name,
+        description: description || null,
+        status: "active",
+        aprBps,
+        totalLiquidity: "0",
+        availableLiquidity: "0",
+        borrowCap: borrowCap === null ? null : String(borrowCap),
+      })
+      .returning({ id: lendingPools.id });
+
+    // Give the pool an id on the PooledLendingContract so deposits and
+    // withdrawals can be mirrored. Best-effort: the pool works off-chain
+    // either way, and the outcome is surfaced to the admin.
+    const onchain = created ? await registerPoolOnchain(db, created.id) : null;
+    if (onchain && onchain.attempted && !onchain.ok) {
+      return { success: true, error: `Pool created, but on-chain registration failed: ${onchain.error}` };
+    }
 
     return { success: true };
   } catch (err) {

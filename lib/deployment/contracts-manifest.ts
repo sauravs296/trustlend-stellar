@@ -101,6 +101,57 @@ export const CONTRACTS: ContractSpec[] = [
     envVar: "NEXT_PUBLIC_TLEND_AIRDROP_CONTRACT_ID",
     required: false,
   },
+  // ── Contracts the lending contract calls into (Phase 2.2) ────────────────
+  {
+    key: "referral_rewards",
+    label: "ReferralRewardsContract",
+    wasm: "referral_rewards.wasm",
+    envVar: "NEXT_PUBLIC_REFERRAL_REWARDS_CONTRACT_ID",
+    required: false,
+  },
+  {
+    key: "borrower_loyalty",
+    label: "BorrowerLoyaltyContract",
+    wasm: "borrower_loyalty.wasm",
+    envVar: "NEXT_PUBLIC_BORROWER_LOYALTY_CONTRACT_ID",
+    required: false,
+  },
+  {
+    key: "treasury",
+    label: "TreasuryContract",
+    wasm: "treasury.wasm",
+    envVar: "NEXT_PUBLIC_TREASURY_CONTRACT_ID",
+    required: false,
+  },
+  // ── Standalone protocol modules ──────────────────────────────────────────
+  {
+    key: "auto_compound_vault",
+    label: "AutoCompoundVaultContract",
+    wasm: "auto_compound_vault.wasm",
+    envVar: "NEXT_PUBLIC_AUTO_COMPOUND_VAULT_CONTRACT_ID",
+    required: false,
+  },
+  {
+    key: "liquidation_auction",
+    label: "LiquidationAuctionContract",
+    wasm: "liquidation_auction.wasm",
+    envVar: "NEXT_PUBLIC_LIQUIDATION_AUCTION_CONTRACT_ID",
+    required: false,
+  },
+  {
+    key: "usdc_lending_pool",
+    label: "UsdcLendingPoolContract",
+    wasm: "usdc_lending_pool.wasm",
+    envVar: "NEXT_PUBLIC_USDC_LENDING_POOL_CONTRACT_ID",
+    required: false,
+  },
+  {
+    key: "zk_credit_verifier",
+    label: "ZkCreditVerifierContract",
+    wasm: "zk_credit_verifier.wasm",
+    envVar: "NEXT_PUBLIC_ZK_CREDIT_VERIFIER_CONTRACT_ID",
+    required: false,
+  },
 ];
 
 export const CONTRACT_KEYS = CONTRACTS.map((contract) => contract.key);

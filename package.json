@@ -10,6 +10,7 @@
     "e2e:seed": "node scripts/e2e-seed-and-run.mjs",
     "deploy:testnet": "tsx scripts/deploy-testnet.ts",
     "deploy:testnet:dry": "tsx scripts/deploy-testnet.ts --dry-run",
+    "verify:onchain": "tsx scripts/verify-onchain-lifecycle.ts",
     "oracle:post": "node scripts/oracle-post-credit-score.mjs",
     "liquidation:keeper": "tsx scripts/liquidation-keeper.ts",
     "price:oracle": "tsx scripts/price-oracle-keeper.ts",
