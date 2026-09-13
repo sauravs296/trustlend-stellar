@@ -82,6 +82,7 @@ export default async function LenderMarketplacePage({
         loan.borrower_name ?? `Borrower ${String(loan.borrower_id).slice(0, 6)}`,
       ),
       borrower_wallet: String(loan.borrower_wallet ?? ""),
+      onchain_loan_id: loan.onchain_loan_id ?? null,
     }))
     // Drop anything already at 100% (the query filters these too; belt and braces).
     .filter((loan) => !getFundingProgress(loan.principal_amount, loan.funded_amount).isFullyFunded);

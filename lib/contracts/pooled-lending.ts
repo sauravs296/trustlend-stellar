@@ -1,9 +1,11 @@
+import type { xdr } from "@stellar/stellar-sdk";
 import {
   simulateContractCall,
   callContract,
   addressToScVal,
   u32ToScVal,
   i128ToScVal,
+  structToScVal,
 } from "@/lib/stellar/soroban";
 import type { PoolConfig, PoolData } from "@/types/contracts";
 
@@ -105,8 +107,7 @@ export async function setPoolConfig(
     args: [
       addressToScVal(adminAddress),
       u32ToScVal(poolId),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      encodePoolConfig(config) as any,
+      encodePoolConfig(config),
     ],
     callerAddress: adminAddress,
   });
@@ -142,8 +143,7 @@ export async function initializePool(
     args: [
       addressToScVal(adminAddress),
       u32ToScVal(poolId),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      encodePoolConfig(config) as any,
+      encodePoolConfig(config),
     ],
     callerAddress: adminAddress,
   });
@@ -171,12 +171,12 @@ function decodePoolData(raw: unknown): PoolData {
   };
 }
 
-function encodePoolConfig(config: PoolConfig): unknown {
-  return {
+export function encodePoolConfig(config: PoolConfig): xdr.ScVal {
+  return structToScVal({
     base_rate_bps: u32ToScVal(config.baseRateBps),
     multiplier_per_slope_bps: u32ToScVal(config.multiplierPerSlopeBps),
     jump_multiplier_bps: u32ToScVal(config.jumpMultiplierBps),
     kink_bps: u32ToScVal(config.kinkBps),
     reserve_factor_bps: u32ToScVal(config.reserveFactorBps),
-  };
+  });
 }

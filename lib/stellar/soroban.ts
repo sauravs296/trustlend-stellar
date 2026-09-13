@@ -77,6 +77,23 @@ export function tupleEnumToScVal(variant: string, fields: xdr.ScVal[]): xdr.ScVa
   return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(variant), ...fields]);
 }
 
+/**
+ * Encode a `#[contracttype]` struct as an ScMap. Soroban requires map keys to
+ * be sorted, so the entries are ordered by field name regardless of how the
+ * caller listed them.
+ */
+export function structToScVal(fields: Record<string, xdr.ScVal>): xdr.ScVal {
+  const entries = Object.keys(fields)
+    .sort()
+    .map((key) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(key), val: fields[key] }));
+  return xdr.ScVal.scvMap(entries);
+}
+
+/** Encode a `Vec<T>` of already-encoded values. */
+export function vecToScVal(items: xdr.ScVal[]): xdr.ScVal {
+  return xdr.ScVal.scvVec(items);
+}
+
 /** Decode an ScVal returned by the contract back to a native JS value. */
 export function decodeScVal(val: xdr.ScVal): unknown {
   return scValToNative(val);
@@ -142,16 +159,32 @@ async function getAccountSequence(address: string): Promise<string> {
 
 // ─── Write: build → simulate → assemble → sign → submit → poll ───────────────
 
+export interface InvokeContractResult {
+  /** Decoded contract return value, or `null` for void functions. */
+  returnValue: unknown;
+  /** Hash of the submitted transaction — send it to the API for verification. */
+  hash: string;
+}
+
 /**
  * Full transaction flow without any SDK RPC calls.
  * Returns the decoded contract return value, or `null` for void functions.
  */
-export async function callContract({
+export async function callContract(options: CallContractOptions): Promise<unknown> {
+  const { returnValue } = await invokeContract(options);
+  return returnValue;
+}
+
+/**
+ * Like `callContract` but also returns the transaction hash, which the API
+ * routes verify against Soroban RPC before trusting the call happened.
+ */
+export async function invokeContract({
   contractId,
   method,
   args,
   callerAddress,
-}: CallContractOptions): Promise<unknown> {
+}: CallContractOptions): Promise<InvokeContractResult> {
   // ── 1. Fetch account sequence from Horizon REST API ──────────────────────
   // (Soroban RPC has no getAccount — account data lives on Horizon)
   const originalSequence = await getAccountSequence(callerAddress);
@@ -255,9 +288,12 @@ export async function callContract({
       // Invalidate the cache for this contract since its state has changed
       await invalidateContractCache(contractId).catch(() => {});
 
-      return txResult.returnValue
-        ? decodeScVal(xdr.ScVal.fromXDR(txResult.returnValue, "base64"))
-        : null;
+      return {
+        hash,
+        returnValue: txResult.returnValue
+          ? decodeScVal(xdr.ScVal.fromXDR(txResult.returnValue, "base64"))
+          : null,
+      };
     }
     if (txResult.status === "FAILED") {
       throw new Error(`Transaction failed on-chain: hash=${hash}`);

@@ -3,10 +3,27 @@ import { and, desc, eq, gte, notInArray } from "drizzle-orm";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { enforceRouteRateLimit } from "@/lib/rate-limit";
 import { getDb } from "@/lib/db/client";
-import { ledgerTransactions, lendingPools, loans, reputationSnapshots } from "@/lib/db/schema";
+import { ledgerTransactions, lendingPools, loans, profiles, reputationSnapshots } from "@/lib/db/schema";
 import { requireKycVerified } from "@/lib/kyc/middleware";
+import { verifyOnchainLoanRequest } from "@/lib/loans/onchain";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
+/**
+ * POST /api/loans/apply
+ *
+ * Body: { amount, durationDays, rateModel, onchainLoanId?, onchainTxHash?, walletAddress?, preflight? }
+ *
+ * `preflight: true` runs every validation (KYC, limits, one-active-loan,
+ * credit limit) and returns the APR without creating anything, so the client
+ * can check eligibility before asking the wallet to sign the on-chain request.
+ *
+ * When the on-chain lifecycle is enabled (NEXT_PUBLIC_ONCHAIN_LOAN_LIFECYCLE,
+ * see lib/stellar/onchain-lifecycle.ts) the borrower must first sign
+ * `create_loan_request` on the LendingContract and send the resulting loan id
+ * and transaction hash. The server verifies that transaction and the on-chain
+ * record (borrower, amount, duration) before the database row is created, and
+ * links the two through `loans.metadata.onchain_loan_id`.
+ */
 export async function POST(request: NextRequest) {
   try {
     const rateLimitResponse = await enforceRouteRateLimit(request);
@@ -34,6 +51,10 @@ export async function POST(request: NextRequest) {
     const amount: number = body.amount;
     const durationDays: number = body.durationDays ?? body.duration_days;
     const rateModel: string = (body.rateModel ?? body.rate_model ?? "fixed").toLowerCase();
+    const onchainLoanId: unknown = body.onchainLoanId ?? body.onchain_loan_id;
+    const onchainTxHash: unknown = body.onchainTxHash ?? body.onchain_tx_hash;
+    const walletAddress: unknown = body.walletAddress ?? body.wallet_address;
+    const preflight = body.preflight === true;
 
     const MIN_BORROW_AMOUNT = 1; // Minimum 1 XLM to prevent dust/spam loans
 
@@ -109,6 +130,30 @@ export async function POST(request: NextRequest) {
       else if (amount > 1000) aprBps = 1200;  // 12%
     }
 
+    if (preflight) {
+      return NextResponse.json({ ok: true, aprBps, rateModel, maxLoan, reputationScore }, { status: 200 });
+    }
+
+    // ── 3b. Verify the on-chain loan request (mandatory when enabled) ────────
+    const [borrowerProfile] = await db
+      .select({ walletAddress: profiles.walletAddress })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
+
+    const onchain = await verifyOnchainLoanRequest({
+      db,
+      onchainLoanId,
+      onchainTxHash,
+      walletAddress: typeof walletAddress === "string" ? walletAddress : "",
+      borrowerWallets: [user.walletAddress, borrowerProfile?.walletAddress ?? ""],
+      amountXlm: amount,
+      durationDays: Number(durationDays),
+    });
+    if (!onchain.ok) {
+      return NextResponse.json({ error: onchain.reason }, { status: onchain.status });
+    }
+
     // ── 4. Try to auto-assign a pool with enough liquidity and headroom under cap ─
     const availablePools = await db
       .select({
@@ -143,7 +188,7 @@ export async function POST(request: NextRequest) {
         durationDays: Number(durationDays),
         rateModel,
         status: "requested",
-        metadata: { rate_model: rateModel },
+        metadata: { rate_model: rateModel, ...onchain.metadata },
       })
       .returning();
 
@@ -164,6 +209,8 @@ export async function POST(request: NextRequest) {
           aprBps,
           rateModel,
           fundingPath: poolId ? "pool" : "direct",
+          onchainLoanId: onchain.metadata.onchain_loan_id ?? null,
+          onchainTxHash: onchain.metadata.onchain_request_tx ?? null,
         },
       });
     } catch (ledgerError) {
@@ -186,6 +233,7 @@ export async function POST(request: NextRequest) {
       {
         loan,
         rateModel,
+        onchain: onchain.metadata,
         fundingPath: poolId ? "pool" : "direct",
         message: poolId
           ? `Your ${rateModel}-rate loan request has been submitted. A lending pool has been assigned — it will be processed shortly.`

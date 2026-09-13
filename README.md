@@ -108,8 +108,8 @@ flowchart LR
 1. **Onboard** — the user signs a SEP-10 challenge with their wallet, completes KYC, and a reputation profile is initialised.
 2. **Request** — the borrower submits a loan request; the backend reads `calculate_max_loan` / `calculate_interest_rate` from the reputation contract.
 3. **Fund** — a lender funds the request; funds are locked via the escrow contract.
-4. **Disburse** — after the revocation window the escrow releases funds and the loan is activated.
-5. **Repay** — repayments are recorded; on-time payments add reputation events, late ones flow into default management.
+4. **Activate** — the lender's payment is verified on Horizon, the lender approves the loan on-chain and the server activates it.
+5. **Repay** — the repayment is verified on Horizon and recorded on the contract; on-time payments add reputation events, late ones flow into default management.
 
 See [docs/](docs/) for detailed design notes on each subsystem.
 
@@ -153,6 +153,7 @@ The full walkthrough — Rust/Soroban toolchain, building and deploying contract
 | `npm run lint` · `npx tsc --noEmit` | ESLint / type check |
 | `npm run db:generate` · `npm run db:migrate` · `npm run db:studio` | Drizzle migrations & browser UI |
 | `npm run deploy:testnet` (`:dry`) | Build, deploy and wire every contract to Stellar testnet, writing IDs to `.env.local` |
+| `npm run verify:onchain` | Walk the full loan lifecycle against the deployed testnet contracts |
 | `cd contracts && cargo test` | Soroban contract tests |
 
 ---
@@ -163,23 +164,23 @@ All contracts live in the [`contracts/`](contracts/) Cargo workspace and are tes
 
 | Contract | Purpose | Frontend wiring |
 |---|---|---|
-| `lending` | Loan lifecycle, repayments, flash loans, fees | ✅ |
+| `lending` | Loan lifecycle, repayments, flash loans, fees | full lifecycle: request (borrower) → approve (lender) → activate / record_payment (server) |
 | `borrower_reputation` | Trust score, tiers, credit limits, freeze | ✅ |
 | `escrow` | Hold funds with a revocation window before disbursement | ✅ |
 | `default_management` | Mark defaults, insurance pool, payout phases | ✅ |
-| `pooled_lending` | Pool deposits auto-matched to borrower requests | ✅ |
+| `pooled_lending` | Pool deposits auto-matched to borrower requests | pool ids + totals mirrored on every deposit/withdrawal |
 | `multisig_admin` | N-of-M approval for privileged actions | ✅ |
 | `governance` | Proposals and voting on protocol parameters | ✅ |
 | `tlend_token` · `tlend_vesting` · `tlend_airdrop` | Protocol token, vesting schedules, Merkle airdrop | ✅ |
-| `referral_rewards` | Pays referral bonuses on first funded loan | called by `lending` |
-| `treasury` | Fee collection and distribution | contract only |
-| `auto_compound_vault` | Auto-compounding yield vault | contract only |
-| `liquidation_auction` | Dutch auction for liquidated collateral | contract only |
-| `usdc_lending_pool` | USDC-denominated pool | contract only |
-| `borrower_loyalty` | Loyalty rewards for repeat borrowers | called by `lending` |
-| `zk_credit_verifier` | ZK proof verification for off-chain credit data | contract only |
+| `referral_rewards` | Pays referral bonuses on first funded loan | linked to `lending` at deploy; typed client |
+| `borrower_loyalty` | Loyalty rewards for repeat borrowers | linked to `lending` at deploy; typed client |
+| `treasury` | Fee collection and distribution | deployed + typed client |
+| `auto_compound_vault` | Auto-compounding yield vault | deployed + typed client |
+| `liquidation_auction` | Dutch auction for liquidated collateral | deployed + typed client |
+| `usdc_lending_pool` | USDC-denominated pool | deployed + typed client (needs `USDC_TOKEN_ADDRESS`) |
+| `zk_credit_verifier` | ZK proof verification for off-chain credit data | deployed + typed client |
 
-"Contract only" crates are deployed and tested but not yet called from the app — see the [roadmap](docs/roadmap.md).
+Every client-submitted transaction hash is verified against Horizon / Soroban RPC before it is credited, and loans are recorded on the `LendingContract` end to end — see [docs/onchain-lifecycle.md](docs/onchain-lifecycle.md). The last six crates have typed clients in [`lib/contracts/`](lib/contracts/) but no dashboard screens yet; see the [roadmap](docs/roadmap.md).
 
 `npm run deploy:testnet` records the deployed contract IDs locally in `contracts/.deployments/<network>.json` and writes the matching `NEXT_PUBLIC_*_CONTRACT_ID` keys (listed in [`.env.example`](.env.example)) into `.env.local`.
 
@@ -191,6 +192,7 @@ All contracts live in the [`contracts/`](contracts/) Cargo workspace and are tes
 |---|---|
 | Local setup, toolchain, tests | [docs/getting-started.md](docs/getting-started.md) |
 | Authentication (SEP-10) | [docs/auth-siws.md](docs/auth-siws.md) |
+| On-chain loan lifecycle & payment verification | [docs/onchain-lifecycle.md](docs/onchain-lifecycle.md) |
 | Public API | [docs/api.md](docs/api.md) |
 | Rate limiting | [docs/rate-limiting.md](docs/rate-limiting.md) |
 | Payment-due notifications & email | [docs/payment-due-scheduler.md](docs/payment-due-scheduler.md) |

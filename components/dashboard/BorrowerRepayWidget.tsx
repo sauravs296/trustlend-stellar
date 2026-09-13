@@ -1,4 +1,5 @@
 "use client";
+import { PAYMENT_MEMO } from "@/lib/stellar/verify-payment";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -376,7 +377,7 @@ export function BorrowerRepayWidget({
         );
       }
 
-      builder.addMemo(Memo.text(`TL-RPY:${loan.id.slice(0, 12)}`));
+      builder.addMemo(Memo.text(PAYMENT_MEMO.repay(loan.id)));
       builder.setTimeout(180);
 
       const tx = builder.build();

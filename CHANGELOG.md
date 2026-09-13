@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Funding, pool-deposit and repayment APIs verify the submitted Stellar
+  transaction against Horizon (success, signer, loan-bound memo, amount and
+  destination) before crediting anything; previously any hash was accepted.
+- Pool withdrawals are paid from the platform wallet by the server
+  (`PLATFORM_WALLET_SECRET`) and refused when it cannot sign; previously the
+  position was reduced without any XLM moving.
+
 ### Added
+- End-to-end on-chain loan lifecycle: mandatory, verified
+  `create_loan_request`; lender-signed `approve_loan`; server-signed
+  `activate_loan`, `record_payment` and pooled-lending state sync;
+  `NEXT_PUBLIC_ONCHAIN_LOAN_LIFECYCLE` switch; `lending_pools.onchain_pool_id`
+  (migration 0002). See docs/onchain-lifecycle.md.
+- `npm run deploy:testnet` now deploys and initialises all 17 contracts,
+  links referral / loyalty rewards to lending, whitelists native XLM as
+  collateral and accepts `--out-env`. Typed clients for treasury, loyalty,
+  referral rewards, auto-compound vault, liquidation auction, USDC pool and
+  ZK credit verifier.
+- `scripts/verify-onchain-lifecycle.ts` walks the full lifecycle against a
+  live testnet deployment.
 - Token-based design system (`app/theme.css`, `components/ui/`) with light,
   dark and system themes, shared framer-motion presets and animated stat
   components; landing, auth and dashboard shell rebuilt on it (#314).
@@ -45,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead code, the indexer stack, stale documentation and unused assets (#311).
 
 ### Fixed
+- `create_loan_request` and `set_pool_config` were called with plain JS
+  objects instead of Soroban structs (and without `reputation_tier`), so the
+  browser-side contract calls could never succeed.
+- All contract crates were `rlib`-only, so `stellar contract build` produced
+  WASM for one of seventeen contracts; they are `cdylib` again.
 - Chart area fills rendered black because a CSS variable was used as an SVG
   gradient id (#314).
 - Contract CI job: `usdc_lending_pool` arithmetic widths, token transfer

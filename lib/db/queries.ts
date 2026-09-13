@@ -127,6 +127,8 @@ export interface MarketplaceLoan {
   borrower_name: string;
   borrower_wallet: string;
   trust_score: number;
+  /** LendingContract loan id, when the request was created on-chain. */
+  onchain_loan_id: number | null;
 }
 
 /**
@@ -148,6 +150,7 @@ export async function getMarketplaceLoans(db: Db | null): Promise<MarketplaceLoa
       borrower_wallet: profiles.walletAddress,
       trust_score: reputationSnapshots.scoreTotal,
       lender_count: sql<number>`(select count(*)::int from ${loanFundings} lf where lf.loan_id = ${loans.id})`,
+      onchain_loan_id: sql<number | null>`(${loans.metadata}->>'onchain_loan_id')::int`,
     })
     .from(loans)
     .leftJoin(profiles, eq(profiles.id, loans.borrowerId))
@@ -167,5 +170,6 @@ export async function getMarketplaceLoans(db: Db | null): Promise<MarketplaceLoa
       r.borrower_name && r.borrower_name.trim() !== "" ? r.borrower_name : `Borrower ${r.borrower_id.slice(0, 6)}`,
     borrower_wallet: r.borrower_wallet ?? "",
     trust_score: r.trust_score ?? 250,
+    onchain_loan_id: r.onchain_loan_id ?? null,
   }));
 }

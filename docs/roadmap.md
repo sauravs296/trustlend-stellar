@@ -25,21 +25,25 @@ contribution. Comment on or open an issue if you want to pick something up.
   encrypted backups and a documented restore procedure.
 - CI: contract tests + WASM build, type check, lint, unit tests, production
   build, Playwright E2E, formal verification (proptest / Kani), coverage.
+- Server-side verification of every client-submitted payment (funding, pool
+  deposits, repayments) against Horizon before it is credited; pool
+  withdrawals paid out from the platform wallet by the server.
+- Full on-chain loan lifecycle: borrower-signed `create_loan_request`
+  (mandatory, verified on Soroban RPC), lender-signed `approve_loan`,
+  server-signed `activate_loan` / `record_payment`, pool state mirrored to the
+  pooled-lending contract. See [onchain-lifecycle.md](onchain-lifecycle.md).
+- One-command deployment of all 17 contracts with referral, loyalty, treasury,
+  vault, auction, USDC pool and ZK verifier initialised and linked, native XLM
+  whitelisted as collateral, and typed clients for each in `lib/contracts/`.
 
 ## In progress
 
-- **On-chain verification of client-submitted transactions.** Funding,
-  pool-deposit and repayment endpoints currently trust the `txHash` supplied by
-  the client; the server will verify the transaction on Soroban RPC (success,
-  amount, destination) before crediting anything.
-- **Full contract wiring.** Route the remaining lifecycle calls
-  (`activate_loan`, `record_payment`, pooled lending) through the contracts
-  from the app and make on-chain loan creation mandatory rather than optional.
-- **Wire the standalone contracts** — treasury, auto-compound vault,
-  liquidation auction, USDC lending pool, borrower loyalty and the ZK credit
-  verifier are built and tested but not yet used by the frontend.
-- Generated TypeScript bindings for every contract instead of hand-written
-  invocation helpers.
+- **Dashboard screens for the standalone contracts** — treasury (fee
+  collection & distribution), auto-compound vault, liquidation auctions, the
+  USDC pool and ZK credit verification have typed clients but no UI yet.
+- **Escrow-backed direct funding.** Marketplace loans are paid straight to the
+  borrower (escrow id 0); routing them through the escrow contract's
+  revocation window is the next step.
 
 ## Planned
 

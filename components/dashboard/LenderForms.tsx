@@ -1,4 +1,5 @@
 "use client";
+import { PAYMENT_MEMO } from "@/lib/stellar/verify-payment";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -662,7 +663,7 @@ export function LenderForms({
           amount: amount.toFixed(7),
         }),
       )
-      .addMemo(Memo.text(`TL-DEPOSIT:${poolId.slice(0, 12)}`))
+      .addMemo(Memo.text(PAYMENT_MEMO.deposit(poolId)))
       .setTimeout(120)
       .build();
 
