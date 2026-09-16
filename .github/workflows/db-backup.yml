@@ -26,6 +26,7 @@ jobs:
   backup:
     name: Dump, encrypt and upload to S3
     runs-on: ubuntu-latest
+    if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
     timeout-minutes: 30
     steps:
       - name: Checkout repo
